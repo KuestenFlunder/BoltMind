@@ -1,0 +1,21 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# App build output
+/app/build
+
+# Kotlin
+*.kotlin_module
+
+# Generated files
+bin/
+gen/
+out/
