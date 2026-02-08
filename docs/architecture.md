@@ -11,36 +11,67 @@ BoltMind ist eine Android-App für Kfz-Mechaniker in Autowerkstätten. Sie unter
 - Beim **Auseinanderbau** erstellt der Mechaniker eine Foto-Historie mit Teilreferenzen - Schritt für Schritt wird dokumentiert, welches Teil wo war und wo es abgelegt wird.
 - Beim **Zusammenbau** wird die Historie rückwärts abgespielt, sodass nichts vergessen wird und jedes Teil wiedergefunden werden kann.
 - Die App verwaltet **Ablageorte** für ausgebaute Teile, damit diese beim Zusammenbau schnell lokalisiert werden können.
+- Im Hintergrund wird die **Zeiterfassung** pro Schritt mitgeloggt, um später Arbeitsprozesse analysieren und besser timen zu können.
 
 ### Zielgruppe
 
-Kfz-Mechaniker in Autowerkstätten, die Reparaturen mit vielen Einzelteilen durchführen und eine visuelle Dokumentation des Demontageprozesses benötigen.
+Kfz-Mechaniker in Autowerkstätten, die Reparaturen mit vielen Einzelteilen durchführen und eine visuelle Dokumentation des Demontageprozesses benötigen. Jeder Mechaniker nutzt sein eigenes Werkstatt-Handy.
 
 ## 2. Domäne
 
-> Dieser Abschnitt wird im Rahmen der Spec-Erarbeitung weiter ausgearbeitet.
-
-### Zentrale Begriffe (vorläufig)
+### Zentrale Begriffe
 
 | Begriff | Beschreibung |
 |---------|-------------|
-| **Reparaturvorgang** | Ein abgeschlossener Reparaturauftrag an einem Fahrzeug |
-| **Schritt** | Ein einzelner Demontage-/Montageschritt mit Foto und Teilreferenz |
-| **Teil** | Eine Fahrzeugkomponente die aus-/eingebaut wird |
-| **Ablageort** | Von der App verwalteter Ort, an dem ausgebaute Teile abgelegt werden |
-| **Historie** | Chronologische Abfolge aller Schritte eines Reparaturvorgangs |
+| **Reparaturvorgang** | Ein Reparaturauftrag an einem Fahrzeug. Enthält Fahrzeug-Bezeichnung, Auftragsnummer, Beschreibung. Mehrere Vorgänge können gleichzeitig offen sein. |
+| **Schritt** | Ein einzelner Demontage-Schritt: Foto (Zustand vor Ausbau) + Ablageort. Die Granularität bestimmt der Mechaniker selbst. Jeder Schritt hat einen Zeitstempel. |
+| **Ablageort** | Physischer Ort (Werkbank, Tisch etc.) mit Nummer oder QR-Code. Wird vom Mechaniker selbst eingerichtet. Ist fest mit dem Schritt verknüpft. |
+| **Historie** | Chronologische Abfolge aller Schritte eines Reparaturvorgangs. Kann vorwärts (Demontage) und rückwärts (Montage) durchlaufen werden. |
+| **Archiv** | Abgeschlossene Reparaturvorgänge werden archiviert und bleiben einsehbar. |
+
+### Demontage-Flow (Auseinanderbau)
+
+```
+Mechaniker startet neuen Reparaturvorgang
+  → Initialdialog: Fahrzeug, Auftragsnummer, Beschreibung
+  → Schritt-Schleife:
+      1. Foto der Baugruppe (eingebauter Zustand)
+      2. Mechaniker baut Teil aus (keine App-Interaktion)
+      3. Mechaniker trägt Ablageort ein (MVP: Nummer, Final: QR-Scan)
+      4. Eingabe des Ablageorts öffnet automatisch den nächsten Schritt
+  → Zeiterfassung läuft pro Schritt im Hintergrund mit
+```
+
+### Montage-Flow (Zusammenbau)
+
+```
+Mechaniker öffnet Reparaturvorgang im Montage-Modus
+  → Historie wird rückwärts angezeigt (letzter Schritt zuerst)
+  → Pro Schritt: Foto + zugehöriger Ablageort sichtbar
+  → Mechaniker hakt erledigte Schritte ab
+  → Fortschrittsanzeige zeigt verbleibende Schritte
+```
+
+### MVP vs. Final
+
+| Aspekt | MVP | Final |
+|--------|-----|-------|
+| Ablageort-Eingabe | Nummer (Freitext/Vergabe durch Mechaniker) | QR-Code-Sticker scannen |
+| Ablageort-Registrierung | Mechaniker vergibt Nummern manuell | QR-Sticker auf Werkbank kleben und per Foto registrieren |
+| Datenhaltung | Lokal auf dem Gerät | Lokal + Sharing zwischen Mechanikern |
+| Notizen pro Schritt | Nur Foto + Ablageort | Ggf. Text-/Sprachnotiz |
+| Zeiterfassung | Sichtbar, pro Schritt | Analyse-Dashboard |
 
 ### Offene Fragen
 
-- Wie granular sind die Schritte? (pro Teil, pro Baugruppe, frei wählbar?)
-- Gibt es wiederkehrende Teile/Abläufe die als Vorlage dienen können?
-- Arbeiten mehrere Mechaniker am selben Vorgang?
-- Wie werden Ablageorte definiert und verwaltet? (Foto, Text, QR-Code?)
+- Gibt es wiederkehrende Abläufe die als Vorlage dienen könnten?
 - Gibt es eine Anbindung an bestehende Werkstatt-Software?
+- Sharing-Mechanismus: Bluetooth, WLAN, Cloud?
+- Datensicherung bei Geräteverlust?
 
 ## 3. Quality Goals
 
-> Werden nach Verständnis der Domäne und der Flows abgeleitet.
+> Werden nach Abschluss der Domänenanalyse abgeleitet.
 
 ## 4. Randbedingungen
 
@@ -52,6 +83,8 @@ Kfz-Mechaniker in Autowerkstätten, die Reparaturen mit vielen Einzelteilen durc
 | Min SDK | API 26 (Android 8.0) |
 | Kamera | CameraX für Fotoaufnahme |
 | UI Framework | Jetpack Compose mit Material3 |
+| Datenhaltung MVP | Lokal auf dem Gerät |
+| Geräte | Werkstatt-Handys (ein Gerät pro Mechaniker) |
 
 ### Organisatorisch
 
