@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.boltmind.app.feature.neuervorgang.NeuerVorgangScreen
 import com.boltmind.app.feature.neuervorgang.NeuerVorgangViewModel
+import com.boltmind.app.feature.uebersicht.NavigationsZiel
 import com.boltmind.app.feature.uebersicht.UebersichtScreen
 import com.boltmind.app.feature.uebersicht.UebersichtViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -18,6 +19,11 @@ import org.koin.androidx.compose.koinViewModel
 object BoltMindRoutes {
     const val UEBERSICHT = "uebersicht"
     const val NEUER_VORGANG = "neuer_vorgang"
+    const val DEMONTAGE = "demontage/{vorgangId}"
+    const val MONTAGE = "montage/{vorgangId}"
+
+    fun demontage(vorgangId: Long) = "demontage/$vorgangId"
+    fun montage(vorgangId: Long) = "montage/$vorgangId"
 }
 
 @Composable
@@ -33,12 +39,34 @@ fun BoltMindNavHost(
         composable(BoltMindRoutes.UEBERSICHT) {
             val viewModel: UebersichtViewModel = koinViewModel()
             val uiState by viewModel.uiState.collectAsState()
+
+            LaunchedEffect(uiState.navigationsZiel) {
+                when (val ziel = uiState.navigationsZiel) {
+                    is NavigationsZiel.Demontage -> {
+                        navController.navigate(BoltMindRoutes.demontage(ziel.vorgangId))
+                        viewModel.onNavigationAbgeschlossen()
+                    }
+                    is NavigationsZiel.Montage -> {
+                        navController.navigate(BoltMindRoutes.montage(ziel.vorgangId))
+                        viewModel.onNavigationAbgeschlossen()
+                    }
+                    null -> { /* kein Navigationsziel */ }
+                }
+            }
+
             UebersichtScreen(
                 uiState = uiState,
-                onVorgangGetippt = { viewModel.onVorgangGetippt(it) },
+                onVorgangGetippt = viewModel::onVorgangGetippt,
                 onNeuerVorgangGetippt = {
                     navController.navigate(BoltMindRoutes.NEUER_VORGANG)
                 },
+                onWeiterDemontieren = viewModel::onWeiterDemontierenGewaehlt,
+                onMontageStarten = viewModel::onMontageStartenGewaehlt,
+                onDialogVerwerfen = viewModel::onDialogVerworfen,
+                onLoeschenAngefragt = viewModel::onLoeschenAngefragt,
+                onLoeschenBestaetigt = viewModel::onLoeschenBestaetigt,
+                onLoeschenAbgebrochen = viewModel::onLoeschenAbgebrochen,
+                onTabGewaehlt = viewModel::onTabGewaehlt,
             )
         }
         composable(BoltMindRoutes.NEUER_VORGANG) {
