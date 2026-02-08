@@ -79,7 +79,39 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 | 2 | **Zuverlässigkeit** | Fotos und Ablageort-Zuordnungen dürfen während eines laufenden Reparaturvorgangs niemals verloren gehen. Ein verlorener Schritt kann dazu führen, dass Teile nicht wiedergefunden werden. |
 | 3 | **Performance** | Kamera muss sofort auslösen, Schrittübergänge ohne Wartezeit. Die App darf den Arbeitsfluss des Mechanikers nicht bremsen - jede Sekunde Verzögerung stört den Reparaturprozess. |
 
-## 4. Randbedingungen
+## 4. Cross-Cutting Concerns
+
+### Persistenz
+
+- **Metadaten** (Reparaturvorgang, Schritte, Ablageorte, Zeitstempel): Room-Datenbank
+- **Fotos**: Filesystem (App-interner Speicher), Referenz in der DB
+- **Speicherstrategie**: Sofort-Persistierung - jedes Foto und jeder Ablageort wird unmittelbar gespeichert, nicht erst am Schrittende. Kein Datenverlust bei App-Crash, Anruf oder Unterbrechung.
+
+### Foto-Qualität & Speicherplatz
+
+- Mittlere Qualität: Komprimiert, aber Details erkennbar (ca. 2-3 MB pro Foto)
+- Ausreichend für Baugruppen-Erkennung und Schrauben-Identifikation
+- Kompression beim Speichern, nicht bei der Vorschau
+
+### App-Lifecycle
+
+- Werkstatt-Umgebung: Unterbrechungen (Anrufe, Kollegen, Handy weglegen) sind der Normalfall
+- Sofort-Save garantiert, dass kein halbfertiger Schritt verloren geht
+- App-Neustart setzt nahtlos am letzten Stand fort
+
+### Datenlöschung
+
+- Mechaniker kann Reparaturvorgänge händisch löschen (offen und archiviert)
+- Kaskadierend: Alle zugehörigen Schritte, Fotos und Metadaten werden mitgelöscht
+- Bestätigungsdialog vor Löschung (Werkstatt-Bedingungen: kein versehentliches Löschen)
+
+### Permission-Handling
+
+- Kamera-Permission: Erforderlich für Kernfunktion, freundliche Erklärung bei Verweigerung
+- Speicher-Permission: READ_MEDIA_IMAGES (API 33+), READ_EXTERNAL_STORAGE (Fallback < API 33)
+- Keine App-Nutzung ohne Kamera-Berechtigung möglich (Kern-Feature)
+
+## 5. Randbedingungen
 
 ### Technisch
 
@@ -100,7 +132,7 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 | Specs | Markdown-Dateien in `docs/specs/`, referenziert durch GitHub Issues |
 | Versionierung | Git, GitHub |
 
-## 5. Spec-Referenz
+## 6. Spec-Referenz
 
 Feature-Specs werden in `docs/specs/` abgelegt und folgen dem Schema:
 
