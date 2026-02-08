@@ -62,16 +62,22 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 | Notizen pro Schritt | Nur Foto + Ablageort | Ggf. Text-/Sprachnotiz |
 | Zeiterfassung | Sichtbar, pro Schritt | Analyse-Dashboard |
 
-### Offene Fragen
+### Entschiedene Fragen
 
-- Gibt es wiederkehrende Abläufe die als Vorlage dienen könnten?
-- Gibt es eine Anbindung an bestehende Werkstatt-Software?
-- Sharing-Mechanismus: Bluetooth, WLAN, Cloud?
-- Datensicherung bei Geräteverlust?
+| Frage | Entscheidung |
+|-------|-------------|
+| Vorlagen für wiederkehrende Abläufe? | Nicht im Scope - Reparaturen sind zu individuell (mechaniker- und fahrzeugspezifisch) |
+| Anbindung an Werkstatt-Software? | MVP: Standalone. Integration eventuell später |
+| Sharing-Mechanismus? | MVP: keins. Probephase: Bluetooth. Vermarktung: Cloud (Firebase o.ä.) |
+| Datensicherung bei Geräteverlust? | MVP: Kein Backup, Risiko akzeptiert |
 
 ## 3. Quality Goals
 
-> Werden nach Abschluss der Domänenanalyse abgeleitet.
+| Priorität | Qualitätsziel | Motivation |
+|-----------|--------------|------------|
+| 1 | **Bedienbarkeit unter Werkstatt-Bedingungen** | Mechaniker haben dreckige/ölige Hände, wenig Zeit, arbeiten im Stehen. Die App muss mit minimalen Interaktionen bedienbar sein - kein langes Tippen, große Buttons, schnelle Kamera. |
+| 2 | **Zuverlässigkeit** | Fotos und Ablageort-Zuordnungen dürfen während eines laufenden Reparaturvorgangs niemals verloren gehen. Ein verlorener Schritt kann dazu führen, dass Teile nicht wiedergefunden werden. |
+| 3 | **Performance** | Kamera muss sofort auslösen, Schrittübergänge ohne Wartezeit. Die App darf den Arbeitsfluss des Mechanikers nicht bremsen - jede Sekunde Verzögerung stört den Reparaturprozess. |
 
 ## 4. Randbedingungen
 
