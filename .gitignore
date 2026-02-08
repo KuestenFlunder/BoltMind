@@ -19,3 +19,9 @@ local.properties
 bin/
 gen/
 out/
+
+# Claude Code
+.claude/
+
+# Kotlin incremental compilation
+.kotlin/

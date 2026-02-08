@@ -1,0 +1,149 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "b89d1e3e317df0d8e095b5c13aea16da",
+    "entities": [
+      {
+        "tableName": "reparaturvorgang",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fahrzeugFotoPfad` TEXT NOT NULL, `auftragsnummer` TEXT NOT NULL, `beschreibung` TEXT, `status` TEXT NOT NULL, `erstelltAm` INTEGER NOT NULL, `aktualisiertAm` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fahrzeugFotoPfad",
+            "columnName": "fahrzeugFotoPfad",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "auftragsnummer",
+            "columnName": "auftragsnummer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beschreibung",
+            "columnName": "beschreibung",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "erstelltAm",
+            "columnName": "erstelltAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aktualisiertAm",
+            "columnName": "aktualisiertAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "schritt",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `reparaturvorgangId` INTEGER NOT NULL, `fotoPfad` TEXT NOT NULL, `ablageortNummer` INTEGER NOT NULL, `reihenfolge` INTEGER NOT NULL, `gestartetAm` INTEGER NOT NULL, `abgeschlossenAm` INTEGER, `eingebautBeiMontage` INTEGER NOT NULL, FOREIGN KEY(`reparaturvorgangId`) REFERENCES `reparaturvorgang`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reparaturvorgangId",
+            "columnName": "reparaturvorgangId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoPfad",
+            "columnName": "fotoPfad",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ablageortNummer",
+            "columnName": "ablageortNummer",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reihenfolge",
+            "columnName": "reihenfolge",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gestartetAm",
+            "columnName": "gestartetAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abgeschlossenAm",
+            "columnName": "abgeschlossenAm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "eingebautBeiMontage",
+            "columnName": "eingebautBeiMontage",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_schritt_reparaturvorgangId",
+            "unique": false,
+            "columnNames": [
+              "reparaturvorgangId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_schritt_reparaturvorgangId` ON `${TABLE_NAME}` (`reparaturvorgangId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "reparaturvorgang",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "reparaturvorgangId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b89d1e3e317df0d8e095b5c13aea16da')"
+    ]
+  }
+}
