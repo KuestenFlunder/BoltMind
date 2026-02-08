@@ -13,10 +13,15 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
   - Großer Auslöser-Button
   - Foto wird sofort auf dem Filesystem gespeichert
 - **Ablageort-Bestätigung** nach Fotoaufnahme
-  - App schlägt automatisch die nächste Ablageort-Nummer vor (hochzählend ab 1, Wrap-Around bei Erreichen der max. Ablageorte)
+  - App schlägt automatisch die nächste Ablageort-Nummer vor (sequentiell hochzählend ab 1)
+  - Bereits belegte Ablageort-Nummern werden **übersprungen** (z.B. wenn Platz 5 manuell gewählt wurde, wird er später beim Hochzählen übersprungen)
   - Vorgeschlagene Nummer wird groß angezeigt
   - **Bestätigen-Button**: Übernimmt den Vorschlag, speichert Schritt sofort in DB, öffnet Kamera für nächsten Schritt
   - **Ändern-Button**: Öffnet Freitext-Feld mit Numpad als Default-Tastatur, Mechaniker kann abweichende Nummer eingeben
+  - **Manuelle Auswahl bricht Sequenz nicht**: Wenn der Mechaniker manuell einen anderen Ablageort wählt (z.B. 5 statt 2), springt der Auto-Vorschlag danach auf die nächste Nummer in der Sequenz zurück (3), nicht auf 6
+  - **Alle Ablageorte belegt**: Wenn alle Nummern 1..max vergeben sind, erscheint ein Dialog:
+    - **"Beenden"**: Demontage abschließen, zurück zur Übersicht
+    - **"+1 Erweitern"**: Weiter mit Nummern über max hinaus (max+1, max+2, ...)
 - **Schritt-Zähler** zeigt aktuelle Schrittnummer an
 - **Vorschau** des zuletzt aufgenommenen Fotos (klein, im Hintergrund)
 - **Demontage beenden** Button zum Abschließen (zurück zur Übersicht)
@@ -37,7 +42,9 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
 - [ ] Nach Foto: Vorgeschlagene Ablageort-Nummer wird groß angezeigt
 - [ ] Bestätigen-Button übernimmt Vorschlag und speichert Schritt in DB
 - [ ] Ändern-Button öffnet Freitext-Feld mit Numpad
-- [ ] Ablageort-Nummer zählt automatisch hoch (1, 2, 3, ... Wrap-Around)
+- [ ] Ablageort-Nummer zählt automatisch hoch (1, 2, 3, ...) und überspringt belegte
+- [ ] Manuelle Ablageort-Wahl bricht die Sequenz nicht (Vorschlag springt zurück)
+- [ ] Wenn alle Ablageorte belegt: Dialog mit "Beenden" oder "+1 Erweitern"
 - [ ] Nach Bestätigung öffnet sich automatisch die Kamera für nächsten Schritt
 - [ ] Schrittzähler zeigt aktuelle Nummer
 - [ ] Demontage kann beendet werden (zurück zur Übersicht)
@@ -63,12 +70,24 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
                            │
                     Sofort-Save in DB
                            │
-                           ▼
-                    ┌──────────────┐
-                    │ Kamera-       │
-                    │ Vorschau      │
-                    │ Schritt: 6   │
-                    └──────────────┘
+                    Nächste freie Nummer?
+                      ├── JA ──────────┐
+                      │                ▼
+                      │         ┌──────────────┐
+                      │         │ Kamera-       │
+                      │         │ Vorschau      │
+                      │         │ Schritt: 6   │
+                      │         └──────────────┘
+                      │
+                      └── NEIN (alle belegt)
+                                │
+                         ┌──────────────┐
+                         │ Alle Ablage-  │
+                         │ orte belegt!  │
+                         │               │
+                         │ [Beenden]     │
+                         │ [+1 Erweitern]│
+                         └──────────────┘
 ```
 
 ## UI-Skizze
@@ -121,5 +140,7 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
 - Foto-Speicherung: App-interner Speicher, JPEG mit mittlerer Kompression
 - Room Entity: `Step(id, repairJobId, photoPath, storageLocationNumber, sequenceNumber, startedAt, completedAt)`
 - Sofort-Insert: Foto wird gespeichert → Step-Eintrag in DB mit `photoPath` → Ablageort wird per Update ergänzt
-- Auto-Vorschlag: `nextLocation = (lastLocation % repairJob.storageLocationCount) + 1`
+- Auto-Vorschlag: `naechsteFreieNummer(sequenzCounter, belegteNummern, max)` — sucht ab Counter aufwärts die erste freie Nummer, überspringt belegte. Wenn alle belegt → Dialog.
+- Sequenz-Counter: Zählt nach jedem Schritt +1 (unabhängig ob auto oder manuell gewählt), Wrap bei max.
+- Belegte Nummern: Set aller bereits vergebenen Ablageort-Nummern (aus DB geladen beim Start).
 - Zeitstempel: `startedAt` = Kamera öffnet sich, `completedAt` = Ablageort bestätigt

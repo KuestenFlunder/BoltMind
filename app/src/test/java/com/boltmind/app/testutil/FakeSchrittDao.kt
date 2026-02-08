@@ -14,4 +14,8 @@ class FakeSchrittDao : SchrittDao {
     override suspend fun getAllByVorgangIdEinmalig(vorgangId: Long): List<Schritt> = emptyList()
 
     override fun getAnzahlByVorgangId(vorgangId: Long): Flow<Int> = flowOf(0)
+
+    override suspend fun getLetzerByVorgangId(vorgangId: Long): Schritt? = null
+
+    override suspend fun getAnzahlByVorgangIdEinmalig(vorgangId: Long): Int = 0
 }

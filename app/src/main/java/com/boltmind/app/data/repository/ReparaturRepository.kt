@@ -4,6 +4,7 @@ import com.boltmind.app.data.local.ReparaturvorgangDao
 import com.boltmind.app.data.local.SchrittDao
 import com.boltmind.app.data.model.Reparaturvorgang
 import com.boltmind.app.data.model.ReparaturvorgangMitSchrittanzahl
+import com.boltmind.app.data.model.Schritt
 import com.boltmind.app.data.model.VorgangStatus
 import kotlinx.coroutines.flow.Flow
 import java.io.File
@@ -32,4 +33,22 @@ open class ReparaturRepository(
 
     open fun getSchrittAnzahl(vorgangId: Long): Flow<Int> =
         schrittDao.getAnzahlByVorgangId(vorgangId)
+
+    open suspend fun schrittAnlegen(schritt: Schritt): Long =
+        schrittDao.insert(schritt)
+
+    open suspend fun getLetzerSchritt(vorgangId: Long): Schritt? =
+        schrittDao.getLetzerByVorgangId(vorgangId)
+
+    open suspend fun getSchrittAnzahlEinmalig(vorgangId: Long): Int =
+        schrittDao.getAnzahlByVorgangIdEinmalig(vorgangId)
+
+    open fun getAlleSchritte(vorgangId: Long): Flow<List<Schritt>> =
+        schrittDao.getAllByVorgangId(vorgangId)
+
+    open suspend fun getBelegteAblageortNummern(vorgangId: Long): Set<Int> {
+        return schrittDao.getAllByVorgangIdEinmalig(vorgangId)
+            .mapNotNull { it.ablageortNummer.toIntOrNull() }
+            .toSet()
+    }
 }

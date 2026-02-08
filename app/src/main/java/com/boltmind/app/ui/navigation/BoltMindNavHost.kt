@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.boltmind.app.feature.demontage.DemontageScreen
 import com.boltmind.app.feature.neuervorgang.NeuerVorgangScreen
 import com.boltmind.app.feature.uebersicht.UebersichtScreen
 
@@ -54,8 +55,14 @@ fun BoltMindNavHost(
         composable(
             route = BoltMindRoute.DEMONTAGE.route,
             arguments = listOf(navArgument("vorgangId") { type = NavType.LongType })
-        ) {
-            // Placeholder - wird in Sprint 2 implementiert
+        ) { backStackEntry ->
+            val vorgangId = backStackEntry.arguments?.getLong("vorgangId") ?: return@composable
+            DemontageScreen(
+                vorgangId = vorgangId,
+                onNavigateBack = {
+                    navController.popBackStack(BoltMindRoute.UEBERSICHT.route, inclusive = false)
+                }
+            )
         }
 
         composable(
