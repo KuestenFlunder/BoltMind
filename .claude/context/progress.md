@@ -2,7 +2,7 @@
 
 **Project**: BoltMind
 **Created**: 2026-02-08T03:26:14+01:00
-**Last Updated**: 2026-02-08T14:30:00+01:00
+**Last Updated**: 2026-02-08T15:10:00+01:00
 
 <!-- ========================================== -->
 <!-- Entry: 2026-02-08T03:37:46+01:00          -->
@@ -129,3 +129,22 @@ Spec F-003 aktualisiert mit drei Logik-Fixes: (1) Belegte Ablageort-Nummern werd
 - ✅ Manuelle Wahl bricht Sequenz nicht (Counter springt zurück)
 - ✅ "Alle belegt" Dialog mit Beenden und +1 Erweitern
 - ✅ Build + Lint erfolgreich
+
+<!-- ========================================== -->
+<!-- Entry: 2026-02-08T15:10:00+01:00          -->
+<!-- ========================================== -->
+
+## Entry: 2026-02-08T15:10:00+01:00 | direct-invocation > bugfix
+**Command**: Fix Zurück-Button im DemontageScreen
+**Agent**: direct
+
+### Summary
+Zurück-Button in beiden Phasen des DemontageScreens repariert. KameraAnsicht hatte gar kein navigationIcon — hinzugefügt mit Zurück-Pfeil. AblageortBestaetigung hatte einen leeren Lambda als onZurueck — durch viewModel::onDemontageBeenden ersetzt.
+
+### Files Modified
+- app/src/main/java/com/boltmind/app/feature/demontage/DemontageScreen.kt - navigationIcon in KameraAnsicht TopAppBar hinzugefügt, onZurueck-Callback in beiden Phasen verdrahtet
+
+### Key Outcomes
+- ✅ Zurück-Button navigiert in beiden Phasen zur Übersicht
+- ✅ Build + 23/23 Tests grün
+- ✅ Committed, pushed, PR #10 erstellt
