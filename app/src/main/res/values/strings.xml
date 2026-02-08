@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">BoltMind</string>
+    <string name="foto_platzhalter">Kein Foto vorhanden</string>
+    <string name="fahrzeugfoto">Fahrzeugfoto</string>
+    <string name="neuer_vorgang">Neuer Vorgang</string>
+    <string name="keine_vorgaenge_hinweis">Noch keine Vorgänge.\nTippe auf + um zu starten.</string>
+    <string name="schritte_anzahl">%d Schritte</string>
 </resources>
