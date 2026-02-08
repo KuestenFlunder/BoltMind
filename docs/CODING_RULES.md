@@ -141,7 +141,7 @@ Kein Produktivcode ohne vorherigen Test. TDD ist keine Empfehlung, sondern der v
 
 | Änderungstyp | Test-Aktion |
 |--------------|-------------|
-| Neues Feature | Neue Tests aus Spec-Akzeptanzkriterien ableiten |
+| Neues Feature | Neue Tests aus Spec-User-Stories ableiten (US-XXX.Y → @Nested class) |
 | Bugfix | Erst Test schreiben der den Bug reproduziert, dann fixen |
 | Refactoring | Bestehende Tests müssen vor UND nach dem Refactoring grün sein |
 | Spec-Änderung | Betroffene Tests anpassen bevor Code angepasst wird |
@@ -167,6 +167,8 @@ app/src/
 │   ├── feature/
 │   │   ├── uebersicht/
 │   │   │   └── UebersichtViewModelTest.kt
+│   │   ├── neuervorgang/
+│   │   │   └── NeuerVorgangViewModelTest.kt
 │   │   ├── demontage/
 │   │   │   └── DemontageViewModelTest.kt
 │   │   └── montage/
@@ -179,27 +181,155 @@ app/src/
 │       └── SchrittDaoTest.kt
 ```
 
+### User-Story-Traceability in Tests
+
+Jede User Story aus der Spec (`US-XXX.Y`) wird als `@Nested inner class` im zugehörigen Test abgebildet. So lässt sich jeder Test direkt auf eine User Story und deren Akzeptanzkriterien zurückverfolgen.
+
+**Regeln:**
+
+1. **1 User Story = 1 `@Nested inner class`** mit der US-ID im Namen
+2. **1 Akzeptanzkriterium = 1 `@Test`** — Testname beschreibt das erwartete Verhalten
+3. **Given/When/Then** aus der Spec als Kommentare im Test-Body (Arrange/Act/Assert)
+4. **Spec ist Source of Truth** — Tests leiten sich aus den Akzeptanzkriterien ab, nicht umgekehrt
+
 ### Test-Naming
 
-Tests beschreiben das Verhalten gemäß Spec-Akzeptanzkriterien:
+Konvention: `@Nested inner class` mit US-ID, `@Test` mit Verhaltensbeschreibung aus der Spec.
 
 ```kotlin
-class DemontageViewModelTest {
-    @Test
-    fun `schlaegt naechste Ablageort-Nummer automatisch vor`() { }
+class UebersichtViewModelTest {
 
-    @Test
-    fun `speichert Schritt sofort in DB nach Ablageort-Bestaetigung`() { }
+    @Nested
+    inner class `US-001_1 Offene Vorgaenge anzeigen` {
 
-    @Test
-    fun `ueberspringt bereits belegte Ablageort-Nummern`() { }
+        @Test
+        fun `zeigt alle offenen Vorgaenge sortiert nach letzter Bearbeitung`() {
+            // Given: offene Vorgänge existieren
+            val vorgaenge = listOf(
+                testVorgang(auftragsnummer = "ALT", updatedAt = gestern),
+                testVorgang(auftragsnummer = "NEU", updatedAt = heute)
+            )
+            // When: Startscreen geladen
+            val uiState = viewModel.uiState.value
+            // Then: sortiert nach updatedAt DESC (neueste oben)
+            assertEquals("NEU", uiState.vorgaenge.first().auftragsnummer)
+        }
+
+        @Test
+        fun `zeigt Hinweis wenn keine offenen Vorgaenge existieren`() {
+            // Given: keine offenen Vorgänge existieren
+            // When: Startscreen geladen
+            // Then: leerer Zustand mit Hinweis-Text
+        }
+    }
+
+    @Nested
+    inner class `US-001_2 Vorgang fuer Weiterarbeit oeffnen` {
+
+        @Test
+        fun `oeffnet direkt Demontage-Flow bei Vorgang mit 0 Schritten`() {
+            // Given: offener Vorgang mit 0 Schritten (frisch angelegt)
+            // When: Mechaniker tippt Vorgang an
+            // Then: Demontage-Flow (F-003) öffnet sich direkt
+        }
+
+        @Test
+        fun `zeigt Auswahl-Dialog bei Vorgang mit mindestens 1 Schritt`() {
+            // Given: offener Vorgang mit mindestens 1 Schritt
+            // When: Mechaniker tippt Vorgang an
+            // Then: Dialog mit "Weiter demontieren" und "Montage starten"
+        }
+    }
+
+    @Nested
+    inner class `US-001_4 Vorgang loeschen` {
+
+        @Test
+        fun `zeigt Bestaetigungsdialog vor Loeschung`() {
+            // Given: Löschen-Button ist sichtbar
+            // When: Mechaniker tippt "Löschen"
+            // Then: Bestätigungsdialog erscheint
+        }
+
+        @Test
+        fun `loescht Vorgang mit allen Schritten und Fotos nach Bestaetigung`() {
+            // Given: Bestätigungsdialog ist sichtbar
+            // When: Mechaniker bestätigt "Löschen"
+            // Then: Vorgang, Schritte und Fotos gelöscht
+        }
+
+        @Test
+        fun `bricht Loeschung bei Abbrechen ab`() {
+            // Given: Bestätigungsdialog ist sichtbar
+            // When: Mechaniker wählt "Abbrechen"
+            // Then: Vorgang bleibt erhalten
+        }
+    }
 }
 
-class ReparaturRepositoryTest {
-    @Test
-    fun `loescht alle Schritte und Fotos bei Vorgang-Loeschung`() { }
+class NeuerVorgangViewModelTest {
+
+    @Nested
+    inner class `US-002_1 Fahrzeug fotografieren` {
+
+        @Test
+        fun `oeffnet Kamera sofort beim Start des Anlage-Flows`() {
+            // Given: Mechaniker hat auf "+" getippt
+            // When: Anlage-Flow startet
+            // Then: Kamera öffnet sich im Vollbild
+        }
+
+        @Test
+        fun `legt keinen Vorgang an bei Back ohne Foto`() {
+            // Given: Kamera ist geöffnet
+            // When: System-Back-Button gedrückt
+            // Then: zurück zur Übersicht, kein Vorgang angelegt
+        }
+    }
+
+    @Nested
+    inner class `US-002_2 Auftragsdaten erfassen und Vorgang starten` {
+
+        @Test
+        fun `speichert Vorgang mit Foto und Auftragsnummer in DB`() {
+            // Given: Foto aufgenommen, Auftragsnummer eingegeben
+            // When: "Starten" getippt
+            // Then: Vorgang in DB gespeichert, Demontage-Flow öffnet
+        }
+
+        @Test
+        fun `zeigt Validierungsfehler bei fehlender Auftragsnummer`() {
+            // Given: Formular angezeigt
+            // When: "Starten" ohne Auftragsnummer
+            // Then: Validierungsmeldung "Auftragsnummer ist erforderlich"
+        }
+
+        @Test
+        fun `speichert Vorgang auch ohne Beschreibung`() {
+            // Given: Foto und Auftragsnummer vorhanden, keine Beschreibung
+            // When: "Starten" getippt
+            // Then: Vorgang wird gespeichert (Beschreibung optional)
+        }
+    }
+
+    @Nested
+    inner class `US-002_3 Foto wiederholen` {
+
+        @Test
+        fun `ersetzt altes Foto durch neues nach Wiederholung`() {
+            // Given: Foto-Preview wird angezeigt
+            // When: "Bild wiederholen" → neues Foto aufgenommen
+            // Then: neues Foto ersetzt altes, altes wird gelöscht
+        }
+
+        @Test
+        fun `behaelt Formulardaten bei Foto-Wiederholung`() {
+            // Given: Auftragsnummer und Beschreibung eingegeben
+            // When: "Bild wiederholen" → Back
+            // Then: Formulardaten sind erhalten
+        }
+    }
 }
-```
 
 ## Compose Conventions
 

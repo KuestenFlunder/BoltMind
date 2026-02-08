@@ -64,6 +64,12 @@ Funktionsnamen für Domain-Events ebenfalls Deutsch: `onFotoAufgenommen()`, `onA
 
 Feature-Specs in `docs/specs/F-XXX-*.md` sind Source of Truth. Issues referenzieren Specs via `[F-XXX]` im Titel. Immer Spec lesen bevor ein Feature implementiert wird.
 
+## Pflichtlektüre vor Code-Änderungen
+
+**VOR jeder Implementierung** müssen gelesen werden:
+1. `docs/CODING_RULES.md` — Vollständige Coding-Konventionen und Test-Struktur
+2. `docs/specs/F-XXX-*.md` — Zugehörige Feature-Spec mit User Stories
+
 ## Coding Conventions
 
 - **DI**: Koin (Module in `di/`)
@@ -87,7 +93,7 @@ TDD ist keine Empfehlung, sondern Pflicht bei JEDER Code-Änderung (Feature, Bug
 
 **Verboten:** Code ohne vorherigen Test schreiben. Tests deaktivieren/löschen um Build grün zu bekommen.
 
-Testnamen beschreiben Spec-Akzeptanzkriterien: `schlaegt naechste Ablageort-Nummer automatisch vor`.
+**Tests bilden User Stories ab:** Jede `US-XXX.Y` wird als `@Nested inner class` im Test abgebildet. Testnamen leiten sich aus den Given/When/Then-Akzeptanzkriterien der Spec ab. Details und Beispiele in `docs/CODING_RULES.md`.
 
 ## Git Workflow
 
