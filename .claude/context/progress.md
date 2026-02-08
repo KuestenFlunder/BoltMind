@@ -2,7 +2,7 @@
 
 **Project**: BoltMind
 **Created**: 2026-02-07T23:45:00+01:00
-**Last Updated**: 2026-02-08T00:15:00+01:00
+**Last Updated**: 2026-02-08T00:45:00+01:00
 
 <!-- ========================================== -->
 <!-- Entry: 2026-02-07T23:20:00+01:00          -->
@@ -114,4 +114,56 @@ Structure.md generiert mit vollständiger Projekt-Übersicht: Tech Stack, Projek
 ### Key Outcomes
 - ✅ Structure.md generiert für Agent-Context
 - ✅ progress.md initialisiert
-- ⚠️ Noch nicht committed (wartet auf User-Freigabe)
+- ✅ Commit `6ebcbd4` gepusht auf main
+
+<!-- ========================================== -->
+<!-- Entry: 2026-02-08T00:30:00+01:00          -->
+<!-- ========================================== -->
+
+## Entry: 2026-02-08T00:30:00+01:00 | direct-invocation > documentation
+**Command**: Feature-Specs schreiben, Sprint-Milestones und GitHub Issues anlegen
+**Agent**: direct
+
+### Summary
+5 Feature-Specs als Markdown-Dateien in docs/specs/ angelegt: Vorgangs-Übersicht (F-001), Reparaturvorgang anlegen (F-002), Demontage-Flow (F-003), Montage-Flow (F-004), Zeiterfassung (F-005). Jede Spec enthält Beschreibung, funktionale/nicht-funktionale Anforderungen, Akzeptanzkriterien, UI-Skizzen und technische Hinweise. 3 GitHub Milestones (Sprints) und 8 Issues angelegt, alle mit Spec-Referenzen.
+
+### Files Read
+- Keine (neue Dateien)
+
+### Files Modified
+- docs/specs/F-001-vorgangs-uebersicht.md - Startscreen: Liste, Tabs, Löschen, Leerer Zustand
+- docs/specs/F-002-reparaturvorgang-anlegen.md - Initialdialog: Fahrzeug, Auftrag, Beschreibung
+- docs/specs/F-003-demontage-flow.md - Kernflow: Kamera, Foto, Ablageort, Schritt-Schleife
+- docs/specs/F-004-montage-flow.md - Rückwärts-Ansicht, Abhaken, Fortschritt, Suche
+- docs/specs/F-005-zeiterfassung.md - Auto-Timer pro Schritt, Gesamtdauer
+
+### Key Outcomes
+- ✅ 5 Feature-Specs mit UI-Skizzen und Akzeptanzkriterien
+- ✅ 3 GitHub Milestones: Sprint 1 (Datenbasis), Sprint 2 (Demontage), Sprint 3 (Montage)
+- ✅ 8 GitHub Issues mit Spec-Referenzen und Sprint-Zuordnung
+- ✅ Issues #1-#4 → Sprint 1, #5-#6 → Sprint 2, #7-#8 → Sprint 3
+
+<!-- ========================================== -->
+<!-- Entry: 2026-02-08T00:45:00+01:00          -->
+<!-- ========================================== -->
+
+## Entry: 2026-02-08T00:45:00+01:00 | direct-invocation > documentation
+**Command**: Ablageort Auto-Vorschlag in Specs und Issues einarbeiten
+**Agent**: direct
+
+### Summary
+Neues MVP-Feature: Mechaniker definiert Anzahl Ablageorte beim Anlegen des Vorgangs. App zählt automatisch hoch und schlägt nächste Nummer vor. Bestätigen = 1 Tap (Regelfall), Ändern = Freitext mit Numpad (Ausnahme). F-002 und F-003 Specs aktualisiert, GitHub Issues #3 und #6 angepasst.
+
+### Files Read
+- docs/specs/F-002-reparaturvorgang-anlegen.md
+- docs/specs/F-003-demontage-flow.md
+
+### Files Modified
+- docs/specs/F-002-reparaturvorgang-anlegen.md - Neues Feld "Anzahl Ablageorte", Entity um storageLocationCount erweitert
+- docs/specs/F-003-demontage-flow.md - Auto-Vorschlag Ablageort-Nummer, Bestätigen/Ändern-Buttons, Wrap-Around-Logik
+
+### Key Outcomes
+- ✅ F-002: Feld "Anzahl Ablageorte" hinzugefügt
+- ✅ F-003: Auto-Hochzählung mit Bestätigen (1 Tap) / Ändern (Freitext+Numpad)
+- ✅ GitHub Issues #3 und #6 aktualisiert
+- ✅ Ablageort-Flow im Regelfall: Foto → 1 Tap → weiter
