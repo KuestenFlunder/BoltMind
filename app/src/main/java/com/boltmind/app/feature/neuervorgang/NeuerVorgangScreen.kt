@@ -16,10 +16,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,7 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.boltmind.app.R
-import com.boltmind.app.ui.navigation.BoltMindRoute
+import com.boltmind.app.ui.theme.BoltMindTheme
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -94,7 +96,12 @@ fun NeuerVorgangContent(
                             contentDescription = stringResource(R.string.dialog_abbrechen)
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { innerPadding ->
@@ -231,53 +238,59 @@ private fun fehlerTextFuer(fehlerKey: String): String {
 @Preview(showBackground = true, name = "Leeres Formular")
 @Composable
 private fun NeuerVorgangLeerPreview() {
-    NeuerVorgangContent(
-        uiState = NeuerVorgangUiState(),
-        onFahrzeugGeaendert = {},
-        onAuftragsnummerGeaendert = {},
-        onBeschreibungGeaendert = {},
-        onAnzahlAblageorteGeaendert = {},
-        onStartenGeklickt = {},
-        onAbbrechenGeklickt = {}
-    )
+    BoltMindTheme {
+        NeuerVorgangContent(
+            uiState = NeuerVorgangUiState(),
+            onFahrzeugGeaendert = {},
+            onAuftragsnummerGeaendert = {},
+            onBeschreibungGeaendert = {},
+            onAnzahlAblageorteGeaendert = {},
+            onStartenGeklickt = {},
+            onAbbrechenGeklickt = {}
+        )
+    }
 }
 
 @Preview(showBackground = true, name = "Ausgefuelltes Formular")
 @Composable
 private fun NeuerVorgangAusgefuelltPreview() {
-    NeuerVorgangContent(
-        uiState = NeuerVorgangUiState(
-            fahrzeug = "BMW 320d Blau",
-            auftragsnummer = "#2024-0815",
-            beschreibung = "Bremsen vorne wechseln",
-            anzahlAblageorte = "10"
-        ),
-        onFahrzeugGeaendert = {},
-        onAuftragsnummerGeaendert = {},
-        onBeschreibungGeaendert = {},
-        onAnzahlAblageorteGeaendert = {},
-        onStartenGeklickt = {},
-        onAbbrechenGeklickt = {}
-    )
+    BoltMindTheme {
+        NeuerVorgangContent(
+            uiState = NeuerVorgangUiState(
+                fahrzeug = "BMW 320d Blau",
+                auftragsnummer = "#2024-0815",
+                beschreibung = "Bremsen vorne wechseln",
+                anzahlAblageorte = "10"
+            ),
+            onFahrzeugGeaendert = {},
+            onAuftragsnummerGeaendert = {},
+            onBeschreibungGeaendert = {},
+            onAnzahlAblageorteGeaendert = {},
+            onStartenGeklickt = {},
+            onAbbrechenGeklickt = {}
+        )
+    }
 }
 
 @Preview(showBackground = true, name = "Formular mit Fehlern")
 @Composable
 private fun NeuerVorgangMitFehlerPreview() {
-    NeuerVorgangContent(
-        uiState = NeuerVorgangUiState(
-            fehler = mapOf(
-                Feld.FAHRZEUG to NeuerVorgangViewModel.FEHLER_FAHRZEUG,
-                Feld.AUFTRAGSNUMMER to NeuerVorgangViewModel.FEHLER_AUFTRAGSNUMMER,
-                Feld.BESCHREIBUNG to NeuerVorgangViewModel.FEHLER_BESCHREIBUNG,
-                Feld.ANZAHL_ABLAGEORTE to NeuerVorgangViewModel.FEHLER_ANZAHL_PFLICHT
-            )
-        ),
-        onFahrzeugGeaendert = {},
-        onAuftragsnummerGeaendert = {},
-        onBeschreibungGeaendert = {},
-        onAnzahlAblageorteGeaendert = {},
-        onStartenGeklickt = {},
-        onAbbrechenGeklickt = {}
-    )
+    BoltMindTheme {
+        NeuerVorgangContent(
+            uiState = NeuerVorgangUiState(
+                fehler = mapOf(
+                    Feld.FAHRZEUG to NeuerVorgangViewModel.FEHLER_FAHRZEUG,
+                    Feld.AUFTRAGSNUMMER to NeuerVorgangViewModel.FEHLER_AUFTRAGSNUMMER,
+                    Feld.BESCHREIBUNG to NeuerVorgangViewModel.FEHLER_BESCHREIBUNG,
+                    Feld.ANZAHL_ABLAGEORTE to NeuerVorgangViewModel.FEHLER_ANZAHL_PFLICHT
+                )
+            ),
+            onFahrzeugGeaendert = {},
+            onAuftragsnummerGeaendert = {},
+            onBeschreibungGeaendert = {},
+            onAnzahlAblageorteGeaendert = {},
+            onStartenGeklickt = {},
+            onAbbrechenGeklickt = {}
+        )
+    }
 }

@@ -2,7 +2,7 @@
 
 **Project**: BoltMind
 **Created**: 2026-02-08T02:28:20+01:00
-**Last Updated**: 2026-02-08T02:44:56+01:00
+**Last Updated**: 2026-02-08T03:16:47+01:00
 
 <!-- ========================================== -->
 <!-- Entry: 2026-02-08T02:35:00+01:00          -->
@@ -153,3 +153,36 @@ Vollstaendige Implementierung des Neuer-Vorgang-Screens (F-002). UiState mit For
 - **assembleDebug** BUILD SUCCESSFUL
 - **Alle Strings** in strings.xml, keine Hardcoded-Strings
 - **ViewModels** unter 200 LOC Limit (88 + 108)
+
+<!-- ========================================== -->
+<!-- Entry: 2026-02-08T03:16:47+01:00          -->
+<!-- ========================================== -->
+
+## Entry: 2026-02-08T03:16:47+01:00 | direct-invocation > implementation
+**Command**: Design-System implementieren (Farbschema, Typografie, Theme)
+**Agent**: direct
+
+### Summary
+BoltMind Design-System aufgebaut: Werkstatt-gerechtes Farbschema mit dunkelblauem Header (#1F3A5F), orangefarbenen Aktions-Buttons (#F97316) und hellem Hintergrund (#F5F7FA). Typografie fuer Werkstatt-Lesbarkeit optimiert (groessere Schriftgroessen, fettere Gewichte). Beide Screens mit konsistentem dunkelblauen TopAppBar-Design. Light- und Dark-Theme definiert.
+
+### Files Read
+- app/src/main/java/com/boltmind/app/ui/theme/Color.kt
+- app/src/main/java/com/boltmind/app/ui/theme/Theme.kt
+- app/src/main/java/com/boltmind/app/ui/theme/Type.kt
+- app/src/main/java/com/boltmind/app/feature/uebersicht/UebersichtScreen.kt
+- app/src/main/java/com/boltmind/app/feature/neuervorgang/NeuerVorgangScreen.kt
+
+### Files Modified
+- app/src/main/java/com/boltmind/app/ui/theme/Color.kt - Komplettes Farbsystem: Orange (Primary), Navy (Header), Neutrals, Red (Error), Green (Success) in mehreren Tonalstufen
+- app/src/main/java/com/boltmind/app/ui/theme/Theme.kt - Light/Dark ColorScheme, primaryContainer=Navy30 fuer TopAppBar, primary=Orange50 fuer Buttons, dynamic color entfernt
+- app/src/main/java/com/boltmind/app/ui/theme/Type.kt - Werkstatt-optimierte Typografie: titleLarge 22sp Bold, bodyLarge 16sp, labelLarge 16sp Bold
+- app/src/main/java/com/boltmind/app/feature/neuervorgang/NeuerVorgangScreen.kt - TopAppBar mit primaryContainer/onPrimaryContainer Farben, Previews mit BoltMindTheme gewrappt
+
+### Key Outcomes
+- ✅ Konsistentes dunkelblaues Header-Design auf beiden Screens
+- ✅ Orange Aktionsfarbe fuer FAB und Buttons
+- ✅ Heller Hintergrund (#F5F7FA) fuer professionelles Erscheinungsbild
+- ✅ Light- und Dark-Theme vollstaendig definiert
+- ✅ Werkstatt-optimierte Typografie (groesser, fetter)
+- ✅ assembleDebug BUILD SUCCESSFUL
+- ✅ 21/21 Unit-Tests bestanden
