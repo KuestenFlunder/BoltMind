@@ -2,6 +2,7 @@ package com.boltmind.app.feature.uebersicht
 
 import com.boltmind.app.data.model.Reparaturvorgang
 import com.boltmind.app.data.model.ReparaturvorgangMitAnzahl
+import com.boltmind.app.data.model.Schritt
 import com.boltmind.app.data.model.VorgangStatus
 import com.boltmind.app.data.repository.ReparaturRepository
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +76,11 @@ class UebersichtViewModelTest {
         schrittAnzahl = schrittAnzahl,
     )
 
+    private fun setupDefaultMocks() {
+        whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+        whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+    }
+
     private fun erstelleViewModel(): UebersichtViewModel =
         UebersichtViewModel(repository)
 
@@ -91,6 +97,7 @@ class UebersichtViewModelTest {
                 testVorgangMitAnzahl(id = 2L, auftragsnummer = "ALT", erstelltAm = gestern, schrittAnzahl = 3),
             )
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(vorgaengeMitAnzahl))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             // When: ViewModel wird initialisiert
             viewModel = erstelleViewModel()
@@ -108,7 +115,7 @@ class UebersichtViewModelTest {
         @Test
         fun `zeigt Hinweis wenn keine offenen Vorgaenge existieren`() = runTest {
             // Given: keine offenen Vorgaenge
-            whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+            setupDefaultMocks()
 
             // When: ViewModel wird initialisiert
             viewModel = erstelleViewModel()
@@ -123,6 +130,7 @@ class UebersichtViewModelTest {
             // Given: Vorgang mit 12 Schritten
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 1L, auftragsnummer = "TEST", schrittAnzahl = 12)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             // When: ViewModel wird initialisiert
             viewModel = erstelleViewModel()
@@ -137,6 +145,7 @@ class UebersichtViewModelTest {
             // Given: Vorgang von heute
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 1L, erstelltAm = Instant.now())
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             // When
             viewModel = erstelleViewModel()
@@ -153,6 +162,7 @@ class UebersichtViewModelTest {
                 .atStartOfDay(ZoneId.systemDefault()).toInstant()
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 1L, erstelltAm = gestern)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             // When
             viewModel = erstelleViewModel()
@@ -169,6 +179,7 @@ class UebersichtViewModelTest {
                 .atStartOfDay(ZoneId.systemDefault()).toInstant()
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 1L, erstelltAm = vorZehnTagen)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             // When
             viewModel = erstelleViewModel()
@@ -185,6 +196,7 @@ class UebersichtViewModelTest {
             // Given: Vorgang mit Foto
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 1L)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             // When
             viewModel = erstelleViewModel()
@@ -201,7 +213,7 @@ class UebersichtViewModelTest {
         @Test
         fun `initialer State ist leere Liste ohne Loading`() = runTest {
             // Given: Repository liefert leeren Flow
-            whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+            setupDefaultMocks()
 
             // When: ViewModel wird erstellt
             viewModel = erstelleViewModel()
@@ -221,6 +233,7 @@ class UebersichtViewModelTest {
             // Given: offener Vorgang mit 0 Schritten (frisch angelegt)
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 42L, auftragsnummer = "AUF-001", schrittAnzahl = 0)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
             viewModel = erstelleViewModel()
             advanceUntilIdle()
 
@@ -240,6 +253,7 @@ class UebersichtViewModelTest {
             val vorgang = testVorgang(id = 7L, auftragsnummer = "AUF-002")
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 7L, auftragsnummer = "AUF-002", schrittAnzahl = 3)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
             whenever(repository.findVorgangById(7L)).thenReturn(vorgang)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
@@ -263,6 +277,7 @@ class UebersichtViewModelTest {
             val vorgang = testVorgang(id = 7L, auftragsnummer = "AUF-002")
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 7L, auftragsnummer = "AUF-002", schrittAnzahl = 3)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
             whenever(repository.findVorgangById(7L)).thenReturn(vorgang)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
@@ -284,6 +299,7 @@ class UebersichtViewModelTest {
             val vorgang = testVorgang(id = 7L, auftragsnummer = "AUF-002")
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 7L, auftragsnummer = "AUF-002", schrittAnzahl = 3)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
             whenever(repository.findVorgangById(7L)).thenReturn(vorgang)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
@@ -304,6 +320,7 @@ class UebersichtViewModelTest {
             // Given: Navigation zu Demontage aktiv
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 42L, auftragsnummer = "AUF-001", schrittAnzahl = 0)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
             viewModel = erstelleViewModel()
             advanceUntilIdle()
             viewModel.onVorgangGetippt(42L)
@@ -322,6 +339,7 @@ class UebersichtViewModelTest {
             val vorgang = testVorgang(id = 7L, auftragsnummer = "AUF-002")
             val vorgangMitAnzahl = testVorgangMitAnzahl(id = 7L, auftragsnummer = "AUF-002", schrittAnzahl = 3)
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(listOf(vorgangMitAnzahl)))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
             whenever(repository.findVorgangById(7L)).thenReturn(vorgang)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
@@ -346,6 +364,7 @@ class UebersichtViewModelTest {
                 testVorgangMitAnzahl(id = 1L, auftragsnummer = "AUF-001", schrittAnzahl = 3),
             )
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(vorgaenge))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             viewModel = erstelleViewModel()
             advanceUntilIdle()
@@ -368,6 +387,7 @@ class UebersichtViewModelTest {
                 testVorgangMitAnzahl(id = 1L, auftragsnummer = "AUF-001", schrittAnzahl = 3),
             )
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(vorgaenge))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             viewModel = erstelleViewModel()
             advanceUntilIdle()
@@ -391,6 +411,7 @@ class UebersichtViewModelTest {
                 testVorgangMitAnzahl(id = 1L, auftragsnummer = "AUF-001", schrittAnzahl = 3),
             )
             whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(vorgaenge))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
 
             viewModel = erstelleViewModel()
             advanceUntilIdle()
@@ -408,6 +429,236 @@ class UebersichtViewModelTest {
             // Vorgang ist weiterhin in der Liste
             assertEquals(1, viewModel.uiState.value.vorgaenge.size)
             assertEquals("AUF-001", viewModel.uiState.value.vorgaenge[0].auftragsnummer)
+        }
+    }
+
+    @Nested
+    inner class `US-001_5 Archivierte Vorgaenge einsehen` {
+
+        @Test
+        fun `zeigt archivierte Vorgaenge im Archiv-Tab`() = runTest {
+            // Given: archivierte Vorgaenge existieren
+            val archivVorgaenge = listOf(
+                testVorgangMitAnzahl(
+                    id = 10L,
+                    auftragsnummer = "ARCH-001",
+                    status = VorgangStatus.ARCHIVIERT,
+                    schrittAnzahl = 5,
+                ),
+            )
+            val schritte = listOf(
+                Schritt(
+                    id = 1L,
+                    reparaturvorgangId = 10L,
+                    fotoPfad = "/test/foto1.jpg",
+                    ablageortNummer = 1,
+                    reihenfolge = 1,
+                    gestartetAm = Instant.parse("2026-01-10T08:00:00Z"),
+                    abgeschlossenAm = Instant.parse("2026-01-10T08:30:00Z"),
+                ),
+                Schritt(
+                    id = 2L,
+                    reparaturvorgangId = 10L,
+                    fotoPfad = "/test/foto2.jpg",
+                    ablageortNummer = 2,
+                    reihenfolge = 2,
+                    gestartetAm = Instant.parse("2026-01-10T08:30:00Z"),
+                    abgeschlossenAm = Instant.parse("2026-01-10T09:00:00Z"),
+                ),
+            )
+            whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(archivVorgaenge))
+            whenever(repository.holeSchritte(10L)).thenReturn(schritte)
+
+            // When: ViewModel wird initialisiert
+            viewModel = erstelleViewModel()
+            advanceUntilIdle()
+
+            // Then: archivierte Vorgaenge sind im State
+            val state = viewModel.uiState.value
+            assertEquals(1, state.archivierteVorgaenge.size)
+            assertEquals("ARCH-001", state.archivierteVorgaenge[0].auftragsnummer)
+            assertEquals(5, state.archivierteVorgaenge[0].anzahlSchritte)
+        }
+
+        @Test
+        fun `zeigt Gesamtdauer pro archiviertem Vorgang`() = runTest {
+            // Given: archivierter Vorgang mit Schritten die Zeitdaten haben
+            val archivVorgaenge = listOf(
+                testVorgangMitAnzahl(
+                    id = 10L,
+                    auftragsnummer = "ARCH-001",
+                    status = VorgangStatus.ARCHIVIERT,
+                    schrittAnzahl = 2,
+                ),
+            )
+            // Schritt 1: 30 min, Schritt 2: 53 min = 1h 23min
+            val schritte = listOf(
+                Schritt(
+                    id = 1L,
+                    reparaturvorgangId = 10L,
+                    fotoPfad = "/test/foto1.jpg",
+                    ablageortNummer = 1,
+                    reihenfolge = 1,
+                    gestartetAm = Instant.parse("2026-01-10T08:00:00Z"),
+                    abgeschlossenAm = Instant.parse("2026-01-10T08:30:00Z"),
+                ),
+                Schritt(
+                    id = 2L,
+                    reparaturvorgangId = 10L,
+                    fotoPfad = "/test/foto2.jpg",
+                    ablageortNummer = 2,
+                    reihenfolge = 2,
+                    gestartetAm = Instant.parse("2026-01-10T08:30:00Z"),
+                    abgeschlossenAm = Instant.parse("2026-01-10T09:23:00Z"),
+                ),
+            )
+            whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(archivVorgaenge))
+            whenever(repository.holeSchritte(10L)).thenReturn(schritte)
+
+            // When: ViewModel wird initialisiert
+            viewModel = erstelleViewModel()
+            advanceUntilIdle()
+
+            // Then: Gesamtdauer wird korrekt berechnet und formatiert
+            assertEquals("1h 23min", viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
+        }
+
+        @Test
+        fun `zeigt leeren Zustand wenn keine archivierten Vorgaenge`() = runTest {
+            // Given: keine archivierten Vorgaenge
+            setupDefaultMocks()
+
+            // When: ViewModel wird initialisiert
+            viewModel = erstelleViewModel()
+            advanceUntilIdle()
+
+            // Then: leere Archiv-Liste
+            assertTrue(viewModel.uiState.value.archivierteVorgaenge.isEmpty())
+        }
+
+        @Test
+        fun `formatiert Gesamtdauer als Stunden und Minuten`() = runTest {
+            // Given: archivierter Vorgang mit 45 Minuten Gesamtdauer
+            val archivVorgaenge = listOf(
+                testVorgangMitAnzahl(
+                    id = 20L,
+                    auftragsnummer = "ARCH-002",
+                    status = VorgangStatus.ARCHIVIERT,
+                    schrittAnzahl = 1,
+                ),
+            )
+            val schritte = listOf(
+                Schritt(
+                    id = 3L,
+                    reparaturvorgangId = 20L,
+                    fotoPfad = "/test/foto3.jpg",
+                    ablageortNummer = 1,
+                    reihenfolge = 1,
+                    gestartetAm = Instant.parse("2026-01-10T10:00:00Z"),
+                    abgeschlossenAm = Instant.parse("2026-01-10T10:45:00Z"),
+                ),
+            )
+            whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(archivVorgaenge))
+            whenever(repository.holeSchritte(20L)).thenReturn(schritte)
+
+            // When: ViewModel wird initialisiert
+            viewModel = erstelleViewModel()
+            advanceUntilIdle()
+
+            // Then: Nur Minuten wenn unter einer Stunde
+            assertEquals("45 min", viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
+        }
+
+        @Test
+        fun `wechselt Tab bei onTabGewaehlt`() = runTest {
+            // Given: ViewModel ist initialisiert im Tab "Offen" (0)
+            setupDefaultMocks()
+            viewModel = erstelleViewModel()
+            advanceUntilIdle()
+            assertEquals(0, viewModel.uiState.value.selectedTab)
+
+            // When: Mechaniker wechselt auf Tab "Archiv" (1)
+            viewModel.onTabGewaehlt(1)
+            advanceUntilIdle()
+
+            // Then: Tab ist gewechselt
+            assertEquals(1, viewModel.uiState.value.selectedTab)
+        }
+
+        @Test
+        fun `formatiert Gesamtdauer unter einer Minute`() = runTest {
+            // Given: archivierter Vorgang mit weniger als 1 Minute Gesamtdauer
+            val archivVorgaenge = listOf(
+                testVorgangMitAnzahl(
+                    id = 30L,
+                    auftragsnummer = "ARCH-003",
+                    status = VorgangStatus.ARCHIVIERT,
+                    schrittAnzahl = 1,
+                ),
+            )
+            val schritte = listOf(
+                Schritt(
+                    id = 4L,
+                    reparaturvorgangId = 30L,
+                    fotoPfad = "/test/foto4.jpg",
+                    ablageortNummer = 1,
+                    reihenfolge = 1,
+                    gestartetAm = Instant.parse("2026-01-10T10:00:00Z"),
+                    abgeschlossenAm = Instant.parse("2026-01-10T10:00:30Z"),
+                ),
+            )
+            whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(archivVorgaenge))
+            whenever(repository.holeSchritte(30L)).thenReturn(schritte)
+
+            // When: ViewModel wird initialisiert
+            viewModel = erstelleViewModel()
+            advanceUntilIdle()
+
+            // Then: "< 1 min" fuer sehr kurze Dauern
+            assertEquals("< 1 min", viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
+        }
+
+        @Test
+        fun `zeigt Abschlussdatum pro archiviertem Vorgang`() = runTest {
+            // Given: archivierter Vorgang mit bekanntem aktualisiertAm (= Abschlussdatum)
+            val abschlussDatum = LocalDate.now().minusDays(3)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant()
+            val archivVorgaenge = listOf(
+                testVorgangMitAnzahl(
+                    id = 40L,
+                    auftragsnummer = "ARCH-004",
+                    status = VorgangStatus.ARCHIVIERT,
+                    erstelltAm = abschlussDatum,
+                    schrittAnzahl = 1,
+                ),
+            )
+            val schritte = listOf(
+                Schritt(
+                    id = 5L,
+                    reparaturvorgangId = 40L,
+                    fotoPfad = "/test/foto5.jpg",
+                    ablageortNummer = 1,
+                    reihenfolge = 1,
+                    gestartetAm = Instant.parse("2026-01-10T10:00:00Z"),
+                    abgeschlossenAm = Instant.parse("2026-01-10T10:15:00Z"),
+                ),
+            )
+            whenever(repository.beobachteOffeneVorgaengeMitAnzahl()).thenReturn(flowOf(emptyList()))
+            whenever(repository.beobachteArchivierteVorgaengeMitAnzahl()).thenReturn(flowOf(archivVorgaenge))
+            whenever(repository.holeSchritte(40L)).thenReturn(schritte)
+
+            // When: ViewModel wird initialisiert
+            viewModel = erstelleViewModel()
+            advanceUntilIdle()
+
+            // Then: Abschlussdatum wird formatiert angezeigt
+            val erwartetesDatum = LocalDate.now().minusDays(3)
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+            assertEquals(erwartetesDatum, viewModel.uiState.value.archivierteVorgaenge[0].abschlussDatum)
         }
     }
 }

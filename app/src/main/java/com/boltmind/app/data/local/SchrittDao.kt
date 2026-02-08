@@ -16,6 +16,9 @@ interface SchrittDao {
     @Query("SELECT * FROM schritt WHERE reparaturvorgangId = :vorgangId ORDER BY reihenfolge DESC")
     fun beobachteSchritteAbsteigend(vorgangId: Long): Flow<List<Schritt>>
 
+    @Query("SELECT * FROM schritt WHERE reparaturvorgangId = :vorgangId ORDER BY reihenfolge ASC")
+    suspend fun holeSchritte(vorgangId: Long): List<Schritt>
+
     @Insert
     suspend fun einfuegen(schritt: Schritt): Long
 
