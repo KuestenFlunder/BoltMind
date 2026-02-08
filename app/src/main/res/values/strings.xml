@@ -5,4 +5,11 @@
     <string name="neuer_vorgang">Neuer Vorgang</string>
     <string name="keine_vorgaenge_hinweis">Noch keine Vorgänge.\nTippe auf + um zu starten.</string>
     <string name="schritte_anzahl">%d Schritte</string>
+    <string name="zurueck">Zurück</string>
+    <string name="foto_aufnehmen">Foto aufnehmen</string>
+    <string name="bild_wiederholen">Bild wiederholen</string>
+    <string name="auftragsnummer_label">Auftragsnummer *</string>
+    <string name="beschreibung_label">Beschreibung</string>
+    <string name="starten_button">Starten</string>
+    <string name="kamera_berechtigung_erklaerung">Kamera-Zugriff wird benötigt um Fahrzeugfotos aufzunehmen. Bitte erlaube den Zugriff in den Einstellungen.</string>
 </resources>
