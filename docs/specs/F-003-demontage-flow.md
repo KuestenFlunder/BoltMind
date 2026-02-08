@@ -13,10 +13,13 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
   - Großer Auslöser-Button
   - Foto wird sofort auf dem Filesystem gespeichert
 - **Ablageort-Bestätigung** nach Fotoaufnahme
-  - App schlägt automatisch die nächste Ablageort-Nummer vor (hochzählend ab 1, Wrap-Around bei Erreichen der max. Ablageorte)
+  - App schlägt automatisch die nächste Ablageort-Nummer vor (sequentiell hochzählend ab 1)
+  - Bereits belegte Ablageort-Nummern werden **übersprungen** (z.B. wenn Platz 5 manuell gewählt wurde, wird er später beim Hochzählen übersprungen)
   - Vorgeschlagene Nummer wird groß angezeigt
   - **Bestätigen-Button**: Übernimmt den Vorschlag, speichert Schritt sofort in DB, öffnet Kamera für nächsten Schritt
   - **Ändern-Button**: Öffnet Freitext-Feld mit Numpad als Default-Tastatur, Mechaniker kann abweichende Nummer eingeben
+  - **Manuelle Auswahl bricht Sequenz nicht**: Wenn der Mechaniker manuell einen anderen Ablageort wählt (z.B. 5 statt 2), springt der Auto-Vorschlag danach auf die nächste Nummer in der Sequenz zurück (3), nicht auf 6
+  - **Unbegrenzte Ablageorte**: Die Sequenz zählt ohne Obergrenze hoch (1, 2, 3, ...). Die Anzahl der Ablageorte ist nicht vorhersehbar und wird nicht vorab festgelegt.
 - **Schritt-Zähler** zeigt aktuelle Schrittnummer an
 - **Vorschau** des zuletzt aufgenommenen Fotos (klein, im Hintergrund)
 - **Demontage beenden** Button zum Abschließen (zurück zur Übersicht)
@@ -37,7 +40,9 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
 - [ ] Nach Foto: Vorgeschlagene Ablageort-Nummer wird groß angezeigt
 - [ ] Bestätigen-Button übernimmt Vorschlag und speichert Schritt in DB
 - [ ] Ändern-Button öffnet Freitext-Feld mit Numpad
-- [ ] Ablageort-Nummer zählt automatisch hoch (1, 2, 3, ... Wrap-Around)
+- [ ] Ablageort-Nummer zählt automatisch hoch (1, 2, 3, ...) und überspringt belegte
+- [ ] Manuelle Ablageort-Wahl bricht die Sequenz nicht (Vorschlag springt zurück)
+- [ ] Ablageort-Nummern zählen ohne Obergrenze hoch
 - [ ] Nach Bestätigung öffnet sich automatisch die Kamera für nächsten Schritt
 - [ ] Schrittzähler zeigt aktuelle Nummer
 - [ ] Demontage kann beendet werden (zurück zur Übersicht)
@@ -62,6 +67,8 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
                     └──────┬───────┘
                            │
                     Sofort-Save in DB
+                           │
+                    Nächste freie Nummer
                            │
                            ▼
                     ┌──────────────┐
@@ -121,5 +128,7 @@ Der Kernflow der App. Der Mechaniker dokumentiert den Auseinanderbau Schritt fü
 - Foto-Speicherung: App-interner Speicher, JPEG mit mittlerer Kompression
 - Room Entity: `Step(id, repairJobId, photoPath, storageLocationNumber, sequenceNumber, startedAt, completedAt)`
 - Sofort-Insert: Foto wird gespeichert → Step-Eintrag in DB mit `photoPath` → Ablageort wird per Update ergänzt
-- Auto-Vorschlag: `nextLocation = (lastLocation % repairJob.storageLocationCount) + 1`
+- Auto-Vorschlag: `naechsteFreieNummer(sequenzCounter, belegteNummern)` — sucht ab Counter aufwärts die erste freie Nummer, überspringt belegte. Keine Obergrenze.
+- Sequenz-Counter: Zählt nach jedem Schritt +1 (unabhängig ob auto oder manuell gewählt), ohne Obergrenze.
+- Belegte Nummern: Set aller bereits vergebenen Ablageort-Nummern (aus DB geladen beim Start).
 - Zeitstempel: `startedAt` = Kamera öffnet sich, `completedAt` = Ablageort bestätigt
