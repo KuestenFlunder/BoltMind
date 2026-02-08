@@ -143,28 +143,28 @@ class UebersichtViewModel(
         _uiState.update { it.copy(loeschenDialog = null) }
     }
 
-    internal fun formatiereDatum(instant: Instant): String {
+    internal fun formatiereDatum(instant: Instant): DatumAnzeige {
         val datum = instant.atZone(ZoneId.systemDefault()).toLocalDate()
         val heute = LocalDate.now()
         return when {
-            datum == heute -> "Heute"
-            datum == heute.minusDays(1) -> "Gestern"
-            else -> datum.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+            datum == heute -> DatumAnzeige.Heute
+            datum == heute.minusDays(1) -> DatumAnzeige.Gestern
+            else -> DatumAnzeige.Formatiert(datum.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
         }
     }
 
-    internal fun formatiereGesamtdauer(schritte: List<Schritt>): String {
+    internal fun formatiereGesamtdauer(schritte: List<Schritt>): DauerAnzeige {
         val gesamtSekunden = schritte.sumOf { schritt ->
             val ende = schritt.abgeschlossenAm ?: return@sumOf 0L
             Duration.between(schritt.gestartetAm, ende).seconds
         }
-        val minuten = gesamtSekunden / 60
+        val minuten = (gesamtSekunden / 60).toInt()
         val stunden = minuten / 60
         val restMinuten = minuten % 60
         return when {
-            minuten < 1 -> "< 1 min"
-            stunden < 1 -> "$minuten min"
-            else -> "${stunden}h ${restMinuten}min"
+            minuten < 1 -> DauerAnzeige.WenigerAlsEineMinute
+            stunden < 1 -> DauerAnzeige.Minuten(minuten)
+            else -> DauerAnzeige.StundenMinuten(stunden, restMinuten)
         }
     }
 }

@@ -21,6 +21,11 @@
     <string name="tab_offen">Offen</string>
     <string name="tab_archiv">Archiv</string>
     <string name="keine_archivierten_vorgaenge">Noch keine abgeschlossenen Vorgänge.</string>
+    <string name="datum_heute">Heute</string>
+    <string name="datum_gestern">Gestern</string>
+    <string name="dauer_weniger_als_eine_minute">&lt; 1 min</string>
+    <string name="dauer_minuten">%d min</string>
+    <string name="dauer_stunden_minuten">%dh %dmin</string>
     <string name="gesamtdauer">Gesamtdauer: %s</string>
     <string name="abgeschlossen_am">Abgeschlossen: %s</string>
 </resources>

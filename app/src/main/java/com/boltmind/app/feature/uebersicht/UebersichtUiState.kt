@@ -1,11 +1,23 @@
 package com.boltmind.app.feature.uebersicht
 
+sealed class DatumAnzeige {
+    data object Heute : DatumAnzeige()
+    data object Gestern : DatumAnzeige()
+    data class Formatiert(val text: String) : DatumAnzeige()
+}
+
+sealed class DauerAnzeige {
+    data object WenigerAlsEineMinute : DauerAnzeige()
+    data class Minuten(val minuten: Int) : DauerAnzeige()
+    data class StundenMinuten(val stunden: Int, val minuten: Int) : DauerAnzeige()
+}
+
 data class VorgangUiItem(
     val id: Long,
     val fahrzeugFotoPfad: String?,
     val auftragsnummer: String,
     val anzahlSchritte: Int,
-    val erstelltAm: String,
+    val erstelltAm: DatumAnzeige,
 )
 
 data class ArchivVorgangUiItem(
@@ -13,8 +25,8 @@ data class ArchivVorgangUiItem(
     val fahrzeugFotoPfad: String?,
     val auftragsnummer: String,
     val anzahlSchritte: Int,
-    val gesamtdauer: String,
-    val abschlussDatum: String,
+    val gesamtdauer: DauerAnzeige,
+    val abschlussDatum: DatumAnzeige,
 )
 
 sealed class NavigationsZiel {

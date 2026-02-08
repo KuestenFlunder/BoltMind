@@ -152,7 +152,7 @@ class UebersichtViewModelTest {
             advanceUntilIdle()
 
             // Then
-            assertEquals("Heute", viewModel.uiState.value.vorgaenge[0].erstelltAm)
+            assertEquals(DatumAnzeige.Heute, viewModel.uiState.value.vorgaenge[0].erstelltAm)
         }
 
         @Test
@@ -169,7 +169,7 @@ class UebersichtViewModelTest {
             advanceUntilIdle()
 
             // Then
-            assertEquals("Gestern", viewModel.uiState.value.vorgaenge[0].erstelltAm)
+            assertEquals(DatumAnzeige.Gestern, viewModel.uiState.value.vorgaenge[0].erstelltAm)
         }
 
         @Test
@@ -188,7 +188,7 @@ class UebersichtViewModelTest {
             // Then: dd.MM.yyyy Format
             val erwartetesDatum = LocalDate.now().minusDays(10)
                 .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-            assertEquals(erwartetesDatum, viewModel.uiState.value.vorgaenge[0].erstelltAm)
+            assertEquals(DatumAnzeige.Formatiert(erwartetesDatum), viewModel.uiState.value.vorgaenge[0].erstelltAm)
         }
 
         @Test
@@ -522,7 +522,7 @@ class UebersichtViewModelTest {
             advanceUntilIdle()
 
             // Then: Gesamtdauer wird korrekt berechnet und formatiert
-            assertEquals("1h 23min", viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
+            assertEquals(DauerAnzeige.StundenMinuten(1, 23), viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
         }
 
         @Test
@@ -569,7 +569,7 @@ class UebersichtViewModelTest {
             advanceUntilIdle()
 
             // Then: Nur Minuten wenn unter einer Stunde
-            assertEquals("45 min", viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
+            assertEquals(DauerAnzeige.Minuten(45), viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
         }
 
         @Test
@@ -619,7 +619,7 @@ class UebersichtViewModelTest {
             advanceUntilIdle()
 
             // Then: "< 1 min" fuer sehr kurze Dauern
-            assertEquals("< 1 min", viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
+            assertEquals(DauerAnzeige.WenigerAlsEineMinute, viewModel.uiState.value.archivierteVorgaenge[0].gesamtdauer)
         }
 
         @Test
@@ -658,7 +658,7 @@ class UebersichtViewModelTest {
             // Then: Abschlussdatum wird formatiert angezeigt
             val erwartetesDatum = LocalDate.now().minusDays(3)
                 .format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-            assertEquals(erwartetesDatum, viewModel.uiState.value.archivierteVorgaenge[0].abschlussDatum)
+            assertEquals(DatumAnzeige.Formatiert(erwartetesDatum), viewModel.uiState.value.archivierteVorgaenge[0].abschlussDatum)
         }
     }
 }

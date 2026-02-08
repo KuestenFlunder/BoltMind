@@ -49,6 +49,20 @@ import com.boltmind.app.R
 import com.boltmind.app.ui.components.FotoPreview
 import com.boltmind.app.ui.theme.BoltMindTheme
 
+@Composable
+private fun datumText(datum: DatumAnzeige): String = when (datum) {
+    is DatumAnzeige.Heute -> stringResource(R.string.datum_heute)
+    is DatumAnzeige.Gestern -> stringResource(R.string.datum_gestern)
+    is DatumAnzeige.Formatiert -> datum.text
+}
+
+@Composable
+private fun dauerText(dauer: DauerAnzeige): String = when (dauer) {
+    is DauerAnzeige.WenigerAlsEineMinute -> stringResource(R.string.dauer_weniger_als_eine_minute)
+    is DauerAnzeige.Minuten -> stringResource(R.string.dauer_minuten, dauer.minuten)
+    is DauerAnzeige.StundenMinuten -> stringResource(R.string.dauer_stunden_minuten, dauer.stunden, dauer.minuten)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UebersichtScreen(
@@ -288,7 +302,7 @@ private fun VorgangKarte(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = vorgang.erstelltAm,
+                    text = datumText(vorgang.erstelltAm),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -326,12 +340,12 @@ private fun ArchivVorgangKarte(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = stringResource(R.string.gesamtdauer, vorgang.gesamtdauer),
+                    text = stringResource(R.string.gesamtdauer, dauerText(vorgang.gesamtdauer)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = stringResource(R.string.abgeschlossen_am, vorgang.abschlussDatum),
+                    text = stringResource(R.string.abgeschlossen_am, datumText(vorgang.abschlussDatum)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -434,14 +448,14 @@ private fun UebersichtScreenMitVorgaengenPreview() {
                         fahrzeugFotoPfad = null,
                         auftragsnummer = "2024-0815",
                         anzahlSchritte = 12,
-                        erstelltAm = "Heute",
+                        erstelltAm = DatumAnzeige.Heute,
                     ),
                     VorgangUiItem(
                         id = 2L,
                         fahrzeugFotoPfad = null,
                         auftragsnummer = "2024-0712",
                         anzahlSchritte = 8,
-                        erstelltAm = "Gestern",
+                        erstelltAm = DatumAnzeige.Gestern,
                     ),
                 ),
             ),
@@ -490,16 +504,16 @@ private fun UebersichtScreenArchivPreview() {
                         fahrzeugFotoPfad = null,
                         auftragsnummer = "2024-0501",
                         anzahlSchritte = 15,
-                        gesamtdauer = "2h 15min",
-                        abschlussDatum = "01.05.2024",
+                        gesamtdauer = DauerAnzeige.StundenMinuten(2, 15),
+                        abschlussDatum = DatumAnzeige.Formatiert("01.05.2024"),
                     ),
                     ArchivVorgangUiItem(
                         id = 4L,
                         fahrzeugFotoPfad = null,
                         auftragsnummer = "2024-0320",
                         anzahlSchritte = 7,
-                        gesamtdauer = "45 min",
-                        abschlussDatum = "20.03.2024",
+                        gesamtdauer = DauerAnzeige.Minuten(45),
+                        abschlussDatum = DatumAnzeige.Formatiert("20.03.2024"),
                     ),
                 ),
             ),
