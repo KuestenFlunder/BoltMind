@@ -20,4 +20,10 @@ interface SchrittDao {
 
     @Query("SELECT COUNT(*) FROM schritt WHERE reparaturvorgangId = :vorgangId")
     fun getAnzahlByVorgangId(vorgangId: Long): Flow<Int>
+
+    @Query("SELECT * FROM schritt WHERE reparaturvorgangId = :vorgangId ORDER BY reihenfolge DESC LIMIT 1")
+    suspend fun getLetzerByVorgangId(vorgangId: Long): Schritt?
+
+    @Query("SELECT COUNT(*) FROM schritt WHERE reparaturvorgangId = :vorgangId")
+    suspend fun getAnzahlByVorgangIdEinmalig(vorgangId: Long): Int
 }

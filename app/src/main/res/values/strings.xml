@@ -38,4 +38,20 @@
     <string name="fehler_beschreibung_pflicht">Beschreibung ist Pflicht</string>
     <string name="fehler_anzahl_ablageorte_pflicht">Anzahl Ablageorte ist Pflicht</string>
     <string name="fehler_anzahl_ablageorte_ungueltig">Bitte eine gültige Zahl ab 1 eingeben</string>
+
+    <!-- Demontage Screen (F-003) -->
+    <string name="demontage_schritt_label">Schritt %d</string>
+    <string name="demontage_beenden">Beenden</string>
+    <string name="demontage_bestaetigen">✓ BESTÄTIGEN</string>
+    <string name="demontage_aendern">✎ ÄNDERN</string>
+    <string name="demontage_ablageort_label">Ablageort</string>
+    <string name="demontage_auto_vorgeschlagen">(auto-vorgeschlagen)</string>
+    <string name="demontage_foto_vorschau">Foto-Vorschau</string>
+    <string name="demontage_letztes_foto">Letztes Foto</string>
+    <string name="demontage_kamera_permission">BoltMind benötigt Zugriff auf die Kamera, um Fotos der Demontage-Schritte aufzunehmen.</string>
+    <string name="demontage_permission_erteilen">Kamera freigeben</string>
+    <string name="demontage_alle_belegt_titel">Alle Ablageorte belegt</string>
+    <string name="demontage_alle_belegt_text">Alle %d Ablageorte sind vergeben.</string>
+    <string name="demontage_alle_belegt_beenden">Beenden</string>
+    <string name="demontage_alle_belegt_erweitern">+1 Erweitern</string>
 </resources>

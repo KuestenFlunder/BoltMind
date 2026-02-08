@@ -229,6 +229,8 @@ private class StubSchrittDao : SchrittDao {
     override fun getAllByVorgangId(vorgangId: Long): Flow<List<Schritt>> = flowOf(emptyList())
     override suspend fun getAllByVorgangIdEinmalig(vorgangId: Long): List<Schritt> = emptyList()
     override fun getAnzahlByVorgangId(vorgangId: Long): Flow<Int> = flowOf(0)
+    override suspend fun getLetzerByVorgangId(vorgangId: Long): Schritt? = null
+    override suspend fun getAnzahlByVorgangIdEinmalig(vorgangId: Long): Int = 0
 }
 
 class FakeReparaturRepository : ReparaturRepository(
