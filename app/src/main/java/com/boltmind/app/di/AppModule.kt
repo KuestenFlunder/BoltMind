@@ -2,6 +2,7 @@ package com.boltmind.app.di
 
 import com.boltmind.app.data.local.BoltMindDatabase
 import com.boltmind.app.data.repository.ReparaturRepository
+import com.boltmind.app.feature.neuervorgang.NeuerVorgangViewModel
 import com.boltmind.app.feature.uebersicht.UebersichtViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -13,4 +14,5 @@ val appModule = module {
     single { get<BoltMindDatabase>().schrittDao() }
     single { ReparaturRepository(get(), get()) }
     viewModel { UebersichtViewModel(get()) }
+    viewModel { NeuerVorgangViewModel(get()) }
 }
