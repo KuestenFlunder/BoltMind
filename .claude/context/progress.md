@@ -2,7 +2,7 @@
 
 **Project**: BoltMind
 **Created**: 2026-02-07T23:45:00+01:00
-**Last Updated**: 2026-02-08T00:45:00+01:00
+**Last Updated**: 2026-02-08T01:00:00+01:00
 
 <!-- ========================================== -->
 <!-- Entry: 2026-02-07T23:20:00+01:00          -->
@@ -167,3 +167,30 @@ Neues MVP-Feature: Mechaniker definiert Anzahl Ablageorte beim Anlegen des Vorga
 - ✅ F-003: Auto-Hochzählung mit Bestätigen (1 Tap) / Ändern (Freitext+Numpad)
 - ✅ GitHub Issues #3 und #6 aktualisiert
 - ✅ Ablageort-Flow im Regelfall: Foto → 1 Tap → weiter
+
+<!-- ========================================== -->
+<!-- Entry: 2026-02-08T01:00:00+01:00          -->
+<!-- ========================================== -->
+
+## Entry: 2026-02-08T01:00:00+01:00 | direct-invocation > documentation
+**Command**: Coding Rules für das Projekt definieren
+**Agent**: direct
+
+### Summary
+Gemeinsam mit dem User alle Coding-Konventionen für BoltMind festgelegt und als CODING_RULES.md dokumentiert. Entscheidungen: MVVM-Architektur, feature-basierte Package-Struktur, Koin DI, DDD mit deutschen Domain-Begriffen, TDD mit spec-describing Tests, ktlint + detekt, feature/F-XXX/beschreibung Branch-Naming.
+
+### Files Read
+- Keine
+
+### Files Modified
+- docs/CODING_RULES.md - Architektur (MVVM), Package-Struktur, DI (Koin), Naming (DDD deutsch/englisch), TDD-Strategie, Compose Conventions, Code-Qualität (ktlint+detekt), Git-Workflow, verbotene Patterns
+
+### Key Outcomes
+- ✅ MVVM als Architektur-Pattern festgelegt
+- ✅ Feature-basierte Package-Struktur definiert mit vollständigem Baum
+- ✅ DDD: Deutsche Domain-Begriffe (Reparaturvorgang, Schritt, Ablageort)
+- ✅ TDD: Test-first, spec-describing Testnamen, Unit + Integration
+- ✅ Koin für Dependency Injection
+- ✅ ktlint + detekt für Code-Qualität
+- ✅ Git: feature/F-XXX/beschreibung Branch-Convention
+- ✅ Verbotene Patterns dokumentiert (God-ViewModel, hardcoded Strings, etc.)
