@@ -8,7 +8,7 @@ import java.time.Instant
 data class Reparaturvorgang(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val fahrzeugFotoPfad: String,
+    val fahrzeugFotoPfad: String? = null,
     val auftragsnummer: String,
     val beschreibung: String? = null,
     val status: VorgangStatus = VorgangStatus.OFFEN,

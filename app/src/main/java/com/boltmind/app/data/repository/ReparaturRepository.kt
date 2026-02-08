@@ -3,6 +3,7 @@ package com.boltmind.app.data.repository
 import com.boltmind.app.data.local.ReparaturvorgangDao
 import com.boltmind.app.data.local.SchrittDao
 import com.boltmind.app.data.model.Reparaturvorgang
+import com.boltmind.app.data.model.ReparaturvorgangMitAnzahl
 import com.boltmind.app.data.model.Schritt
 import com.boltmind.app.data.model.VorgangStatus
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,9 @@ class ReparaturRepository(
 
     fun beobachteOffeneVorgaenge(): Flow<List<Reparaturvorgang>> =
         vorgangDao.beobachteNachStatus(VorgangStatus.OFFEN)
+
+    fun beobachteOffeneVorgaengeMitAnzahl(): Flow<List<ReparaturvorgangMitAnzahl>> =
+        vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.OFFEN)
 
     fun beobachteArchivierteVorgaenge(): Flow<List<Reparaturvorgang>> =
         vorgangDao.beobachteNachStatus(VorgangStatus.ARCHIVIERT)

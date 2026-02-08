@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b89d1e3e317df0d8e095b5c13aea16da",
+    "identityHash": "068444707fd3bb7056311309083ad944",
     "entities": [
       {
         "tableName": "reparaturvorgang",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fahrzeugFotoPfad` TEXT NOT NULL, `auftragsnummer` TEXT NOT NULL, `beschreibung` TEXT, `status` TEXT NOT NULL, `erstelltAm` INTEGER NOT NULL, `aktualisiertAm` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fahrzeugFotoPfad` TEXT, `auftragsnummer` TEXT NOT NULL, `beschreibung` TEXT, `status` TEXT NOT NULL, `erstelltAm` INTEGER NOT NULL, `aktualisiertAm` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -17,8 +17,7 @@
           {
             "fieldPath": "fahrzeugFotoPfad",
             "columnName": "fahrzeugFotoPfad",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "auftragsnummer",
@@ -143,7 +142,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b89d1e3e317df0d8e095b5c13aea16da')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '068444707fd3bb7056311309083ad944')"
     ]
   }
 }

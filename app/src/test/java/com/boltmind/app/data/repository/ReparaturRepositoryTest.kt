@@ -3,6 +3,7 @@ package com.boltmind.app.data.repository
 import com.boltmind.app.data.local.ReparaturvorgangDao
 import com.boltmind.app.data.local.SchrittDao
 import com.boltmind.app.data.model.Reparaturvorgang
+import com.boltmind.app.data.model.ReparaturvorgangMitAnzahl
 import com.boltmind.app.data.model.Schritt
 import com.boltmind.app.data.model.VorgangStatus
 import kotlinx.coroutines.flow.first
@@ -60,6 +61,25 @@ class ReparaturRepositoryTest {
             // Then
             assertEquals(1, result.size)
             assertEquals(VorgangStatus.OFFEN, result.first().status)
+        }
+
+        @Test
+        fun `liefert offene Vorgaenge mit Schrittanzahl`() = runTest {
+            // Given
+            val vorgang = testVorgang(id = 1L, status = VorgangStatus.OFFEN)
+            val vorgaengeMitAnzahl = listOf(
+                ReparaturvorgangMitAnzahl(vorgang = vorgang, schrittAnzahl = 7)
+            )
+            whenever(vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.OFFEN))
+                .thenReturn(flowOf(vorgaengeMitAnzahl))
+
+            // When
+            val result = repository.beobachteOffeneVorgaengeMitAnzahl().first()
+
+            // Then
+            assertEquals(1, result.size)
+            assertEquals(VorgangStatus.OFFEN, result.first().vorgang.status)
+            assertEquals(7, result.first().schrittAnzahl)
         }
     }
 

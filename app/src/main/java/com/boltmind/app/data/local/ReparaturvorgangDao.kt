@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.boltmind.app.data.model.Reparaturvorgang
+import com.boltmind.app.data.model.ReparaturvorgangMitAnzahl
 import com.boltmind.app.data.model.VorgangStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +14,18 @@ interface ReparaturvorgangDao {
 
     @Query("SELECT * FROM reparaturvorgang WHERE status = :status ORDER BY aktualisiertAm DESC")
     fun beobachteNachStatus(status: VorgangStatus): Flow<List<Reparaturvorgang>>
+
+    @Query(
+        """
+        SELECT r.*, COUNT(s.id) as schrittAnzahl
+        FROM reparaturvorgang r
+        LEFT JOIN schritt s ON r.id = s.reparaturvorgangId
+        WHERE r.status = :status
+        GROUP BY r.id
+        ORDER BY r.aktualisiertAm DESC
+        """
+    )
+    fun beobachteNachStatusMitAnzahl(status: VorgangStatus): Flow<List<ReparaturvorgangMitAnzahl>>
 
     @Query("SELECT * FROM reparaturvorgang WHERE id = :id")
     suspend fun findById(id: Long): Reparaturvorgang?
