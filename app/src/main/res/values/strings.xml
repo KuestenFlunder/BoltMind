@@ -1,3 +1,41 @@
 <resources>
     <string name="app_name">BoltMind</string>
+
+    <!-- Navigation -->
+    <string name="nav_uebersicht">Übersicht</string>
+    <string name="nav_neuer_vorgang">Neuer Vorgang</string>
+
+    <!-- Übersicht Screen (F-001) -->
+    <string name="tab_offen">Offen</string>
+    <string name="tab_archiv">Archiv</string>
+    <string name="uebersicht_leer_offen">Noch keine Vorgänge</string>
+    <string name="uebersicht_leer_offen_hinweis">Tippe auf + um einen neuen Vorgang anzulegen</string>
+    <string name="uebersicht_leer_archiv">Kein Archiv vorhanden</string>
+    <string name="uebersicht_schritte_format">%d Schritte</string>
+    <string name="uebersicht_auftrag_prefix">Auftrag: %s</string>
+    <string name="uebersicht_datum_heute">Heute</string>
+    <string name="uebersicht_datum_gestern">Gestern</string>
+    <string name="fab_neuer_vorgang">Neuer Vorgang</string>
+
+    <!-- Lösch-Dialog -->
+    <string name="dialog_loeschen_titel">Vorgang löschen?</string>
+    <string name="dialog_loeschen_text">%s mit allen Schritten und Fotos endgültig löschen?</string>
+    <string name="dialog_loeschen_bestaetigen">Löschen</string>
+    <string name="dialog_abbrechen">Abbrechen</string>
+
+    <!-- Auswahl-Dialog -->
+    <string name="dialog_auswahl_demontage">Weiter demontieren</string>
+    <string name="dialog_auswahl_montage">Montage starten</string>
+
+    <!-- Neuer Vorgang Screen (F-002) -->
+    <string name="feld_fahrzeug">Fahrzeug *</string>
+    <string name="feld_auftragsnummer">Auftragsnummer *</string>
+    <string name="feld_beschreibung">Beschreibung *</string>
+    <string name="feld_anzahl_ablageorte">Anzahl Ablageorte *</string>
+    <string name="button_starten">Starten</string>
+    <string name="fehler_fahrzeug_pflicht">Fahrzeug ist Pflicht</string>
+    <string name="fehler_auftragsnummer_pflicht">Auftragsnummer ist Pflicht</string>
+    <string name="fehler_beschreibung_pflicht">Beschreibung ist Pflicht</string>
+    <string name="fehler_anzahl_ablageorte_pflicht">Anzahl Ablageorte ist Pflicht</string>
+    <string name="fehler_anzahl_ablageorte_ungueltig">Bitte eine gültige Zahl ab 1 eingeben</string>
 </resources>
