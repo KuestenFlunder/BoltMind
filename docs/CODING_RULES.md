@@ -69,7 +69,7 @@ Domänen-Klassen und -Felder verwenden die deutsche Fachsprache aus der Architec
 | Reparaturvorgang | `Reparaturvorgang` | `RepairJob` |
 | Schritt | `Schritt` | `Step` |
 | Ablageort | `ablageortNummer` | `storageLocationNumber` |
-| Fahrzeug | `fahrzeug` | `vehicle` |
+| Fahrzeugfoto | `fahrzeugFotoPfad` | `vehiclePhotoPath` |
 | Auftragsnummer | `auftragsnummer` | `orderNumber` |
 | Beschreibung | `beschreibung` | `description` |
 
@@ -81,10 +81,9 @@ Alles was nicht Domain ist, bleibt englisch:
 // Domain: Deutsch
 data class Reparaturvorgang(
     val id: Long = 0,
-    val fahrzeug: String,
+    val fahrzeugFotoPfad: String,
     val auftragsnummer: String,
-    val beschreibung: String,
-    val anzahlAblageorte: Int,
+    val beschreibung: String? = null,
     val status: VorgangStatus,
     val erstelltAm: Instant
 )
@@ -121,15 +120,44 @@ val appModule = module {
 }
 ```
 
-## Testing: TDD
+## Testing: TDD (verbindlich)
 
-### Strategie
+### Grundregel
 
-1. **Test zuerst**: Vor jeder Implementierung wird der Test geschrieben
-2. **Spec-describing Tests**: Testnamen beschreiben das erwartete Verhalten aus der Spec
-3. **Unit Tests**: ViewModels und Repositories
-4. **Integration Tests**: Room Database, Repository + DAO zusammen
-5. **UI Tests**: Erst wenn die UI steht (nicht im MVP-Startfokus)
+Kein Produktivcode ohne vorherigen Test. TDD ist keine Empfehlung, sondern der verbindliche Entwicklungsflow für jede Code-Änderung.
+
+### TDD-Zyklus (zwingend bei jeder Änderung)
+
+```
+1. RED:    Test schreiben / anpassen → Test muss fehlschlagen
+           └─ ./gradlew test  (rot bestätigen)
+2. GREEN:  Minimal implementieren bis Test grün
+           └─ ./gradlew test  (grün bestätigen)
+3. REFACTOR: Code aufräumen, Tests müssen grün bleiben
+           └─ ./gradlew test + ./gradlew ktlintCheck + ./gradlew detekt
+```
+
+### Gilt für ALLE Änderungstypen
+
+| Änderungstyp | Test-Aktion |
+|--------------|-------------|
+| Neues Feature | Neue Tests aus Spec-Akzeptanzkriterien ableiten |
+| Bugfix | Erst Test schreiben der den Bug reproduziert, dann fixen |
+| Refactoring | Bestehende Tests müssen vor UND nach dem Refactoring grün sein |
+| Spec-Änderung | Betroffene Tests anpassen bevor Code angepasst wird |
+
+### Verboten
+
+- Produktivcode schreiben bevor der zugehörige Test existiert
+- Tests nach der Implementierung schreiben ("test-after")
+- Tests deaktivieren, löschen oder überspringen um Build grün zu bekommen
+- Implementierung ohne abschließendes `./gradlew test`
+
+### Test-Typen
+
+1. **Unit Tests**: ViewModels und Repositories (Hauptfokus)
+2. **Integration Tests**: Room Database, Repository + DAO zusammen
+3. **UI Tests**: Erst wenn die UI steht (nicht im MVP-Startfokus)
 
 ### Test-Struktur
 
@@ -153,7 +181,7 @@ app/src/
 
 ### Test-Naming
 
-Tests beschreiben das Verhalten gemäß Spec:
+Tests beschreiben das Verhalten gemäß Spec-Akzeptanzkriterien:
 
 ```kotlin
 class DemontageViewModelTest {
@@ -164,7 +192,7 @@ class DemontageViewModelTest {
     fun `speichert Schritt sofort in DB nach Ablageort-Bestaetigung`() { }
 
     @Test
-    fun `Ablageort-Nummer macht Wrap-Around bei Erreichen des Maximums`() { }
+    fun `ueberspringt bereits belegte Ablageort-Nummern`() { }
 }
 
 class ReparaturRepositoryTest {
@@ -261,9 +289,12 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ### Workflow
 
 ```
-1. Issue wählen
+1. Issue wählen, Spec lesen
 2. Branch erstellen: feature/F-XXX/beschreibung
-3. TDD: Test schreiben → Implementieren → Refactoren
+3. TDD-Zyklus (pro Akzeptanzkriterium wiederholen):
+   a) Test schreiben/anpassen → ./gradlew test (rot)
+   b) Implementieren          → ./gradlew test (grün)
+   c) Refactoren              → ./gradlew test + ktlintCheck + detekt (grün)
 4. PR erstellen → Review → Merge nach main
 5. Issue schließen
 ```

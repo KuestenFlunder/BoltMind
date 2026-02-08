@@ -9,7 +9,7 @@ Der Startscreen der App zeigt eine Übersicht aller Reparaturvorgänge. Der Mech
 ### Funktional
 
 - Liste aller offenen Reparaturvorgänge als Startansicht
-- Jeder Listeneintrag zeigt: Fahrzeug-Bezeichnung, Auftragsnummer, Erstellungsdatum, Anzahl Schritte
+- Jeder Listeneintrag zeigt: Fahrzeugfoto (Thumbnail), Auftragsnummer, Erstellungsdatum, Anzahl Schritte
 - Umschalten zwischen "Offen" und "Archiv" (Tabs oder Filter)
 - Button zum Anlegen eines neuen Vorgangs (führt zu F-002)
 - Tippen auf einen offenen Vorgang:
@@ -43,17 +43,17 @@ Der Startscreen der App zeigt eine Übersicht aller Reparaturvorgänge. Der Mech
 │  Offen   │   Archiv         │
 ├──────────┴──────────────────┤
 │                             │
-│  ┌─────────────────────┐    │
-│  │ BMW 320d             │    │
-│  │ Auftrag: #2024-0815  │    │
-│  │ 12 Schritte · Heute  │    │
-│  └─────────────────────┘    │
+│  ┌──────┬──────────────┐    │
+│  │[Foto]│ #2024-0815    │    │
+│  │      │ 12 Schritte   │    │
+│  │      │ Heute         │    │
+│  └──────┴──────────────┘    │
 │                             │
-│  ┌─────────────────────┐    │
-│  │ VW Golf GTI          │    │
-│  │ Auftrag: #2024-0712  │    │
-│  │ 8 Schritte · Gestern │    │
-│  └─────────────────────┘    │
+│  ┌──────┬──────────────┐    │
+│  │[Foto]│ #2024-0712    │    │
+│  │      │ 8 Schritte    │    │
+│  │      │ Gestern       │    │
+│  └──────┴──────────────┘    │
 │                             │
 │                        [+]  │
 └─────────────────────────────┘
@@ -64,7 +64,7 @@ Der Startscreen der App zeigt eine Übersicht aller Reparaturvorgänge. Der Mech
 ```
 ┌─────────────────────────────┐
 │                             │
-│  BMW 320d · #2024-0815      │
+│  [Foto] · #2024-0815        │
 │                             │
 │  ┌─────────────────────┐    │
 │  │  Weiter demontieren  │    │

@@ -23,7 +23,7 @@ Kfz-Mechaniker in Autowerkstätten, die Reparaturen mit vielen Einzelteilen durc
 
 | Begriff | Beschreibung |
 |---------|-------------|
-| **Reparaturvorgang** | Ein Reparaturauftrag an einem Fahrzeug. Enthält Fahrzeug-Bezeichnung, Auftragsnummer, Beschreibung. Mehrere Vorgänge können gleichzeitig offen sein. |
+| **Reparaturvorgang** | Ein Reparaturauftrag an einem Fahrzeug. Enthält Fahrzeugfoto, Auftragsnummer und optionale Beschreibung. Mehrere Vorgänge können gleichzeitig offen sein. |
 | **Schritt** | Ein einzelner Demontage-Schritt: Foto (Zustand vor Ausbau) + Ablageort. Die Granularität bestimmt der Mechaniker selbst. Jeder Schritt hat einen Zeitstempel. |
 | **Ablageort** | Physischer Ort (Werkbank, Tisch etc.) mit Nummer oder QR-Code. Wird vom Mechaniker selbst eingerichtet. Ist fest mit dem Schritt verknüpft. |
 | **Historie** | Chronologische Abfolge aller Schritte eines Reparaturvorgangs. Kann vorwärts (Demontage) und rückwärts (Montage) durchlaufen werden. |
@@ -33,7 +33,7 @@ Kfz-Mechaniker in Autowerkstätten, die Reparaturen mit vielen Einzelteilen durc
 
 ```
 Mechaniker startet neuen Reparaturvorgang
-  → Initialdialog: Fahrzeug, Auftragsnummer, Beschreibung
+  → Fahrzeugfoto aufnehmen, dann Auftragsnummer erfassen (Beschreibung optional)
   → Schritt-Schleife:
       1. Foto der Baugruppe (eingebauter Zustand)
       2. Mechaniker baut Teil aus (keine App-Interaktion)

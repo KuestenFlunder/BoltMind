@@ -55,7 +55,7 @@ Domain-Begriffe auf **Deutsch**, technische Begriffe auf **Englisch**:
 | Reparaturvorgang | Repair job | `Reparaturvorgang.kt`, `ReparaturRepository` |
 | Schritt | Disassembly step | `Schritt.kt`, `SchrittDao` |
 | Ablageort | Storage location | `ablageortNummer: Int` |
-| Fahrzeug | Vehicle | `fahrzeug: String` |
+| Fahrzeugfoto | Vehicle photo | `fahrzeugFotoPfad: String` |
 | Auftragsnummer | Order number | `auftragsnummer: String` |
 
 Funktionsnamen für Domain-Events ebenfalls Deutsch: `onFotoAufgenommen()`, `onAblageortBestaetigt()`.
@@ -74,14 +74,20 @@ Feature-Specs in `docs/specs/F-XXX-*.md` sind Source of Truth. Issues referenzie
 - **DB-Zugriffe**: Immer asynchron (suspend functions)
 - **Compose**: State Hoisting, `@Preview` für jeden Screen
 
-## TDD Workflow
+## TDD Workflow (verbindlich)
 
-Test-first nach Spec-Anforderungen:
-1. Test schreiben der Akzeptanzkriterium abbildet
-2. Implementieren bis Test grün
-3. Refactorn
+TDD ist keine Empfehlung, sondern Pflicht bei JEDER Code-Änderung (Feature, Bugfix, Refactoring).
 
-Testnamen beschreiben Spec-Verhalten: `sollte Reparaturvorgang mit Fahrzeug anlegen`.
+**Zwingender Zyklus:**
+```
+1. RED:      Test schreiben/anpassen → ./gradlew test (muss fehlschlagen)
+2. GREEN:    Implementieren          → ./gradlew test (muss grün sein)
+3. REFACTOR: Aufräumen               → ./gradlew test + ktlintCheck + detekt (grün)
+```
+
+**Verboten:** Code ohne vorherigen Test schreiben. Tests deaktivieren/löschen um Build grün zu bekommen.
+
+Testnamen beschreiben Spec-Akzeptanzkriterien: `schlaegt naechste Ablageort-Nummer automatisch vor`.
 
 ## Git Workflow
 
