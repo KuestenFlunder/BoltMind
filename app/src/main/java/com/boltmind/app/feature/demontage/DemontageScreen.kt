@@ -100,14 +100,15 @@ fun DemontageScreen(
             uiState = uiState,
             onFotoAufgenommen = viewModel::onFotoAufgenommen,
             onFotoFehler = viewModel::onFotoFehler,
-            onBeendenGeklickt = viewModel::onDemontageBeenden
+            onBeendenGeklickt = viewModel::onDemontageBeenden,
+            onZurueck = viewModel::onDemontageBeenden
         )
         DemontagePhase.ABLAGEORT_BESTAETIGUNG -> AblageortBestaetigung(
             uiState = uiState,
             onBestaetigt = viewModel::onAblageortBestaetigt,
             onAendern = viewModel::onAblageortAendern,
             onNummerGeaendert = viewModel::onAblageortNummerGeaendert,
-            onZurueck = { /* zurück zur Kamera ohne Speichern - optional */ }
+            onZurueck = viewModel::onDemontageBeenden
         )
     }
 
@@ -126,7 +127,8 @@ private fun KameraAnsicht(
     uiState: DemontageUiState,
     onFotoAufgenommen: (String) -> Unit,
     onFotoFehler: (String) -> Unit,
-    onBeendenGeklickt: () -> Unit
+    onBeendenGeklickt: () -> Unit,
+    onZurueck: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -159,6 +161,14 @@ private fun KameraAnsicht(
                 title = {
                     Text(uiState.fahrzeug)
                 },
+                navigationIcon = {
+                    IconButton(onClick = onZurueck) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.nav_uebersicht)
+                        )
+                    }
+                },
                 actions = {
                     Text(
                         text = stringResource(R.string.demontage_schritt_label, uiState.aktuellerSchritt),
@@ -169,7 +179,8 @@ private fun KameraAnsicht(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         }
