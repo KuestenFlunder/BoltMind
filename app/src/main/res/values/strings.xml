@@ -12,4 +12,20 @@
     <string name="beschreibung_label">Beschreibung</string>
     <string name="starten_button">Starten</string>
     <string name="kamera_berechtigung_erklaerung">Kamera-Zugriff wird benötigt um Fahrzeugfotos aufzunehmen. Bitte erlaube den Zugriff in den Einstellungen.</string>
+    <string name="weiter_demontieren">Weiter demontieren</string>
+    <string name="montage_starten">Montage starten</string>
+    <string name="loeschen_bestaetigung">Vorgang #%s und alle Fotos unwiderruflich löschen?</string>
+    <string name="loeschen">Löschen</string>
+    <string name="abbrechen">Abbrechen</string>
+    <string name="loeschen_hintergrund">Löschen</string>
+    <string name="tab_offen">Offen</string>
+    <string name="tab_archiv">Archiv</string>
+    <string name="keine_archivierten_vorgaenge">Noch keine abgeschlossenen Vorgänge.</string>
+    <string name="datum_heute">Heute</string>
+    <string name="datum_gestern">Gestern</string>
+    <string name="dauer_weniger_als_eine_minute">&lt; 1 min</string>
+    <string name="dauer_minuten">%d min</string>
+    <string name="dauer_stunden_minuten">%dh %dmin</string>
+    <string name="gesamtdauer">Gesamtdauer: %s</string>
+    <string name="abgeschlossen_am">Abgeschlossen: %s</string>
 </resources>

@@ -22,6 +22,9 @@ class ReparaturRepository(
     fun beobachteArchivierteVorgaenge(): Flow<List<Reparaturvorgang>> =
         vorgangDao.beobachteNachStatus(VorgangStatus.ARCHIVIERT)
 
+    fun beobachteArchivierteVorgaengeMitAnzahl(): Flow<List<ReparaturvorgangMitAnzahl>> =
+        vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.ARCHIVIERT)
+
     suspend fun findVorgangById(id: Long): Reparaturvorgang? =
         vorgangDao.findById(id)
 
@@ -39,6 +42,9 @@ class ReparaturRepository(
 
     fun beobachteSchritte(vorgangId: Long): Flow<List<Schritt>> =
         schrittDao.beobachteSchritte(vorgangId)
+
+    suspend fun holeSchritte(vorgangId: Long): List<Schritt> =
+        schrittDao.holeSchritte(vorgangId)
 
     suspend fun erstelleSchritt(schritt: Schritt): Long =
         schrittDao.einfuegen(schritt)

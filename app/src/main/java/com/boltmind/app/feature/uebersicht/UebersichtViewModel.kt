@@ -2,12 +2,14 @@ package com.boltmind.app.feature.uebersicht
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.boltmind.app.data.model.Schritt
 import com.boltmind.app.data.repository.ReparaturRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -22,6 +24,7 @@ class UebersichtViewModel(
 
     init {
         ladeOffeneVorgaenge()
+        ladeArchivierteVorgaenge()
     }
 
     private fun ladeOffeneVorgaenge() {
@@ -39,6 +42,29 @@ class UebersichtViewModel(
                 _uiState.update { it.copy(vorgaenge = items, isLoading = false) }
             }
         }
+    }
+
+    private fun ladeArchivierteVorgaenge() {
+        viewModelScope.launch {
+            repository.beobachteArchivierteVorgaengeMitAnzahl().collect { vorgaengeMitAnzahl ->
+                val archivItems = vorgaengeMitAnzahl.map { item ->
+                    val schritte = repository.holeSchritte(item.vorgang.id)
+                    ArchivVorgangUiItem(
+                        id = item.vorgang.id,
+                        fahrzeugFotoPfad = item.vorgang.fahrzeugFotoPfad,
+                        auftragsnummer = item.vorgang.auftragsnummer,
+                        anzahlSchritte = item.schrittAnzahl,
+                        gesamtdauer = formatiereGesamtdauer(schritte),
+                        abschlussDatum = formatiereDatum(item.vorgang.aktualisiertAm),
+                    )
+                }
+                _uiState.update { it.copy(archivierteVorgaenge = archivItems) }
+            }
+        }
+    }
+
+    fun onTabGewaehlt(tabIndex: Int) {
+        _uiState.update { it.copy(selectedTab = tabIndex) }
     }
 
     fun onVorgangGetippt(vorgangId: Long) {
@@ -117,13 +143,28 @@ class UebersichtViewModel(
         _uiState.update { it.copy(loeschenDialog = null) }
     }
 
-    internal fun formatiereDatum(instant: Instant): String {
+    internal fun formatiereDatum(instant: Instant): DatumAnzeige {
         val datum = instant.atZone(ZoneId.systemDefault()).toLocalDate()
         val heute = LocalDate.now()
         return when {
-            datum == heute -> "Heute"
-            datum == heute.minusDays(1) -> "Gestern"
-            else -> datum.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+            datum == heute -> DatumAnzeige.Heute
+            datum == heute.minusDays(1) -> DatumAnzeige.Gestern
+            else -> DatumAnzeige.Formatiert(datum.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
+        }
+    }
+
+    internal fun formatiereGesamtdauer(schritte: List<Schritt>): DauerAnzeige {
+        val gesamtSekunden = schritte.sumOf { schritt ->
+            val ende = schritt.abgeschlossenAm ?: return@sumOf 0L
+            Duration.between(schritt.gestartetAm, ende).seconds
+        }
+        val minuten = (gesamtSekunden / 60).toInt()
+        val stunden = minuten / 60
+        val restMinuten = minuten % 60
+        return when {
+            minuten < 1 -> DauerAnzeige.WenigerAlsEineMinute
+            stunden < 1 -> DauerAnzeige.Minuten(minuten)
+            else -> DauerAnzeige.StundenMinuten(stunden, restMinuten)
         }
     }
 }
