@@ -136,7 +136,7 @@ Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild in der Anzeig
 - Minimale Interaktion pro Schritt:
   - Ohne Ablageort: Foto aufnehmen -> Bestaetigen -> Ausgebaut -> Dialog = 4 Taps
   - Mit Ablageort: Foto aufnehmen -> Bestaetigen -> Ausgebaut -> Dialog -> Ablageort-Foto -> Bestaetigen = 6 Taps
-- Schrittnummer immer sichtbar: In Preview-View und auf Ausgebaut-Screen
+- Schrittnummer immer sichtbar: In Preview-View und auf Arbeitsphase-Screen
 - Foto-Qualitaet: Mittlere Kompression, ~2-3 MB pro Foto (Balance zwischen Qualitaet und Speicher)
 
 ## Ordner-Inhalt
@@ -144,7 +144,7 @@ Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild in der Anzeig
 | Datei | Typ | Beschreibung |
 |---|---|---|
 | [views/preview.md](views/preview.md) | View-Spec | Preview-View: Foto-Aufnahme per System-Kamera + Vorschau mit Bestaetigen/Wiederholen |
-| [views/ausgebaut.md](views/ausgebaut.md) | View-Spec | Ausgebaut-View: Schrittnummer + Foto + Button |
+| [views/arbeitsphase.md](views/arbeitsphase.md) | View-Spec | Arbeitsphase-View: Schrittnummer + Foto + Button |
 | [views/dialog.md](views/dialog.md) | View-Spec | Dialog-View: 3 gleichwertige Optionen |
 | [workflow.md](workflow.md) | Workflow-Spec | State Machine, Transitions, Unterbrechung, Back-Block |
 
@@ -161,7 +161,7 @@ flowchart TD
     SK1 -- "Foto aufgenommen" --> B["Preview-View\n(Vorschau mit Bestaetigen/Wiederholen)"]
     SK1 -- "Abgebrochen" --> A
     B -- "Wiederholen" --> SK1
-    B -- "Bestaetigen" --> C["Ausgebaut-Screen\n(Schrittnummer + Foto + Button)"]
+    B -- "Bestaetigen" --> C["Arbeitsphase-Screen\n(Schrittnummer + Foto + Button)"]
     C -- "Ausgebaut" --> D{"Dialog\nNaechste Aktion waehlen"}
     D -- "Ablageort fotografieren" --> E["Preview-View\n(Ablageort-Modus)"]
     E -- "Foto aufnehmen" --> SK2["System-Kamera\n(Intent, Ablageort)"]
@@ -181,7 +181,7 @@ sequenceDiagram
     actor T as Techniker
     participant PV as Preview-View
     participant SK as System-Kamera
-    participant F as Ausgebaut-Screen
+    participant F as Arbeitsphase-Screen
     participant D as Dialog
     participant U as Uebersicht
 
@@ -203,7 +203,7 @@ sequenceDiagram
 
     rect rgb(26, 51, 36)
         Note over T,F: Phase 2: Arbeit am Fahrzeug (MVP: Button)
-        PV->>F: Ausgebaut-Screen anzeigen
+        PV->>F: Arbeitsphase-Screen anzeigen
         T->>F: Tippt "Ausgebaut"
     end
 

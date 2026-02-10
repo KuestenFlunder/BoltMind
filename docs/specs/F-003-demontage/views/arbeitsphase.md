@@ -1,8 +1,8 @@
-# Ausgebaut-View
+# Arbeitsphase-View
 
 ## Zweck
 
-Zeigt die aktuelle Schrittnummer (gross und prominent) zusammen mit dem aufgenommenen Bauteil-Foto. Der "Ausgebaut"-Button fuehrt zum Dialog mit den naechsten Optionen. Im MVP ist dieser Screen der Platzhalter fuer die spaetere Arbeitsphase (Zeiterfassung, Kommentare, Pausieren -- siehe `F-003-arbeitsphase-ideen.md`).
+Zeigt die aktuelle Schrittnummer (gross und prominent) zusammen mit dem aufgenommenen Bauteil-Foto. Der "Ausgebaut"-Button fuehrt zum Dialog mit den naechsten Optionen. Im MVP ist dieser Screen der Platzhalter fuer die spaetere Arbeitsphase (Zeiterfassung, Kommentare, Pausieren).
 
 ## UI-Elemente
 
@@ -12,15 +12,15 @@ Zeigt die aktuelle Schrittnummer (gross und prominent) zusammen mit dem aufgenom
 
 ## Verhalten + DB-Interaktion
 
-### Aus US-003.2 AK 1: Ausgebaut-Screen Anzeige
+### Aus US-003.2 AK 1: Arbeitsphase-Screen Anzeige
 
 - **Given** der Mechaniker hat ein Bauteil-Foto aufgenommen und in der Preview-View bestaetigt
   **When** die Preview-View geschlossen wird
-  **Then** erscheint der Ausgebaut-Screen mit der aktuellen Schrittnummer (gross, prominent), dem aufgenommenen Bauteil-Foto und einem "Ausgebaut"-Button
+  **Then** erscheint der Arbeitsphase-Screen mit der aktuellen Schrittnummer (gross, prominent), dem aufgenommenen Bauteil-Foto und einem "Ausgebaut"-Button
 
-### Aus US-003.4 AK 2: Schrittnummer auf Ausgebaut-Screen
+### Aus US-003.4 AK 2: Schrittnummer auf Arbeitsphase-Screen
 
-- **Given** der Ausgebaut-Screen wird angezeigt
+- **Given** der Arbeitsphase-Screen wird angezeigt
   **When** der Mechaniker die Schrittnummer sieht
   **Then** ist die Nummer gross und deutlich lesbar (der Mechaniker kann sie auf ein physisches Label uebertragen)
 
@@ -35,5 +35,5 @@ Keine direkte DB-Interaktion auf diesem Screen. Der Schritt ist bereits in der D
 
 ## Technische Hinweise
 
-- **MVP-Platzhalter:** Spaetere Erweiterung fuer Arbeitsphase (Timer, Kommentare, Sprachnotizen) -- siehe `F-003-arbeitsphase-ideen.md`
+- **MVP-Platzhalter:** Spaetere Erweiterung fuer Arbeitsphase (Timer, Kommentare, Sprachnotizen)
 - **State Hoisting:** Screen erhaelt State (Schrittnummer, Foto-Pfad) und Callbacks vom ViewModel

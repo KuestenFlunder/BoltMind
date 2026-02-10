@@ -16,7 +16,7 @@ Zeigt drei gleichwertige Optionen nach dem "Ausgebaut"-Tap: "Ablageort fotografi
 
 ### Aus US-003.2 AK 2: Dialog oeffnet sich
 
-- **Given** der Ausgebaut-Screen wird angezeigt
+- **Given** der Arbeitsphase-Screen wird angezeigt
   **When** der Mechaniker "Ausgebaut" antippt
   **Then** oeffnet sich ein Dialog mit 3 gleichwertigen Optionen:
   1. "Ablageort fotografieren"

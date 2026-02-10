@@ -5,7 +5,7 @@
 | State | View | Beschreibung |
 |-------|------|-------------|
 | `PREVIEW_BAUTEIL` | Preview-View (Bauteil-Modus) | Schrittnummer + "Foto aufnehmen"-Button, nach Aufnahme: Foto-Vorschau mit Bestaetigen/Wiederholen |
-| `AUSGEBAUT` | Ausgebaut-View | Schrittnummer + Bauteil-Foto + "Ausgebaut"-Button |
+| `ARBEITSPHASE` | Arbeitsphase-View | Schrittnummer + Bauteil-Foto + "Ausgebaut"-Button |
 | `DIALOG` | Dialog-View | 3 Optionen: Ablageort / Weiter / Beenden |
 | `PREVIEW_ABLAGEORT` | Preview-View (Ablageort-Modus) | Ablageort-Hinweis + "Foto aufnehmen"-Button, nach Aufnahme: Banner "Ist das der Ablageort?" + Bestaetigen/Wiederholen |
 
@@ -20,8 +20,8 @@
 | System-Kamera | Foto aufgenommen | `PREVIEW_BAUTEIL` (Vorschau-Zustand) | -- | Foto in `photos/temp/` speichern |
 | System-Kamera | Abgebrochen | `PREVIEW_BAUTEIL` (Initial-Zustand) | -- | -- |
 | `PREVIEW_BAUTEIL` | "Wiederholen" | System-Kamera Intent | -- | Temp-Datei loeschen |
-| `PREVIEW_BAUTEIL` | "Bestaetigen" | `AUSGEBAUT` | -- | Foto nach `photos/` verschieben, `bauteilFotoPfad` setzen |
-| `AUSGEBAUT` | "Ausgebaut"-Tap | `DIALOG` | Debounce 300ms | -- |
+| `PREVIEW_BAUTEIL` | "Bestaetigen" | `ARBEITSPHASE` | -- | Foto nach `photos/` verschieben, `bauteilFotoPfad` setzen |
+| `ARBEITSPHASE` | "Ausgebaut"-Tap | `DIALOG` | Debounce 300ms | -- |
 | `DIALOG` | "Ablageort fotografieren" | `PREVIEW_ABLAGEORT` | -- | `typ = AUSGEBAUT` setzen |
 | `DIALOG` | "Weiter ohne Ablageort" | `PREVIEW_BAUTEIL` | -- | `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen, neuen `Schritt` anlegen (N+1) |
 | `DIALOG` | "Beenden" | Uebersicht (F-001) | -- | `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen |
@@ -37,7 +37,7 @@
 Preview (Schritt N, Initial-Zustand) -- zeigt Schrittnummer, "Foto aufnehmen"-Button
   -> [Foto aufnehmen] -> System-Kamera Intent
     -> [Foto aufgenommen] -> Preview (Schritt N, Vorschau-Zustand)
-      -> [Bestaetigen] -> Ausgebaut-Screen (Schrittnummer gross + Bauteil-Foto)
+      -> [Bestaetigen] -> Arbeitsphase-Screen (Schrittnummer gross + Bauteil-Foto)
         -> [Ausgebaut] -> Dialog
           -> [Ablageort fotografieren] -> typ=AUSGEBAUT -> Preview (Ablageort-Modus, Initial-Zustand)
             -> [Foto aufnehmen] -> System-Kamera Intent
@@ -88,7 +88,7 @@ Die Schrittnummer wird **nicht** inkrementiert wenn:
 | `gestartetAm` | Preview-View fuer diesen Schritt oeffnet sich | Beginn der Arbeit am Schritt |
 | `abgeschlossenAm` | Dialog-Auswahl getroffen ("Weiter"/"Beenden") ODER Ablageort-Foto bestaetigt | Schritt vollstaendig dokumentiert |
 
-**Sonderfall:** Wenn der Mechaniker die App nach Foto-Bestaetigung aber vor Dialog-Auswahl schliesst, ist `abgeschlossenAm = null` und `typ = null`. Beim Fortsetzen wird der Ausgebaut-Screen fuer diesen Schritt erneut angezeigt.
+**Sonderfall:** Wenn der Mechaniker die App nach Foto-Bestaetigung aber vor Dialog-Auswahl schliesst, ist `abgeschlossenAm = null` und `typ = null`. Beim Fortsetzen wird der Arbeitsphase-Screen fuer diesen Schritt erneut angezeigt.
 
 ## Foto-Flow Logik
 
@@ -99,7 +99,7 @@ Die Schrittnummer wird **nicht** inkrementiert wenn:
 5. **Bestaetigen:**
    - Datei von `photos/temp/` nach `photos/` verschieben (rename)
    - `bauteilFotoPfad` im `Schritt`-Entity per Update setzen
-   - Weiter zu Ausgebaut-Screen
+   - Weiter zu Arbeitsphase-Screen
 6. **Dialog-Auswahl:** `typ` und `abgeschlossenAm` setzen, dann:
    - "Ablageort fotografieren" -> `typ = AUSGEBAUT`, Preview-View im Ablageort-Modus
    - "Weiter ohne Ablageort" -> `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen, naechsten Schritt starten
@@ -128,7 +128,7 @@ Der Demontage-Flow wird gestartet:
   **When** der Mechaniker den Vorgang erneut oeffnet und die Demontage fortsetzt
   **Then** prueft die App, ob Schritt 5 abgeschlossen ist (`abgeschlossenAm` vorhanden):
   - **Falls ja:** Preview-View oeffnet sich fuer Schritt 6
-  - **Falls nein:** Ausgebaut-Screen fuer Schritt 5 wird angezeigt (Schritt fortsetzen)
+  - **Falls nein:** Arbeitsphase-Screen fuer Schritt 5 wird angezeigt (Schritt fortsetzen)
 
 ### Aus US-003.5 AK 2: Alle Schritte sichtbar nach Beenden
 
@@ -150,15 +150,15 @@ Der Demontage-Flow wird gestartet:
 | Preview im Initial-Zustand, kein Foto | `Schritt` in DB (ohne Foto, `typ = null`) | Preview-View oeffnet sich erneut fuer diesen Schritt (Initial-Zustand) |
 | System-Kamera aktiv | `Schritt` in DB (ohne Foto, `typ = null`) | Preview-View oeffnet sich erneut fuer diesen Schritt (Initial-Zustand) |
 | Preview im Vorschau-Zustand | `Schritt` in DB (ohne Foto, `typ = null`), temp. Datei | Temp-Datei cleanup, Preview-View oeffnet sich erneut (Initial-Zustand) |
-| Ausgebaut-Screen | `Schritt` in DB (mit Foto, `typ = null`, ohne `abgeschlossenAm`) | Ausgebaut-Screen wird angezeigt |
-| Dialog offen | `Schritt` in DB (mit Foto, `typ = null`, ohne `abgeschlossenAm`) | Ausgebaut-Screen wird angezeigt |
-| Ablageort-Preview (Initial oder System-Kamera) | `Schritt` in DB (mit Bauteil-Foto, `typ = AUSGEBAUT`, ohne Ablageort, ohne `abgeschlossenAm`) | Ausgebaut-Screen wird angezeigt |
+| Arbeitsphase-Screen | `Schritt` in DB (mit Foto, `typ = null`, ohne `abgeschlossenAm`) | Arbeitsphase-Screen wird angezeigt |
+| Dialog offen | `Schritt` in DB (mit Foto, `typ = null`, ohne `abgeschlossenAm`) | Arbeitsphase-Screen wird angezeigt |
+| Ablageort-Preview (Initial oder System-Kamera) | `Schritt` in DB (mit Bauteil-Foto, `typ = AUSGEBAUT`, ohne Ablageort, ohne `abgeschlossenAm`) | Arbeitsphase-Screen wird angezeigt |
 
 ## Back-Navigation (US-003.6)
 
 ### AK 1: Back-Taste blockiert
 
-- **Given** der Demontage-Flow ist aktiv (Preview-View, Ausgebaut-Screen oder Dialog)
+- **Given** der Demontage-Flow ist aktiv (Preview-View, Arbeitsphase-Screen oder Dialog)
   **When** der Mechaniker die Android-Zurueck-Taste drueckt
   **Then** passiert nichts (Back-Geste wird abgefangen und ignoriert)
 
