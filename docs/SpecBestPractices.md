@@ -132,6 +132,59 @@ Then  öffnet sich direkt der Demontage-Flow
 → Test: `oeffnet Demontage-Flow direkt wenn Vorgang keine Schritte hat`
 ```
 
+## Spec-Ordner-Struktur (Vorschlag C: Feature-First + Service-Features)
+
+Komplexe Features werden als Ordner organisiert. Cross-Cutting Concerns werden zu eigenstaendigen Service-Features hochgestuft.
+
+```
+docs/specs/
+├── governance.md                     # Projektweite Regeln (Sofort-Save, Debounce, DDD)
+│
+├── F-001-uebersicht/                 # oder F-001-uebersicht.md (Einzeldatei fuer einfache Features)
+├── F-002-vorgang-anlegen/
+│
+├── F-003-demontage/                  # Komplexes Feature → Ordner
+│   ├── README.md                     # Kontext, Domain-Konzepte, Entity-Definitionen
+│   ├── workflow.md                   # State Machine, Transitions (eigener Aenderungsgrund)
+│   └── views/                        # View-Specs (UI + DB zusammen, gleicher Aenderungsgrund)
+│       ├── preview.md
+│       ├── arbeitsphase.md
+│       └── dialog.md
+│
+├── F-005-zeiterfassung/              # Service-Feature → Ordner
+│   ├── README.md                     # Kontext, Abgrenzung, Consumer-Uebersicht
+│   └── service.md                    # Interface, Entity, Lifecycle
+│
+└── SpecBestPractices.md              # Diese Datei
+```
+
+### Wann Ordner, wann Einzeldatei?
+
+- **Einzeldatei:** Feature hat ≤1 View, keinen komplexen Workflow, passt in <200 Zeilen
+- **Ordner:** Feature hat >1 View ODER einen eigenstaendigen Workflow ODER ist ein Service
+
+### Service-Features
+
+Cross-Cutting Concerns die mehrere Features durchschneiden, werden als **eigenstaendige Service-Features** behandelt:
+
+1. Der Service beschreibt nur sich selbst (Interface, Entity, Lifecycle)
+2. Der Service kennt keine Consumer-Features
+3. Die **Consumer** beschreiben in ihren eigenen Specs, wie sie den Service nutzen
+4. Keine Integration-Dateien im Service-Ordner — Abhaengigkeitsrichtung: Consumer → Service
+
+## Single Responsibility fuer Specs
+
+Jede Spec-Datei hat **einen Grund sich zu aendern:**
+
+| Spec-Typ | Aenderungsgrund | Beispiel |
+|---|---|---|
+| View-Spec | UI-Elemente oder DB-Interaktion dieser View aendern sich | preview.md: Neuer Button oder neues DB-Feld |
+| Workflow-Spec | Reihenfolge oder Bedingungen der Transitionen aendern sich | workflow.md: Neuer State, andere Transition |
+| Service-Spec | Das Service-Interface oder die Entity aendert sich | service.md: Neuer Parameter, neues Feld |
+| README | Kontext, Domain-Konzepte oder Entity-Definitionen aendern sich | README.md: Neuer SchrittTyp |
+
+**Faustregel:** Wenn eine Aenderung an der UI auch immer eine Aenderung an der DB-Interaktion nach sich zieht (oder umgekehrt), gehoeren sie in die gleiche Datei (View-Spec). Wenn ein Workflow sich unabhaengig von den Views aendern kann, gehoert er in eine eigene Datei.
+
 ## Anti-Patterns
 
 - **Zu lang**: Spec wird so lang, dass beim Review nur überflogen wird
@@ -139,3 +192,6 @@ Then  öffnet sich direkt der Demontage-Flow
 - **Zu vage**: "System soll schnell sein" → nicht testbar
 - **Gemischt**: Business-Intent und technische Details in derselben Sektion
 - **Abhängige Stories**: Story B funktioniert nur wenn Story A fertig ist → Story aufteilen oder zusammenlegen
+- **Dual-Purpose-Felder**: Ein DB-Feld dient zwei verschiedenen Zwecken (Workflow + Timer) → Eigene Tabelle/Entity
+- **Service kennt Consumer**: Der Service beschreibt, wo seine Daten angezeigt werden → Consumer beschreibt das selbst
+- **Kopierte Logik**: Gleiche Timer-Logik in F-003 und F-004 separat beschrieben → Service-Feature extrahieren
