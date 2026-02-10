@@ -22,10 +22,11 @@ data class Schritt(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val reparaturvorgangId: Long,
-    val fotoPfad: String,
-    val ablageortNummer: Int,
-    val reihenfolge: Int,
+    val schrittNummer: Int,
+    val typ: SchrittTyp? = null,
+    val bauteilFotoPfad: String? = null,
+    val ablageortFotoPfad: String? = null,
+    val eingebautBeiMontage: Boolean = false,
     val gestartetAm: Instant = Instant.now(),
-    val abgeschlossenAm: Instant? = null,
-    val eingebautBeiMontage: Boolean = false
+    val abgeschlossenAm: Instant? = null
 )
