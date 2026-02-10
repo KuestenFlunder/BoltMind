@@ -132,78 +132,58 @@ Then  öffnet sich direkt der Demontage-Flow
 → Test: `oeffnet Demontage-Flow direkt wenn Vorgang keine Schritte hat`
 ```
 
-## Single Responsibility für Specs
+## Spec-Ordner-Struktur (Vorschlag C: Feature-First + Service-Features)
 
-Specs folgen dem **Single Responsibility Principle**: Jede Spec-Datei hat genau **einen Grund sich zu ändern**.
-
-### Schnitt-Kriterien
-
-| Spec-Typ | Beschreibt | Ändert sich wenn... |
-|-----------|-----------|---------------------|
-| **View-Spec** | Eine UI-Ansicht + ihre DB-Interaktionen | Das Aussehen, die Felder oder die Persistierung dieser View sich ändert |
-| **Workflow-Spec** | Die Abfolge und Übergänge zwischen Views | Die Navigation, Reihenfolge oder Übergangsbedingungen sich ändern |
-
-### Warum View + DB zusammen?
-
-View und DB-Interaktion bilden eine **konsistente Einheit**: Änderungen an der View ziehen fast immer Änderungen an der DB-Interaktion nach sich (neues Feld → neues Entity-Feld → neuer DB-Zugriff). Sie haben denselben Änderungsgrund.
-
-Der Workflow hingegen hat einen **anderen Änderungsgrund**: Die Reihenfolge der Views kann sich ändern, ohne dass die Views selbst sich ändern (z.B. "Ablageort-Foto wird optional" ändert den Workflow, nicht die Kamera-View).
-
-### Spec-Struktur für komplexe Features
+Komplexe Features werden als Ordner organisiert. Cross-Cutting Concerns werden zu eigenstaendigen Service-Features hochgestuft.
 
 ```
-docs/specs/F-XXX-feature/
-├── README.md              # Übersicht, Kontext, Abhängigkeiten
-├── views/
-│   ├── view-a.md          # View A: UI + Akzeptanzkriterien + DB-Aktionen
-│   ├── view-b.md          # View B: UI + Akzeptanzkriterien + DB-Aktionen
-│   └── view-c.md          # View C: UI + Akzeptanzkriterien + DB-Aktionen
-├── workflow.md            # State Machine: Übergänge zwischen Views
-└── F-XXX-alt-referenz.md  # Original-Spec als Referenz (optional)
+docs/specs/
+├── governance.md                     # Projektweite Regeln (Sofort-Save, Debounce, DDD)
+│
+├── F-001-uebersicht/                 # oder F-001-uebersicht.md (Einzeldatei fuer einfache Features)
+├── F-002-vorgang-anlegen/
+│
+├── F-003-demontage/                  # Komplexes Feature → Ordner
+│   ├── README.md                     # Kontext, Domain-Konzepte, Entity-Definitionen
+│   ├── workflow.md                   # State Machine, Transitions (eigener Aenderungsgrund)
+│   └── views/                        # View-Specs (UI + DB zusammen, gleicher Aenderungsgrund)
+│       ├── preview.md
+│       ├── arbeitsphase.md
+│       └── dialog.md
+│
+├── F-005-zeiterfassung/              # Service-Feature → Ordner
+│   ├── README.md                     # Kontext, Abgrenzung, Consumer-Uebersicht
+│   └── service.md                    # Interface, Entity, Lifecycle
+│
+└── SpecBestPractices.md              # Diese Datei
 ```
 
-### View-Spec Aufbau
+### Wann Ordner, wann Einzeldatei?
 
-```markdown
-# View-Name
+- **Einzeldatei:** Feature hat ≤1 View, keinen komplexen Workflow, passt in <200 Zeilen
+- **Ordner:** Feature hat >1 View ODER einen eigenstaendigen Workflow ODER ist ein Service
 
-## Zweck
-Wofür existiert diese View?
+### Service-Features
 
-## UI-Elemente
-Was sieht der User? (Elemente, Layout-Hinweise)
+Cross-Cutting Concerns die mehrere Features durchschneiden, werden als **eigenstaendige Service-Features** behandelt:
 
-## Verhalten + DB-Interaktion
-Akzeptanzkriterien (Given/When/Then) inklusive DB-Persistierung
+1. Der Service beschreibt nur sich selbst (Interface, Entity, Lifecycle)
+2. Der Service kennt keine Consumer-Features
+3. Die **Consumer** beschreiben in ihren eigenen Specs, wie sie den Service nutzen
+4. Keine Integration-Dateien im Service-Ordner — Abhaengigkeitsrichtung: Consumer → Service
 
-## Nicht-funktionale Anforderungen
-Performance, Debounce, Touch-Targets etc.
-```
+## Single Responsibility fuer Specs
 
-### Workflow-Spec Aufbau
+Jede Spec-Datei hat **einen Grund sich zu aendern:**
 
-```markdown
-# Workflow: Feature-Name
+| Spec-Typ | Aenderungsgrund | Beispiel |
+|---|---|---|
+| View-Spec | UI-Elemente oder DB-Interaktion dieser View aendern sich | preview.md: Neuer Button oder neues DB-Feld |
+| Workflow-Spec | Reihenfolge oder Bedingungen der Transitionen aendern sich | workflow.md: Neuer State, andere Transition |
+| Service-Spec | Das Service-Interface oder die Entity aendert sich | service.md: Neuer Parameter, neues Feld |
+| README | Kontext, Domain-Konzepte oder Entity-Definitionen aendern sich | README.md: Neuer SchrittTyp |
 
-## States (= Views)
-Liste aller Views/Phasen
-
-## Transitions
-| Von | Event | Nach | Bedingung | DB-Aktion |
-|-----|-------|------|-----------|-----------|
-
-## Unterbrechungs-Verhalten
-Was passiert bei App-Kill in jedem State?
-
-## Entry-Bedingungen
-Wie wird der Workflow gestartet? (z.B. aus Übersicht, nach Anlage)
-```
-
-### Wann aufteilen?
-
-- **Feature hat >2 Views** → View-Specs + Workflow-Spec
-- **Feature hat 1-2 Views** → Eine Spec reicht
-- **Workflow ist trivial** (linear, keine Verzweigungen) → Kann in View-Specs bleiben
+**Faustregel:** Wenn eine Aenderung an der UI auch immer eine Aenderung an der DB-Interaktion nach sich zieht (oder umgekehrt), gehoeren sie in die gleiche Datei (View-Spec). Wenn ein Workflow sich unabhaengig von den Views aendern kann, gehoert er in eine eigene Datei.
 
 ## Anti-Patterns
 
@@ -212,3 +192,6 @@ Wie wird der Workflow gestartet? (z.B. aus Übersicht, nach Anlage)
 - **Zu vage**: "System soll schnell sein" → nicht testbar
 - **Gemischt**: Business-Intent und technische Details in derselben Sektion
 - **Abhängige Stories**: Story B funktioniert nur wenn Story A fertig ist → Story aufteilen oder zusammenlegen
+- **Dual-Purpose-Felder**: Ein DB-Feld dient zwei verschiedenen Zwecken (Workflow + Timer) → Eigene Tabelle/Entity
+- **Service kennt Consumer**: Der Service beschreibt, wo seine Daten angezeigt werden → Consumer beschreibt das selbst
+- **Kopierte Logik**: Gleiche Timer-Logik in F-003 und F-004 separat beschrieben → Service-Feature extrahieren

@@ -94,12 +94,12 @@ data class Schritt(
 
     val eingebautBeiMontage: Boolean = false, // Wird von F-004 (Montage-Flow) auf true gesetzt
 
-    val gestartetAm: Instant,              // Timestamp: Kamera oeffnet sich fuer diesen Schritt
+    val gestartetAm: Instant,              // Timestamp: Preview-View oeffnet sich fuer diesen Schritt
     val abgeschlossenAm: Instant? = null    // Timestamp: Dialog-Auswahl getroffen (null = unterbrochen)
 )
 ```
 
-**Hinweis:** `bauteilFotoPfad` ist initial `null` wenn der Schritt in der DB angelegt wird (beim Kamera-Oeffnen). Der Pfad wird per Update ergaenzt, sobald das Foto bestaetigt wurde. Ein Schritt ohne `bauteilFotoPfad` ist ein Artefakt einer Unterbrechung und kann beim Fortsetzen mit neuem Foto befuellt werden.
+**Hinweis:** `bauteilFotoPfad` ist initial `null` wenn der Schritt in der DB angelegt wird (beim Preview-View-Oeffnen). Der Pfad wird per Update ergaenzt, sobald das Foto bestaetigt wurde. Ein Schritt ohne `bauteilFotoPfad` ist ein Artefakt einer Unterbrechung und kann beim Fortsetzen mit neuem Foto befuellt werden.
 
 **Hinweis:** `typ` ist initial `null` und wird erst bei der Dialog-Auswahl gesetzt. Ein Schritt mit `typ = null` ist ein nicht abgeschlossener Schritt (Unterbrechung vor Dialog-Auswahl).
 
@@ -134,23 +134,19 @@ Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild in der Anzeig
 ### Bedienbarkeit
 
 - Minimale Interaktion pro Schritt:
-  - Ohne Ablageort: Foto -> Bestaetigen -> Ausgebaut -> Dialog = 4 Taps
-  - Mit Ablageort: Foto -> Bestaetigen -> Ausgebaut -> Dialog -> Ablageort-Foto -> Bestaetigen = 6 Taps
-- Schrittnummer immer sichtbar: In Kamera-Ansicht, auf Ausgebaut-Screen und im Ablageort-Modus
+  - Ohne Ablageort: Foto aufnehmen -> Bestaetigen -> Ausgebaut -> Dialog = 4 Taps
+  - Mit Ablageort: Foto aufnehmen -> Bestaetigen -> Ausgebaut -> Dialog -> Ablageort-Foto -> Bestaetigen = 6 Taps
+- Schrittnummer immer sichtbar: In Preview-View und auf Arbeitsphase-Screen
 - Foto-Qualitaet: Mittlere Kompression, ~2-3 MB pro Foto (Balance zwischen Qualitaet und Speicher)
 
 ## Ordner-Inhalt
 
 | Datei | Typ | Beschreibung |
 |---|---|---|
-| [F-003-kern.md](F-003-kern.md) | Original-Spec | Vollstaendige MVP-Spec (Referenz) |
-| [views/kamera.md](views/kamera.md) | View-Spec | Kamera-View: Vollbild-Vorschau, Ausloeser, Permission-Handling |
-| [views/preview.md](views/preview.md) | View-Spec | Preview-View: Foto-Vorschau mit Bestaetigen/Wiederholen |
-| [views/ausgebaut.md](views/ausgebaut.md) | View-Spec | Ausgebaut-View: Schrittnummer + Foto + Button |
+| [views/preview.md](views/preview.md) | View-Spec | Preview-View: Foto-Aufnahme per System-Kamera + Vorschau mit Bestaetigen/Wiederholen |
+| [views/arbeitsphase.md](views/arbeitsphase.md) | View-Spec | Arbeitsphase-View: Schrittnummer + Foto + Button |
 | [views/dialog.md](views/dialog.md) | View-Spec | Dialog-View: 3 gleichwertige Optionen |
 | [workflow.md](workflow.md) | Workflow-Spec | State Machine, Transitions, Unterbrechung, Back-Block |
-| [F-003-arbeitsphase-ideen.md](F-003-arbeitsphase-ideen.md) | Ideensammlung | Zeiterfassung, Pausieren, Kommentare (Konzeptphase) |
-| [F-003-alt-referenz.md](F-003-alt-referenz.md) | Referenz | Urspruengliche Spec (vor Umstrukturierung) |
 
 ## Abhaengigkeiten
 
@@ -161,16 +157,20 @@ Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild in der Anzeig
 
 ```mermaid
 flowchart TD
-    A["Camera Mode\n(Foto von eingebautem Bauteil)"] --> B["Foto Preview\nmit wiederholen Option"]
-    B -- "wiederholen" --> A
-    B -- "bestätigen" --> C["Arbeit am Fahrzeug\n(MVP: Ausgebaut-Button)"]
-    C -- "Ausgebaut" --> D{"Dialog\nNächste Aktion wählen"}
-    D -- "Foto von Ablageort" --> E["Camera Mode\n(Foto von Ablageort)"]
+    A["Preview-View\n(Foto aufnehmen per System-Kamera)"] -- "Foto aufnehmen" --> SK1["System-Kamera\n(Intent)"]
+    SK1 -- "Foto aufgenommen" --> B["Preview-View\n(Vorschau mit Bestaetigen/Wiederholen)"]
+    SK1 -- "Abgebrochen" --> A
+    B -- "Wiederholen" --> SK1
+    B -- "Bestaetigen" --> C["Arbeitsphase-Screen\n(Schrittnummer + Foto + Button)"]
+    C -- "Ausgebaut" --> D{"Dialog\nNaechste Aktion waehlen"}
+    D -- "Ablageort fotografieren" --> E["Preview-View\n(Ablageort-Modus)"]
+    E -- "Foto aufnehmen" --> SK2["System-Kamera\n(Intent, Ablageort)"]
+    SK2 -- "Foto aufgenommen" --> G["Preview-View\n(Ablageort-Vorschau)"]
+    SK2 -- "Abgebrochen" --> E
     D -- "Weiter ohne Foto" --> A
-    D -- "Beenden" --> F["Übersicht\nDemontage abgeschlossen"]
-    E --> G["Foto Preview\nmit wiederholen Option"]
-    G -- "wiederholen" --> E
-    G -- "bestätigen" --> A
+    D -- "Beenden" --> F["Uebersicht\nDemontage abgeschlossen"]
+    G -- "Wiederholen" --> SK2
+    G -- "Bestaetigen" --> A
 ```
 
 ## Sequenz-Diagramm
@@ -179,51 +179,58 @@ flowchart TD
 sequenceDiagram
     autonumber
     actor T as Techniker
-    participant C as Camera Mode
-    participant P as Foto Preview
-    participant F as Fahrzeug
+    participant PV as Preview-View
+    participant SK as System-Kamera
+    participant F as Arbeitsphase-Screen
     participant D as Dialog
-    participant U as Übersicht
+    participant U as Uebersicht
 
     Note over T,U: Demontage-Dokumentation Workflow
 
     rect rgb(26, 35, 64)
-        Note over T,P: Phase 1: Foto von eingebautem Bauteil
-        T->>C: Öffnet Kamera
-        C->>P: Foto aufgenommen
-        alt wiederholen
-            P-->>C: Foto erneut aufnehmen
-            C->>P: Neues Foto aufgenommen
+        Note over T,SK: Phase 1: Foto von eingebautem Bauteil
+        T->>PV: Oeffnet Preview-View (Schrittnummer sichtbar)
+        T->>PV: Tippt "Foto aufnehmen"
+        PV->>SK: System-Kamera Intent
+        SK->>PV: Foto aufgenommen
+        alt Wiederholen
+            T->>PV: Tippt "Wiederholen"
+            PV->>SK: System-Kamera erneut
+            SK->>PV: Neues Foto aufgenommen
         end
-        P->>T: Foto bestätigt
+        T->>PV: Tippt "Bestaetigen"
     end
 
     rect rgb(26, 51, 36)
         Note over T,F: Phase 2: Arbeit am Fahrzeug (MVP: Button)
-        T->>F: Bauteil ausbauen
-        T->>F: Click auf "Ausgebaut"
+        PV->>F: Arbeitsphase-Screen anzeigen
+        T->>F: Tippt "Ausgebaut"
     end
 
     rect rgb(51, 42, 26)
-        Note over T,D: Phase 3: Nächste Aktion wählen
-        F->>D: Dialog öffnet sich
+        Note over T,D: Phase 3: Naechste Aktion waehlen
+        F->>D: Dialog oeffnet sich
         D->>T: Optionen anzeigen
-        Note over D: 1) Foto von Ablageort<br/>2) Weiter ohne Foto<br/>3) Beenden
+        Note over D: 1) Ablageort fotografieren<br/>2) Weiter ohne Ablageort<br/>3) Beenden
     end
 
-    alt Foto von Ablageort
+    alt Ablageort fotografieren
         rect rgb(26, 51, 56)
-            Note over T,P: Phase 4a: Foto vom Ablageort
-            T->>C: Öffnet Kamera (Ablageort)
-            C->>P: Foto aufgenommen
-            alt wiederholen
-                P-->>C: Foto erneut aufnehmen
-                C->>P: Neues Foto aufgenommen
+            Note over T,SK: Phase 4a: Foto vom Ablageort
+            D->>PV: Preview-View (Ablageort-Modus)
+            T->>PV: Tippt "Foto aufnehmen"
+            PV->>SK: System-Kamera Intent
+            SK->>PV: Foto aufgenommen
+            Note over PV: Banner: "Ist das der Ablageort?"
+            alt Wiederholen
+                T->>PV: Tippt "Wiederholen"
+                PV->>SK: System-Kamera erneut
+                SK->>PV: Neues Foto aufgenommen
             end
-            P->>T: Foto bestätigt
+            T->>PV: Tippt "Bestaetigen"
         end
     else Weiter ohne Foto
-        Note over T,C: Zurück zu Phase 1 (nächstes Bauteil)
+        Note over T,PV: Zurueck zu Phase 1 (naechstes Bauteil)
     else Beenden
         rect rgb(51, 26, 26)
             Note over T,U: Phase 5: Abschluss
@@ -234,10 +241,10 @@ sequenceDiagram
 
 ## Offene Fragen
 
+- [x] ~~UI-Hinweis "Ablageort fotografieren" -- Banner oberhalb der Vorschau~~ **Entschieden:** Frage "Ist das der Ablageort?" als Banner ueber der Foto-Vorschau in der Preview-View (Ablageort-Modus).
 - [ ] **OFFEN:** Soll der Mechaniker im Ablageort-Modus ein bereits aufgenommenes Ablageort-Foto wiederverwenden koennen (z.B. mehrere Teile in derselben Kiste)? -> Fuer MVP: Nein, jedes Mal neues Foto. Spaeter: Foto-Vorschlaege aus Historie.
-- [ ] **OFFEN:** UI-Hinweis "Ablageort fotografieren" -- Banner oberhalb der Kamera-Vorschau (vorgeschlagen, UX-Entscheidung bei Implementierung).
 
-## Offene Entscheidungen (aus Original-README)
+## Entschiedene Fragen (aus Original-Kern-Spec)
 
-- [ ] Ablageort-Foto: Reicht nur Foto oder soll es zusaetzlich eine optionale Nummer/Beschriftung geben?
-- [ ] Arbeitsphase: Umfang und Zeitpunkt der Erweiterung (eigene Spec)
+- [x] ~~Ablageort-Foto: Reicht nur Foto oder soll es zusaetzlich eine optionale Nummer/Beschriftung geben?~~ **Entschieden:** Keine manuelle Eingabe. Nur auto-increment Schrittnummer. Der Mechaniker kann seine physischen Ablageorte mit den Schrittnummern beschriften.
+- [x] ~~Arbeitsphase: Umfang und Zeitpunkt der Erweiterung~~ **Entschieden:** MVP nur "Ausgebaut"-Button. Erweiterung (Timer, Kommentare, Sprachnotizen) kommt in separater Spec.

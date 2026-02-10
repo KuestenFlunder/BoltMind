@@ -16,7 +16,7 @@ Zeigt drei gleichwertige Optionen nach dem "Ausgebaut"-Tap: "Ablageort fotografi
 
 ### Aus US-003.2 AK 2: Dialog oeffnet sich
 
-- **Given** der Ausgebaut-Screen wird angezeigt
+- **Given** der Arbeitsphase-Screen wird angezeigt
   **When** der Mechaniker "Ausgebaut" antippt
   **Then** oeffnet sich ein Dialog mit 3 gleichwertigen Optionen:
   1. "Ablageort fotografieren"
@@ -29,7 +29,7 @@ Zeigt drei gleichwertige Optionen nach dem "Ausgebaut"-Tap: "Ablageort fotografi
 - **Given** der Dialog wird angezeigt
   **When** der Mechaniker "Ablageort fotografieren" waehlt
   **Then** wird `typ` im aktuellen `Schritt`-Entity auf `AUSGEBAUT` gesetzt
-  **And** die Kamera-Ansicht fuer das Ablageort-Foto oeffnet sich (US-003.3)
+  **And** die Preview-View im Ablageort-Modus oeffnet sich (US-003.3)
 
 ### Aus US-003.2 AK 4: Weiter ohne Ablageort
 
@@ -37,7 +37,7 @@ Zeigt drei gleichwertige Optionen nach dem "Ausgebaut"-Tap: "Ablageort fotografi
   **When** der Mechaniker "Weiter ohne Ablageort" waehlt
   **Then** wird `typ` im aktuellen `Schritt`-Entity auf `AM_FAHRZEUG` gesetzt
   **And** `abgeschlossenAm` im aktuellen `Schritt`-Entity wird gesetzt
-  **And** die Kamera-Ansicht oeffnet sich fuer das naechste Bauteil (US-003.1)
+  **And** die Preview-View oeffnet sich fuer das naechste Bauteil (US-003.1)
   **And** die Schrittnummer wurde inkrementiert
 
 ### Aus US-003.2 AK 5: Beenden

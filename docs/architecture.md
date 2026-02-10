@@ -11,7 +11,7 @@ BoltMind ist eine Android-App für Kfz-Mechaniker in Autowerkstätten. Sie unter
 - Beim **Auseinanderbau** erstellt der Mechaniker eine Foto-Historie mit Teilreferenzen - Schritt für Schritt wird dokumentiert, welches Teil wo war und wo es abgelegt wird.
 - Beim **Zusammenbau** wird die Historie rückwärts abgespielt, sodass nichts vergessen wird und jedes Teil wiedergefunden werden kann.
 - Die App verwaltet **Ablageorte** für ausgebaute Teile, damit diese beim Zusammenbau schnell lokalisiert werden können.
-- Im Hintergrund wird die **Zeiterfassung** pro Schritt mitgeloggt, um später Arbeitsprozesse analysieren und besser timen zu können.
+- Ein eigenständiger **Timer-Service** (F-005) misst die Arbeitszeit pro Schritt. Der Service verwaltet eigene Daten (`ZeitMessung`-Tabelle) und wird von Consumer-Features (F-003, F-004) angesteuert.
 
 ### Zielgruppe
 
@@ -24,8 +24,10 @@ Kfz-Mechaniker in Autowerkstätten, die Reparaturen mit vielen Einzelteilen durc
 | Begriff | Beschreibung |
 |---------|-------------|
 | **Reparaturvorgang** | Ein Reparaturauftrag an einem Fahrzeug. Enthält Fahrzeugfoto, Auftragsnummer und optionale Beschreibung. Mehrere Vorgänge können gleichzeitig offen sein. |
-| **Schritt** | Ein einzelner Demontage-Schritt: Foto (Zustand vor Ausbau) + Ablageort. Die Granularität bestimmt der Mechaniker selbst. Jeder Schritt hat einen Zeitstempel. |
-| **Ablageort** | Physischer Ort (Werkbank, Tisch etc.) mit Nummer oder QR-Code. Wird vom Mechaniker selbst eingerichtet. Ist fest mit dem Schritt verknüpft. |
+| **Schritt** | Ein einzelner Demontage-Schritt mit Bauteil-Foto (Zustand vor Ausbau) und SchrittTyp (AUSGEBAUT oder AM_FAHRZEUG). Bei AUSGEBAUT zusätzlich Ablageort-Foto. Die Granularität bestimmt der Mechaniker. Jeder Schritt hat eine fortlaufende Schrittnummer. |
+| **Ablageort** | Physischer Ort (Werkbank, Tisch etc.) wo ein ausgebautes Teil abgelegt wird. Wird per Foto dokumentiert. Die Schrittnummer dient als Korrelation zwischen App und physischem Ablageort. |
+| **SchrittTyp** | Unterscheidet ob ein Bauteil ausgebaut wurde (`AUSGEBAUT` → Ablageort-Foto) oder am Fahrzeug verbleibt (`AM_FAHRZEUG` → kein Ablageort). |
+| **ZeitMessung** | Zeitmessung mit Start/Stopp-Timestamps. Eigene Tabelle, verwaltet vom Timer-Service (F-005). Referenziert Schritte über `referenzId` + `referenzTyp`. |
 | **Historie** | Chronologische Abfolge aller Schritte eines Reparaturvorgangs. Kann vorwärts (Demontage) und rückwärts (Montage) durchlaufen werden. |
 | **Archiv** | Abgeschlossene Reparaturvorgänge werden archiviert und bleiben einsehbar. |
 
@@ -33,13 +35,13 @@ Kfz-Mechaniker in Autowerkstätten, die Reparaturen mit vielen Einzelteilen durc
 
 ```
 Mechaniker startet neuen Reparaturvorgang
-  → Fahrzeugfoto aufnehmen, dann Auftragsnummer erfassen (Beschreibung optional)
-  → Schritt-Schleife:
-      1. Foto der Baugruppe (eingebauter Zustand)
-      2. Mechaniker baut Teil aus (keine App-Interaktion)
-      3. Mechaniker trägt Ablageort ein (MVP: Nummer, Final: QR-Scan)
-      4. Eingabe des Ablageorts öffnet automatisch den nächsten Schritt
-  → Zeiterfassung läuft pro Schritt im Hintergrund mit
+  → Fahrzeugfoto aufnehmen (System-Kamera), dann Auftragsnummer erfassen (Beschreibung optional)
+  → Schritt-Schleife (4 Screens: Preview → Arbeitsphase → Dialog → Preview Ablageort):
+      1. Bauteil-Foto aufnehmen (Zustand vor Ausbau) → Preview
+      2. Mechaniker baut Teil aus (Arbeitsphase, keine App-Interaktion)
+      3. Dialog: "Ausgebaut" (→ Ablageort fotografieren) oder "Am Fahrzeug" (→ nächster Schritt)
+      4. Bei AUSGEBAUT: Ablageort-Foto aufnehmen → Preview → nächster Schritt
+  → Timer-Service (F-005) misst Arbeitszeit pro Schritt
 ```
 
 ### Montage-Flow (Zusammenbau)
@@ -56,11 +58,11 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 
 | Aspekt | MVP | Final |
 |--------|-----|-------|
-| Ablageort-Eingabe | Nummer (Freitext/Vergabe durch Mechaniker) | QR-Code-Sticker scannen |
-| Ablageort-Registrierung | Mechaniker vergibt Nummern manuell | QR-Sticker auf Werkbank kleben und per Foto registrieren |
+| Ablageort-Dokumentation | Foto vom Ablageort | QR-Code-Sticker scannen |
 | Datenhaltung | Lokal auf dem Gerät | Lokal + Sharing zwischen Mechanikern |
-| Notizen pro Schritt | Nur Foto + Ablageort | Ggf. Text-/Sprachnotiz |
-| Zeiterfassung | Sichtbar, pro Schritt | Analyse-Dashboard |
+| Notizen pro Schritt | Nur Bauteil-Foto + Ablageort-Foto | Ggf. Text-/Sprachnotiz |
+| Zeiterfassung | Timer-Service pro Schritt | Analyse-Dashboard |
+| Kamera | System-Kamera via Intent | Eigene Kamera-Integration |
 
 ### Entschiedene Fragen
 
@@ -83,8 +85,9 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 
 ### Persistenz
 
-- **Metadaten** (Reparaturvorgang, Schritte, Ablageorte, Zeitstempel): Room-Datenbank
-- **Fotos**: Filesystem (App-interner Speicher), Referenz in der DB
+- **Metadaten** (Reparaturvorgang, Schritte, SchrittTyp): Room-Datenbank
+- **Zeitmessungen** (ZeitMessung mit referenzId/referenzTyp): Eigene Room-Tabelle, verwaltet vom Timer-Service (F-005)
+- **Fotos** (Bauteil-Fotos, Ablageort-Fotos, Fahrzeugfotos): Filesystem (App-interner Speicher), Pfad-Referenz in der DB
 - **Speicherstrategie**: Sofort-Persistierung - jedes Foto und jeder Ablageort wird unmittelbar gespeichert, nicht erst am Schrittende. Kein Datenverlust bei App-Crash, Anruf oder Unterbrechung.
 
 ### Foto-Qualität & Speicherplatz
@@ -107,9 +110,9 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 
 ### Permission-Handling
 
-- Kamera-Permission: Erforderlich für Kernfunktion, freundliche Erklärung bei Verweigerung
-- Speicher-Permission: READ_MEDIA_IMAGES (API 33+), READ_EXTERNAL_STORAGE (Fallback < API 33)
-- Keine App-Nutzung ohne Kamera-Berechtigung möglich (Kern-Feature)
+- **Kamera**: System-Kamera via `ActivityResultContracts.TakePicture()` — keine CAMERA-Permission nötig, da die System-Kamera-App die Berechtigung selbst verwaltet
+- **Speicher**: Fotos im App-internen Speicher (`filesDir`) — keine Speicher-Permission nötig
+- Falls System-Kamera nicht verfügbar: Hinweis an den Nutzer
 
 ## 5. Randbedingungen
 
@@ -119,7 +122,7 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 |---------------|-------------|
 | Plattform | Android (Kotlin, Jetpack Compose) |
 | Min SDK | API 26 (Android 8.0) |
-| Kamera | CameraX für Fotoaufnahme |
+| Kamera | System-Kamera via `ActivityResultContracts.TakePicture()` |
 | UI Framework | Jetpack Compose mit Material3 |
 | Datenhaltung MVP | Lokal auf dem Gerät |
 | Geräte | Werkstatt-Handys (ein Gerät pro Mechaniker) |
@@ -134,9 +137,25 @@ Mechaniker öffnet Reparaturvorgang im Montage-Modus
 
 ## 6. Spec-Referenz
 
-Feature-Specs werden in `docs/specs/` abgelegt und folgen dem Schema:
+Feature-Specs werden in `docs/specs/` als Ordner organisiert:
 
-- `F-XXX-name.md` - Funktionale Feature-Specs
-- `NF-XXX-name.md` - Nicht-funktionale Specs
+```
+docs/specs/
+├── governance.md                     # Projektweite Regeln
+├── SpecBestPractices.md              # Spec-Schreibregeln
+├── F-001-uebersicht/                 # Feature-Ordner
+│   ├── README.md                     # Intention, Abhängigkeiten (stabil)
+│   └── uebersicht.md                # User Stories, Akzeptanzkriterien
+├── F-003-demontage/                  # Komplexes Feature
+│   ├── README.md                     # Kontext, Domain-Konzepte
+│   ├── workflow.md                   # State Machine
+│   └── views/                        # View-Specs
+│       ├── preview.md
+│       ├── arbeitsphase.md
+│       └── dialog.md
+└── F-005-zeiterfassung/              # Service-Feature
+    ├── README.md                     # Kontext, Abgrenzung
+    └── service.md                    # Interface, Entity, Lifecycle
+```
 
 GitHub Issues referenzieren Specs im Titel: `[F-001] Beschreibung`
