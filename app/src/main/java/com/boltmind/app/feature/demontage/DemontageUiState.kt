@@ -1,7 +1,5 @@
 package com.boltmind.app.feature.demontage
 
-import android.net.Uri
-
 /**
  * Haupt-States des Demontage-Flows (= aktive View).
  */
@@ -32,7 +30,7 @@ data class DemontageUiState(
     val bauteilFotoPfad: String? = null,
     val ablageortFotoPfad: String? = null,
     val kameraIntentAktiv: Boolean = false,
-    val fotoUri: Uri? = null,
+    val tempFotoPfad: String? = null,
     val keineKameraApp: Boolean = false,
     val flowBeendet: Boolean = false
 )
