@@ -28,10 +28,12 @@ com.boltmind.app/
 │   ├── local/
 │   │   ├── BoltMindDatabase.kt      # Room Database
 │   │   ├── ReparaturvorgangDao.kt
-│   │   └── SchrittDao.kt
+│   │   ├── SchrittDao.kt
+│   │   └── ZeitMessungDao.kt        # Timer-Service DAO
 │   ├── model/
 │   │   ├── Reparaturvorgang.kt      # Room Entity
-│   │   └── Schritt.kt              # Room Entity
+│   │   ├── Schritt.kt              # Room Entity (mit SchrittTyp)
+│   │   └── ZeitMessung.kt          # Room Entity (Timer-Service)
 │   └── repository/
 │       └── ReparaturRepository.kt
 ├── feature/
@@ -47,6 +49,9 @@ com.boltmind.app/
 │   └── montage/                     # F-004
 │       ├── MontageScreen.kt
 │       └── MontageViewModel.kt
+├── service/
+│   └── zeiterfassung/               # F-005: Timer-Service
+│       └── ZeiterfassungService.kt
 ├── ui/
 │   ├── navigation/
 │   │   └── BoltMindNavHost.kt
@@ -68,10 +73,13 @@ Domänen-Klassen und -Felder verwenden die deutsche Fachsprache aus der Architec
 |----------------|-------------------|-----------------|
 | Reparaturvorgang | `Reparaturvorgang` | `RepairJob` |
 | Schritt | `Schritt` | `Step` |
-| Ablageort | `ablageortNummer` | `storageLocationNumber` |
+| SchrittTyp | `schrittTyp: SchrittTyp` | `stepType` |
+| Bauteil-Foto | `bauteilFotoPfad` | `componentPhotoPath` |
+| Ablageort-Foto | `ablageortFotoPfad` | `storageLocationPhotoPath` |
 | Fahrzeugfoto | `fahrzeugFotoPfad` | `vehiclePhotoPath` |
 | Auftragsnummer | `auftragsnummer` | `orderNumber` |
 | Beschreibung | `beschreibung` | `description` |
+| ZeitMessung | `ZeitMessung` | `TimeMeasurement` |
 
 ### Technische Begriffe: Englisch
 
@@ -341,18 +349,18 @@ class DemontageViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(DemontageUiState())
     val uiState: StateFlow<DemontageUiState> = _uiState.asStateFlow()
 
-    fun onFotoAufgenommen(photoPath: String) { ... }
-    fun onAblageortBestaetigt() { ... }
-    fun onAblageortGeaendert(nummer: String) { ... }
+    fun onBauteilFotoAufgenommen(photoPath: String) { ... }
+    fun onAblageortFotoAufgenommen(photoPath: String) { ... }
+    fun onSchrittTypGewaehlt(typ: SchrittTyp) { ... }
 }
 
 // Screen ist stateless
 @Composable
 fun DemontageScreen(
     uiState: DemontageUiState,
-    onFotoAufgenommen: (String) -> Unit,
-    onAblageortBestaetigt: () -> Unit,
-    onAblageortGeaendert: (String) -> Unit,
+    onBauteilFotoAufgenommen: (String) -> Unit,
+    onAblageortFotoAufgenommen: (String) -> Unit,
+    onSchrittTypGewaehlt: (SchrittTyp) -> Unit,
     modifier: Modifier = Modifier
 )
 ```
@@ -369,11 +377,11 @@ fun DemontageScreenPreview() {
         DemontageScreen(
             uiState = DemontageUiState(
                 schrittNummer = 5,
-                vorgeschlagenerAblageort = "7"
+                bauteilFotoPfad = "/path/to/photo.jpg"
             ),
-            onFotoAufgenommen = {},
-            onAblageortBestaetigt = {},
-            onAblageortGeaendert = {}
+            onBauteilFotoAufgenommen = {},
+            onAblageortFotoAufgenommen = {},
+            onSchrittTypGewaehlt = {}
         )
     }
 }

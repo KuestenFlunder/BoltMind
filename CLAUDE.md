@@ -40,11 +40,13 @@ feature/uebersicht/     # F-001: Vorgangs-Übersicht
 feature/neuervorgang/   # F-002: Vorgang anlegen
 feature/demontage/      # F-003: Demontage-Flow
 feature/montage/        # F-004: Montage-Flow
+service/zeiterfassung/  # F-005: Timer-Service
 ui/navigation/          # NavHost
 ui/theme/               # Material3 Theme
 ```
 
 Jedes Feature-Package enthält: `*Screen.kt`, `*ViewModel.kt`, `*UiState.kt`.
+Service-Packages enthalten: `*Service.kt`, `*Dao.kt`, Entity.
 
 ## Domain-Sprache (DDD)
 
@@ -54,21 +56,26 @@ Domain-Begriffe auf **Deutsch**, technische Begriffe auf **Englisch**:
 |---|---|---|
 | Reparaturvorgang | Repair job | `Reparaturvorgang.kt`, `ReparaturRepository` |
 | Schritt | Disassembly step | `Schritt.kt`, `SchrittDao` |
-| Ablageort | Storage location | `ablageortNummer: Int` |
+| SchrittTyp | Step type (AUSGEBAUT/AM_FAHRZEUG) | `schrittTyp: SchrittTyp` |
+| Bauteil-Foto | Component photo (before removal) | `bauteilFotoPfad: String` |
+| Ablageort-Foto | Storage location photo | `ablageortFotoPfad: String?` |
 | Fahrzeugfoto | Vehicle photo | `fahrzeugFotoPfad: String` |
 | Auftragsnummer | Order number | `auftragsnummer: String` |
+| ZeitMessung | Time measurement | `ZeitMessung.kt`, `ZeitMessungDao` |
 
 Funktionsnamen für Domain-Events ebenfalls Deutsch: `onFotoAufgenommen()`, `onAblageortBestaetigt()`.
 
 ## Spec-driven Development
 
-Feature-Specs in `docs/specs/F-XXX-*.md` sind Source of Truth. Issues referenzieren Specs via `[F-XXX]` im Titel. Immer Spec lesen bevor ein Feature implementiert wird.
+Feature-Specs in `docs/specs/F-XXX-name/` (Ordnerstruktur mit README.md + Detail-Specs) sind Source of Truth. Projektweite Regeln stehen in `docs/specs/governance.md`. Issues referenzieren Specs via `[F-XXX]` im Titel. Immer Spec lesen bevor ein Feature implementiert wird.
 
 ## Pflichtlektüre vor Code-Änderungen
 
 **VOR jeder Implementierung** müssen gelesen werden:
 1. `docs/CODING_RULES.md` — Vollständige Coding-Konventionen und Test-Struktur
-2. `docs/specs/F-XXX-*.md` — Zugehörige Feature-Spec mit User Stories
+2. `docs/specs/governance.md` — Projektweite Regeln (Sofort-Save, Foto-Handling, DDD, Service-Architektur)
+3. `docs/specs/F-XXX-name/README.md` — Feature-Intention und Abhängigkeiten
+4. `docs/specs/F-XXX-name/*.md` — Detail-Specs (User Stories, Workflow, Views)
 
 ## Coding Conventions
 
@@ -104,7 +111,9 @@ Commit-Prefix: `[F-XXX] Beschreibung`
 
 - `docs/architecture.md` — Arc42-light Architektur-Übersicht
 - `docs/CODING_RULES.md` — Vollständige Coding-Konventionen
-- `docs/specs/` — Feature-Spezifikationen (F-001 bis F-005)
+- `docs/specs/governance.md` — Projektweite Regeln (Sofort-Save, DDD, Service-Architektur)
+- `docs/specs/SpecBestPractices.md` — Spec-Schreibregeln und Ordner-Struktur
+- `docs/specs/F-XXX-name/` — Feature-Spezifikationen als Ordner (F-001 bis F-005)
 
 ## Verbotene Patterns
 

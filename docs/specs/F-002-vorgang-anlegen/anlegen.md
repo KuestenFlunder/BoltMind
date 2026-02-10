@@ -108,14 +108,13 @@ Der Abbruch geschieht über den System-Back-Button. Ein versehentlich angelegter
 
 ## Technische Hinweise
 
-- CameraX: `ImageCapture` Use Case für Fahrzeugfoto (gleiche Implementierung wie F-003)
+- System-Kamera: `ActivityResultContracts.TakePicture()` fuer Fahrzeugfoto (gleicher Ansatz wie F-003, keine CAMERA-Permission noetig)
 - Foto-Speicherung: App-interner Speicher, JPEG mit mittlerer Kompression
 - Room Entity: `Reparaturvorgang(id, fahrzeugFotoPfad, auftragsnummer, beschreibung, status, erstelltAm)`
 - `fahrzeugFotoPfad`: Pfad zum Fahrzeugfoto auf dem Filesystem (Pflicht)
 - `beschreibung`: Nullable (fakultativ)
 - Sofort-Insert in DB, dann Navigation zu F-003 mit `vorgangId`
 - Abbruch vor Speicherung: Temporäres Foto wieder löschen
-- Kamera-Permission: Wird hier erstmals abgefragt, gilt dann auch für F-003
 - Spätere Erweiterung: OCR-Scanner für Auftragsnummer per Kamera vom Auftragszettel
 
 ## UI-Skizze
