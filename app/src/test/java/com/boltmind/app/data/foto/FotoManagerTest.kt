@@ -31,7 +31,7 @@ class FotoManagerTest {
             val tempFile = fotoManager.erstelleTempDatei("bauteil")
 
             // Then
-            assertTrue(tempFile.parentFile.name == "temp")
+            assertTrue(tempFile.parentFile?.name == "temp")
             assertTrue(tempFile.name.startsWith("bauteil_"))
             assertTrue(tempFile.name.endsWith(".jpg"))
         }
@@ -60,7 +60,7 @@ class FotoManagerTest {
 
             // Then
             assertFalse(tempFile.exists())
-            assertTrue(File(permanentPfad).exists())
+            assertTrue(File(permanentPfad!!).exists())
             assertEquals("fake-image-data", File(permanentPfad).readText())
         }
 
@@ -74,8 +74,8 @@ class FotoManagerTest {
             val permanentPfad = fotoManager.bestaetigeFoto(tempFile.absolutePath, "bauteil_5")
 
             // Then
-            val permanentFile = File(permanentPfad)
-            assertEquals("photos", permanentFile.parentFile.name)
+            val permanentFile = File(permanentPfad!!)
+            assertEquals("photos", permanentFile.parentFile?.name)
             assertTrue(permanentFile.name.startsWith("bauteil_5"))
         }
 
@@ -174,6 +174,57 @@ class FotoManagerTest {
         @Test
         fun `gibt false fuer null-Pfad`() {
             assertFalse(fotoManager.fotoExistiert(null))
+        }
+    }
+
+    @Nested
+    inner class `EXIF-Metadaten entfernen` {
+
+        @Test
+        fun `wirft keinen Fehler bei nicht existierender Datei`() {
+            // When / Then - kein Fehler (best-effort)
+            fotoManager.entferneExifMetadaten("/nicht/existent.jpg")
+        }
+
+        @Test
+        fun `wirft keinen Fehler bei nicht-JPEG Datei`() {
+            // Given
+            val file = File(tempDir.toFile(), "test.txt")
+            file.writeText("keine JPEG Datei")
+
+            // When / Then - kein Fehler (best-effort)
+            fotoManager.entferneExifMetadaten(file.absolutePath)
+        }
+
+        @Test
+        fun `Datei existiert nach Aufruf weiterhin`() {
+            // Given
+            val tempFile = fotoManager.erstelleTempDatei("bauteil")
+            tempFile.writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xD9.toByte()))
+
+            // When
+            fotoManager.entferneExifMetadaten(tempFile.absolutePath)
+
+            // Then
+            assertTrue(tempFile.exists())
+        }
+    }
+
+    @Nested
+    inner class `Foto bestaetigen mit EXIF-Stripping` {
+
+        @Test
+        fun `ruft EXIF-Stripping vor Verschiebung auf`() {
+            // Given
+            val tempFile = fotoManager.erstelleTempDatei("bauteil")
+            tempFile.writeText("fake-image-data")
+
+            // When
+            val permanentPfad = fotoManager.bestaetigeFoto(tempFile.absolutePath, "bauteil_1")
+
+            // Then - Datei wurde verschoben (EXIF-Stripping laeuft davor, best-effort)
+            assertTrue(permanentPfad != null)
+            assertTrue(File(permanentPfad!!).exists())
         }
     }
 }

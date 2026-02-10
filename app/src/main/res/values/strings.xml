@@ -20,7 +20,13 @@
     <string name="loeschen_hintergrund">Löschen</string>
     <string name="tab_offen">Offen</string>
     <string name="tab_archiv">Archiv</string>
+    <string name="demontage_schritt_nummer">Schritt %d</string>
+    <string name="demontage_ausgebaut">Ausgebaut</string>
+    <string name="demontage_bauteil_foto">Bauteil-Foto Schritt %d</string>
     <string name="keine_archivierten_vorgaenge">Noch keine abgeschlossenen Vorgänge.</string>
+    <string name="demontage_ablageort_fotografieren">Ablageort fotografieren</string>
+    <string name="demontage_weiter_ohne_ablageort">Weiter ohne Ablageort</string>
+    <string name="demontage_beenden">Beenden</string>
     <string name="datum_heute">Heute</string>
     <string name="datum_gestern">Gestern</string>
     <string name="dauer_weniger_als_eine_minute">&lt; 1 min</string>
@@ -28,4 +34,13 @@
     <string name="dauer_stunden_minuten">%dh %dmin</string>
     <string name="gesamtdauer">Gesamtdauer: %s</string>
     <string name="abgeschlossen_am">Abgeschlossen: %s</string>
+
+    <!-- Demontage-Flow UI -->
+    <string name="demontage_foto_aufnehmen">Foto aufnehmen</string>
+    <string name="demontage_bestaetigen">Bestätigen</string>
+    <string name="demontage_wiederholen">Wiederholen</string>
+    <string name="demontage_ablageort_hinweis">Jetzt den Ablageort fotografieren</string>
+    <string name="demontage_ablageort_frage">Ist das der Ablageort?</string>
+    <string name="demontage_keine_kamera">Keine Kamera-App gefunden</string>
+    <string name="demontage_keine_kamera_ok">OK</string>
 </resources>

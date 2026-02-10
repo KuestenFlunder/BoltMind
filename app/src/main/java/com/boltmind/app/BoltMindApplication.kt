@@ -1,6 +1,7 @@
 package com.boltmind.app
 
 import android.app.Application
+import com.boltmind.app.data.foto.FotoManager
 import com.boltmind.app.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -13,5 +14,6 @@ class BoltMindApplication : Application() {
             androidContext(this@BoltMindApplication)
             modules(appModule)
         }
+        FotoManager(filesDir).bereinigeTempOrdner()
     }
 }

@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.boltmind.app.feature.demontage.DemontageScreen
 import com.boltmind.app.feature.neuervorgang.NeuerVorgangScreen
 import com.boltmind.app.feature.neuervorgang.NeuerVorgangViewModel
 import com.boltmind.app.feature.uebersicht.NavigationsZiel
@@ -79,9 +80,9 @@ fun BoltMindNavHost(
             route = BoltMindRoutes.DEMONTAGE,
             arguments = listOf(navArgument("vorgangId") { type = NavType.LongType }),
         ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Demontage – kommt in F-003")
-            }
+            DemontageScreen(
+                onFlowBeendet = { navController.popBackStack() },
+            )
         }
         composable(
             route = BoltMindRoutes.MONTAGE,

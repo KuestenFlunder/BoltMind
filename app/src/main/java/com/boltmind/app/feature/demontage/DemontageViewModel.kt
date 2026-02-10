@@ -133,6 +133,10 @@ class DemontageViewModel(
         }
     }
 
+    fun onKeineKameraDialogBestaetigt() {
+        _uiState.update { it.copy(keineKameraApp = false) }
+    }
+
     // --- Arbeitsphase + Dialog ---
 
     fun onAusgebautGetippt() {
