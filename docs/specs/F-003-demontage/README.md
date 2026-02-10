@@ -247,4 +247,4 @@ sequenceDiagram
 ## Entschiedene Fragen (aus Original-Kern-Spec)
 
 - [x] ~~Ablageort-Foto: Reicht nur Foto oder soll es zusaetzlich eine optionale Nummer/Beschriftung geben?~~ **Entschieden:** Keine manuelle Eingabe. Nur auto-increment Schrittnummer. Der Mechaniker kann seine physischen Ablageorte mit den Schrittnummern beschriften.
-- [x] ~~Arbeitsphase: Umfang und Zeitpunkt der Erweiterung~~ **Entschieden:** MVP nur "Ausgebaut"-Button. Erweiterung (Timer, Kommentare, Sprachnotizen) kommt in separater Spec (siehe `F-003-arbeitsphase-ideen.md`).
+- [x] ~~Arbeitsphase: Umfang und Zeitpunkt der Erweiterung~~ **Entschieden:** MVP nur "Ausgebaut"-Button. Erweiterung (Timer, Kommentare, Sprachnotizen) kommt in separater Spec.
