@@ -132,6 +132,79 @@ Then  öffnet sich direkt der Demontage-Flow
 → Test: `oeffnet Demontage-Flow direkt wenn Vorgang keine Schritte hat`
 ```
 
+## Single Responsibility für Specs
+
+Specs folgen dem **Single Responsibility Principle**: Jede Spec-Datei hat genau **einen Grund sich zu ändern**.
+
+### Schnitt-Kriterien
+
+| Spec-Typ | Beschreibt | Ändert sich wenn... |
+|-----------|-----------|---------------------|
+| **View-Spec** | Eine UI-Ansicht + ihre DB-Interaktionen | Das Aussehen, die Felder oder die Persistierung dieser View sich ändert |
+| **Workflow-Spec** | Die Abfolge und Übergänge zwischen Views | Die Navigation, Reihenfolge oder Übergangsbedingungen sich ändern |
+
+### Warum View + DB zusammen?
+
+View und DB-Interaktion bilden eine **konsistente Einheit**: Änderungen an der View ziehen fast immer Änderungen an der DB-Interaktion nach sich (neues Feld → neues Entity-Feld → neuer DB-Zugriff). Sie haben denselben Änderungsgrund.
+
+Der Workflow hingegen hat einen **anderen Änderungsgrund**: Die Reihenfolge der Views kann sich ändern, ohne dass die Views selbst sich ändern (z.B. "Ablageort-Foto wird optional" ändert den Workflow, nicht die Kamera-View).
+
+### Spec-Struktur für komplexe Features
+
+```
+docs/specs/F-XXX-feature/
+├── README.md              # Übersicht, Kontext, Abhängigkeiten
+├── views/
+│   ├── view-a.md          # View A: UI + Akzeptanzkriterien + DB-Aktionen
+│   ├── view-b.md          # View B: UI + Akzeptanzkriterien + DB-Aktionen
+│   └── view-c.md          # View C: UI + Akzeptanzkriterien + DB-Aktionen
+├── workflow.md            # State Machine: Übergänge zwischen Views
+└── F-XXX-alt-referenz.md  # Original-Spec als Referenz (optional)
+```
+
+### View-Spec Aufbau
+
+```markdown
+# View-Name
+
+## Zweck
+Wofür existiert diese View?
+
+## UI-Elemente
+Was sieht der User? (Elemente, Layout-Hinweise)
+
+## Verhalten + DB-Interaktion
+Akzeptanzkriterien (Given/When/Then) inklusive DB-Persistierung
+
+## Nicht-funktionale Anforderungen
+Performance, Debounce, Touch-Targets etc.
+```
+
+### Workflow-Spec Aufbau
+
+```markdown
+# Workflow: Feature-Name
+
+## States (= Views)
+Liste aller Views/Phasen
+
+## Transitions
+| Von | Event | Nach | Bedingung | DB-Aktion |
+|-----|-------|------|-----------|-----------|
+
+## Unterbrechungs-Verhalten
+Was passiert bei App-Kill in jedem State?
+
+## Entry-Bedingungen
+Wie wird der Workflow gestartet? (z.B. aus Übersicht, nach Anlage)
+```
+
+### Wann aufteilen?
+
+- **Feature hat >2 Views** → View-Specs + Workflow-Spec
+- **Feature hat 1-2 Views** → Eine Spec reicht
+- **Workflow ist trivial** (linear, keine Verzweigungen) → Kann in View-Specs bleiben
+
 ## Anti-Patterns
 
 - **Zu lang**: Spec wird so lang, dass beim Review nur überflogen wird
