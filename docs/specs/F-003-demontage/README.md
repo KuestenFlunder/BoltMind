@@ -134,8 +134,8 @@ Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild in der Anzeig
 ### Bedienbarkeit
 
 - Minimale Interaktion pro Schritt:
-  - Ohne Ablageort: Foto aufnehmen -> Bestaetigen -> Ausgebaut -> Dialog = 4 Taps
-  - Mit Ablageort: Foto aufnehmen -> Bestaetigen -> Ausgebaut -> Dialog -> Ablageort-Foto -> Bestaetigen = 6 Taps
+  - Ohne Ablageort: [Kamera auto] -> Bestaetigen -> Ausgebaut -> Dialog = 3 Taps
+  - Mit Ablageort: [Kamera auto] -> Bestaetigen -> Ausgebaut -> Dialog -> [Kamera auto] -> Bestaetigen = 4 Taps
 - Schrittnummer immer sichtbar: In Preview-View und auf Arbeitsphase-Screen
 - Foto-Qualitaet: Mittlere Kompression, ~2-3 MB pro Foto (Balance zwischen Qualitaet und Speicher)
 
@@ -157,20 +157,21 @@ Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild in der Anzeig
 
 ```mermaid
 flowchart TD
-    A["Preview-View\n(Foto aufnehmen per System-Kamera)"] -- "Foto aufnehmen" --> SK1["System-Kamera\n(Intent)"]
+    A["Flow starten"] -- "Kamera auto-start" --> SK1["System-Kamera\n(Intent)"]
     SK1 -- "Foto aufgenommen" --> B["Preview-View\n(Vorschau mit Bestaetigen/Wiederholen)"]
-    SK1 -- "Abgebrochen" --> A
+    SK1 -- "Abgebrochen" --> AB1["Preview-View\n(Platzhalter + Foto-Button)"]
+    AB1 -- "Foto aufnehmen" --> SK1
     B -- "Wiederholen" --> SK1
     B -- "Bestaetigen" --> C["Arbeitsphase-Screen\n(Schrittnummer + Foto + Button)"]
     C -- "Ausgebaut" --> D{"Dialog\nNaechste Aktion waehlen"}
-    D -- "Ablageort fotografieren" --> E["Preview-View\n(Ablageort-Modus)"]
-    E -- "Foto aufnehmen" --> SK2["System-Kamera\n(Intent, Ablageort)"]
+    D -- "Ablageort fotografieren" -- "Kamera auto-start" --> SK2["System-Kamera\n(Intent, Ablageort)"]
     SK2 -- "Foto aufgenommen" --> G["Preview-View\n(Ablageort-Vorschau)"]
-    SK2 -- "Abgebrochen" --> E
-    D -- "Weiter ohne Foto" --> A
+    SK2 -- "Abgebrochen" --> AB2["Preview-View\n(Ablageort, Platzhalter + Button)"]
+    AB2 -- "Foto aufnehmen" --> SK2
+    D -- "Weiter ohne Foto" -- "Kamera auto-start" --> SK1
     D -- "Beenden" --> F["Uebersicht\nDemontage abgeschlossen"]
     G -- "Wiederholen" --> SK2
-    G -- "Bestaetigen" --> A
+    G -- "Bestaetigen" -- "Kamera auto-start" --> SK1
 ```
 
 ## Sequenz-Diagramm
@@ -189,14 +190,20 @@ sequenceDiagram
 
     rect rgb(26, 35, 64)
         Note over T,SK: Phase 1: Foto von eingebautem Bauteil
-        T->>PV: Oeffnet Preview-View (Schrittnummer sichtbar)
-        T->>PV: Tippt "Foto aufnehmen"
-        PV->>SK: System-Kamera Intent
+        T->>PV: Startet Demontage-Flow
+        PV->>SK: System-Kamera automatisch (kein Button-Tap)
         SK->>PV: Foto aufgenommen
+        Note over PV: Vorschau-Zustand: Foto + Schrittnummer
         alt Wiederholen
             T->>PV: Tippt "Wiederholen"
-            PV->>SK: System-Kamera erneut
+            PV->>SK: System-Kamera erneut (direkt)
             SK->>PV: Neues Foto aufgenommen
+        end
+        alt Kamera abgebrochen
+            SK->>PV: Abgebrochen
+            Note over PV: Abgebrochen-Zustand: Platzhalter + Button
+            T->>PV: Tippt "Foto aufnehmen"
+            PV->>SK: System-Kamera erneut
         end
         T->>PV: Tippt "Bestaetigen"
     end
@@ -218,19 +225,18 @@ sequenceDiagram
         rect rgb(26, 51, 56)
             Note over T,SK: Phase 4a: Foto vom Ablageort
             D->>PV: Preview-View (Ablageort-Modus)
-            T->>PV: Tippt "Foto aufnehmen"
-            PV->>SK: System-Kamera Intent
+            PV->>SK: System-Kamera automatisch (kein Button-Tap)
             SK->>PV: Foto aufgenommen
             Note over PV: Banner: "Ist das der Ablageort?"
             alt Wiederholen
                 T->>PV: Tippt "Wiederholen"
-                PV->>SK: System-Kamera erneut
+                PV->>SK: System-Kamera erneut (direkt)
                 SK->>PV: Neues Foto aufgenommen
             end
             T->>PV: Tippt "Bestaetigen"
         end
     else Weiter ohne Foto
-        Note over T,PV: Zurueck zu Phase 1 (naechstes Bauteil)
+        Note over T,SK: System-Kamera startet automatisch (naechster Schritt)
     else Beenden
         rect rgb(51, 26, 26)
             Note over T,U: Phase 5: Abschluss
