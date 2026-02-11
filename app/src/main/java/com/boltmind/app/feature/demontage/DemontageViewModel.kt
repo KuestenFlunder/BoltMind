@@ -43,22 +43,39 @@ class DemontageViewModel(
             schritt.bauteilFotoPfad == null -> DemontageFlowState.PREVIEW_BAUTEIL
             else -> DemontageFlowState.ARBEITSPHASE
         }
-        _uiState.update {
-            it.copy(
-                flowState = flowState,
-                previewZustand = PreviewZustand.INITIAL,
-                schrittNummer = schritt.schrittNummer,
-                schrittId = schritt.id,
-                bauteilFotoPfad = schritt.bauteilFotoPfad,
-                ablageortFotoPfad = null,
-                tempFotoPfad = null,
-                kameraIntentAktiv = false
-            )
+        if (flowState == DemontageFlowState.PREVIEW_BAUTEIL) {
+            val tempDatei = fotoManager.erstelleTempDatei("bauteil")
+            _uiState.update {
+                it.copy(
+                    flowState = flowState,
+                    previewZustand = PreviewZustand.INITIAL,
+                    schrittNummer = schritt.schrittNummer,
+                    schrittId = schritt.id,
+                    bauteilFotoPfad = null,
+                    ablageortFotoPfad = null,
+                    tempFotoPfad = tempDatei.absolutePath,
+                    kameraIntentAktiv = true
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(
+                    flowState = flowState,
+                    previewZustand = PreviewZustand.INITIAL,
+                    schrittNummer = schritt.schrittNummer,
+                    schrittId = schritt.id,
+                    bauteilFotoPfad = schritt.bauteilFotoPfad,
+                    ablageortFotoPfad = null,
+                    tempFotoPfad = null,
+                    kameraIntentAktiv = false
+                )
+            }
         }
     }
 
     private suspend fun starteNeuenSchritt() {
         val schritt = repository.schrittAnlegen(vorgangId)
+        val tempDatei = fotoManager.erstelleTempDatei("bauteil")
         _uiState.update {
             it.copy(
                 flowState = DemontageFlowState.PREVIEW_BAUTEIL,
@@ -67,8 +84,8 @@ class DemontageViewModel(
                 schrittId = schritt.id,
                 bauteilFotoPfad = null,
                 ablageortFotoPfad = null,
-                tempFotoPfad = null,
-                kameraIntentAktiv = false
+                tempFotoPfad = tempDatei.absolutePath,
+                kameraIntentAktiv = true
             )
         }
     }
@@ -86,22 +103,14 @@ class DemontageViewModel(
         }
     }
 
-    private fun loescheTempUndReset() {
-        _uiState.value.tempFotoPfad?.let { fotoManager.loescheTempFoto(it) }
-        _uiState.update {
-            it.copy(
-                previewZustand = PreviewZustand.INITIAL,
-                tempFotoPfad = null,
-                kameraIntentAktiv = false
-            )
-        }
-    }
-
     // --- Bauteil-Foto ---
 
     fun onFotoAufnehmenGetippt() = starteKamera("bauteil")
     fun onFotoAufgenommen() = setzeFotoVorschau()
-    fun onFotoWiederholen() = loescheTempUndReset()
+    fun onFotoWiederholen() {
+        _uiState.value.tempFotoPfad?.let { fotoManager.loescheTempFoto(it) }
+        starteKamera("bauteil")
+    }
 
     fun onFotoBestaetigt() {
         val state = _uiState.value
@@ -147,12 +156,13 @@ class DemontageViewModel(
         val schrittId = _uiState.value.schrittId
         viewModelScope.launch {
             repository.schrittTypSetzen(schrittId, SchrittTyp.AUSGEBAUT)
+            val tempDatei = fotoManager.erstelleTempDatei("ablageort")
             _uiState.update {
                 it.copy(
                     flowState = DemontageFlowState.PREVIEW_ABLAGEORT,
                     previewZustand = PreviewZustand.INITIAL,
-                    tempFotoPfad = null,
-                    kameraIntentAktiv = false
+                    tempFotoPfad = tempDatei.absolutePath,
+                    kameraIntentAktiv = true
                 )
             }
         }
@@ -178,7 +188,10 @@ class DemontageViewModel(
 
     fun onAblageortFotoAufnehmen() = starteKamera("ablageort")
     fun onAblageortFotoAufgenommen() = setzeFotoVorschau()
-    fun onAblageortFotoWiederholen() = loescheTempUndReset()
+    fun onAblageortFotoWiederholen() {
+        _uiState.value.tempFotoPfad?.let { fotoManager.loescheTempFoto(it) }
+        starteKamera("ablageort")
+    }
 
     fun onAblageortFotoBestaetigt() {
         val state = _uiState.value

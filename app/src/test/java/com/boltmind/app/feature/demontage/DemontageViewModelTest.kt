@@ -64,6 +64,8 @@ class DemontageViewModelTest {
 
     private suspend fun erstelleViewModel(): DemontageViewModel {
         whenever(repository.schrittAnlegen(1L)).thenReturn(testSchritt())
+        val tempFile = File("/tmp/bauteil_temp.jpg")
+        whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
         return DemontageViewModel(repository, fotoManager, savedStateHandle)
     }
 
@@ -75,28 +77,34 @@ class DemontageViewModelTest {
             // Given: ViewModel wird erstellt mit vorgangId
             val schritt = testSchritt(id = 10L, nummer = 1)
             whenever(repository.schrittAnlegen(1L)).thenReturn(schritt)
+            val tempFile = File("/tmp/bauteil_temp.jpg")
+            whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
 
             // When: init block laeuft
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
             advanceUntilIdle()
 
-            // Then: flowState = PREVIEW_BAUTEIL, schrittNummer = 1, neuer Schritt in DB
+            // Then: flowState = PREVIEW_BAUTEIL, Kamera startet automatisch
             val state = viewModel.uiState.value
             assertEquals(DemontageFlowState.PREVIEW_BAUTEIL, state.flowState)
             assertEquals(PreviewZustand.INITIAL, state.previewZustand)
             assertEquals(1, state.schrittNummer)
             assertEquals(10L, state.schrittId)
             assertEquals(1L, state.vorgangId)
+            assertTrue(state.kameraIntentAktiv)
+            assertEquals(tempFile.absolutePath, state.tempFotoPfad)
             verify(repository).schrittAnlegen(1L)
         }
 
         @Test
-        fun `foto aufnehmen oeffnet System-Kamera Intent`() = runTest {
-            // Given: flowState = PREVIEW_BAUTEIL
+        fun `foto aufnehmen oeffnet System-Kamera Intent nach Abbruch`() = runTest {
+            // Given: flowState = PREVIEW_BAUTEIL, Kamera wurde abgebrochen (Abgebrochen-Zustand)
             val tempFile = File("/tmp/bauteil_123.jpg")
-            whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
+            whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
+            viewModel.onKameraAbgebrochen()
+            assertFalse(viewModel.uiState.value.kameraIntentAktiv)
 
             // When: onFotoAufnehmenGetippt()
             viewModel.onFotoAufnehmenGetippt()
@@ -104,17 +112,17 @@ class DemontageViewModelTest {
             // Then: kameraIntentAktiv = true, tempFotoPfad gesetzt
             val state = viewModel.uiState.value
             assertTrue(state.kameraIntentAktiv)
-            assertEquals(tempFile.absolutePath, state.tempFotoPfad)
+            assertNotNull(state.tempFotoPfad)
         }
 
         @Test
         fun `foto aufgenommen wechselt zu Vorschau-Zustand`() = runTest {
-            // Given: Kamera-Intent wurde gestartet
+            // Given: Kamera-Intent wurde gestartet (Auto-Start bei init)
             val tempFile = File("/tmp/bauteil_123.jpg")
             whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
-            viewModel.onFotoAufnehmenGetippt()
+            assertTrue(viewModel.uiState.value.kameraIntentAktiv)
 
             // When: Kamera liefert Foto zurueck
             viewModel.onFotoAufgenommen()
@@ -127,36 +135,37 @@ class DemontageViewModelTest {
         }
 
         @Test
-        fun `wiederholen loescht temp-Foto und oeffnet Kamera erneut`() = runTest {
+        fun `wiederholen loescht temp-Foto und startet Kamera erneut`() = runTest {
             // Given: previewZustand = VORSCHAU, tempFotoPfad gesetzt
-            val tempFile = File("/tmp/bauteil_123.jpg")
-            whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
-            viewModel = erstelleViewModel()
+            val initTempFile = File("/tmp/bauteil_init.jpg")
+            val newTempFile = File("/tmp/bauteil_new.jpg")
+            whenever(repository.schrittAnlegen(1L)).thenReturn(testSchritt())
+            whenever(fotoManager.erstelleTempDatei(eq("bauteil")))
+                .thenReturn(initTempFile)
+                .thenReturn(newTempFile)
+            viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
             advanceUntilIdle()
-            viewModel.onFotoAufnehmenGetippt()
             viewModel.onFotoAufgenommen()
 
             // When: onFotoWiederholen()
             viewModel.onFotoWiederholen()
 
-            // Then: previewZustand = INITIAL, tempFotoPfad = null, FotoManager.loescheTempFoto aufgerufen
+            // Then: Kamera startet direkt, kein Zwischenscreen
             val state = viewModel.uiState.value
-            assertEquals(PreviewZustand.INITIAL, state.previewZustand)
-            assertNull(state.tempFotoPfad)
-            assertFalse(state.kameraIntentAktiv)
-            verify(fotoManager).loescheTempFoto(tempFile.absolutePath)
+            assertTrue(state.kameraIntentAktiv)
+            assertEquals(newTempFile.absolutePath, state.tempFotoPfad)
+            verify(fotoManager).loescheTempFoto(initTempFile.absolutePath)
         }
 
         @Test
         fun `bestaetigen verschiebt Foto und wechselt zu Arbeitsphase`() = runTest {
-            // Given: previewZustand = VORSCHAU
-            val tempFile = File("/tmp/bauteil_123.jpg")
+            // Given: previewZustand = VORSCHAU (Kamera auto-gestartet, Foto aufgenommen)
+            val tempFile = File("/tmp/bauteil_temp.jpg")
             val permanentPfad = "/photos/bauteil_10.jpg"
-            whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
+            whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
             whenever(fotoManager.bestaetigeFoto(any(), any())).thenReturn(permanentPfad)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
-            viewModel.onFotoAufnehmenGetippt()
             viewModel.onFotoAufgenommen()
 
             // When: onFotoBestaetigt()
@@ -187,12 +196,9 @@ class DemontageViewModelTest {
 
         @Test
         fun `kamera abgebrochen kehrt zu Initial-Zustand zurueck`() = runTest {
-            // Given: kameraIntentAktiv = true
-            val tempFile = File("/tmp/bauteil_123.jpg")
-            whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
+            // Given: kameraIntentAktiv = true (Auto-Start bei init)
             viewModel = erstelleViewModel()
             advanceUntilIdle()
-            viewModel.onFotoAufnehmenGetippt()
             assertTrue(viewModel.uiState.value.kameraIntentAktiv)
 
             // When: onKameraAbgebrochen()
@@ -222,7 +228,6 @@ class DemontageViewModelTest {
             // Given: flowState = ARBEITSPHASE
             viewModel = setupArbeitsphase()
             advanceUntilIdle()
-            viewModel.onFotoAufnehmenGetippt()
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
@@ -239,7 +244,6 @@ class DemontageViewModelTest {
             // Given: flowState = ARBEITSPHASE
             viewModel = setupArbeitsphase()
             advanceUntilIdle()
-            viewModel.onFotoAufnehmenGetippt()
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
@@ -256,14 +260,13 @@ class DemontageViewModelTest {
     private suspend fun setupBisDialog(): DemontageViewModel {
         val tempFile = File("/tmp/bauteil_123.jpg")
         val permanentPfad = "/photos/bauteil_10.jpg"
-        whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
+        whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
         whenever(fotoManager.bestaetigeFoto(any(), any())).thenReturn(permanentPfad)
         val vm = erstelleViewModel()
         return vm
     }
 
     private suspend fun navigiereBisDialog(vm: DemontageViewModel) {
-        vm.onFotoAufnehmenGetippt()
         vm.onFotoAufgenommen()
         vm.onFotoBestaetigt()
     }
@@ -274,6 +277,8 @@ class DemontageViewModelTest {
         @Test
         fun `ablageort-fotografieren setzt typ AUSGEBAUT und wechselt zu Preview-Ablageort`() = runTest {
             // Given: flowState = DIALOG
+            val tempAblageort = File("/tmp/ablageort_temp.jpg")
+            whenever(fotoManager.erstelleTempDatei(eq("ablageort"))).thenReturn(tempAblageort)
             viewModel = setupBisDialog()
             advanceUntilIdle()
             navigiereBisDialog(viewModel)
@@ -285,10 +290,11 @@ class DemontageViewModelTest {
             viewModel.onAblageortFotografieren()
             advanceUntilIdle()
 
-            // Then: typ = AUSGEBAUT in DB, flowState = PREVIEW_ABLAGEORT
+            // Then: typ = AUSGEBAUT in DB, flowState = PREVIEW_ABLAGEORT, Kamera auto-gestartet
             val state = viewModel.uiState.value
             assertEquals(DemontageFlowState.PREVIEW_ABLAGEORT, state.flowState)
             assertEquals(PreviewZustand.INITIAL, state.previewZustand)
+            assertTrue(state.kameraIntentAktiv)
             verify(repository).schrittTypSetzen(10L, SchrittTyp.AUSGEBAUT)
         }
 
@@ -296,16 +302,15 @@ class DemontageViewModelTest {
         fun `weiter-ohne-ablageort setzt typ AM_FAHRZEUG und schliesst Schritt ab`() = runTest {
             // Given: flowState = DIALOG
             val naechsterSchritt = testSchritt(id = 20L, nummer = 2)
+            val tempFile = File("/tmp/bauteil_123.jpg")
+            val permanentPfad = "/photos/bauteil_10.jpg"
+            whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
+            whenever(fotoManager.bestaetigeFoto(any(), any())).thenReturn(permanentPfad)
             whenever(repository.schrittAnlegen(1L))
                 .thenReturn(testSchritt())
                 .thenReturn(naechsterSchritt)
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
             advanceUntilIdle()
-            val tempFile = File("/tmp/bauteil_123.jpg")
-            val permanentPfad = "/photos/bauteil_10.jpg"
-            whenever(fotoManager.erstelleTempDatei(any())).thenReturn(tempFile)
-            whenever(fotoManager.bestaetigeFoto(any(), any())).thenReturn(permanentPfad)
-            viewModel.onFotoAufnehmenGetippt()
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
@@ -346,8 +351,10 @@ class DemontageViewModelTest {
     inner class `US-003_3 Ablageort-Foto` {
 
         @Test
-        fun `ablageort-modus zeigt korrekten State`() = runTest {
+        fun `ablageort-modus zeigt korrekten State mit Kamera-Autostart`() = runTest {
             // Given: Mechaniker hat "Ablageort fotografieren" gewaehlt
+            val tempAblageort = File("/tmp/ablageort_temp.jpg")
+            whenever(fotoManager.erstelleTempDatei(eq("ablageort"))).thenReturn(tempAblageort)
             viewModel = setupBisDialog()
             advanceUntilIdle()
             navigiereBisDialog(viewModel)
@@ -356,24 +363,19 @@ class DemontageViewModelTest {
             viewModel.onAblageortFotografieren()
             advanceUntilIdle()
 
-            // Then: PREVIEW_ABLAGEORT mit INITIAL, Schrittnummer bleibt gleich
+            // Then: PREVIEW_ABLAGEORT, Kamera startet automatisch
             val state = viewModel.uiState.value
             assertEquals(DemontageFlowState.PREVIEW_ABLAGEORT, state.flowState)
             assertEquals(PreviewZustand.INITIAL, state.previewZustand)
             assertEquals(1, state.schrittNummer)
-            assertNull(state.tempFotoPfad)
+            assertTrue(state.kameraIntentAktiv)
+            assertEquals(tempAblageort.absolutePath, state.tempFotoPfad)
         }
 
         @Test
         fun `ablageort-foto bestaetigen schliesst Schritt ab und startet neuen`() = runTest {
             // Given: Ablageort-Foto im Vorschau-Zustand
             val naechsterSchritt = testSchritt(id = 20L, nummer = 2)
-            whenever(repository.schrittAnlegen(1L))
-                .thenReturn(testSchritt())
-                .thenReturn(naechsterSchritt)
-            viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
-            advanceUntilIdle()
-
             val tempFile = File("/tmp/bauteil_123.jpg")
             val permanentBauteil = "/photos/bauteil_10.jpg"
             val tempAblageort = File("/tmp/ablageort_456.jpg")
@@ -384,20 +386,23 @@ class DemontageViewModelTest {
                 .thenReturn(permanentBauteil)
             whenever(fotoManager.bestaetigeFoto(eq(tempAblageort.absolutePath), any()))
                 .thenReturn(permanentAblageort)
+            whenever(repository.schrittAnlegen(1L))
+                .thenReturn(testSchritt())
+                .thenReturn(naechsterSchritt)
+            viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
+            advanceUntilIdle()
 
-            // Bauteil-Foto aufnehmen und bestaetigen
-            viewModel.onFotoAufnehmenGetippt()
+            // Bauteil-Foto aufnehmen und bestaetigen (Kamera auto-gestartet)
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
 
-            // Dialog -> Ablageort fotografieren
+            // Dialog -> Ablageort fotografieren (Kamera auto-gestartet)
             viewModel.onAusgebautGetippt()
             viewModel.onAblageortFotografieren()
             advanceUntilIdle()
 
-            // Ablageort-Foto aufnehmen
-            viewModel.onAblageortFotoAufnehmen()
+            // Ablageort-Foto aufgenommen
             viewModel.onAblageortFotoAufgenommen()
 
             // When: Ablageort-Foto bestaetigen
@@ -413,8 +418,13 @@ class DemontageViewModelTest {
         }
 
         @Test
-        fun `ablageort-foto wiederholen loescht temp und bleibt in Ablageort-Modus`() = runTest {
+        fun `ablageort-foto wiederholen startet Kamera direkt`() = runTest {
             // Given: Ablageort-Foto im Vorschau-Zustand
+            val tempAblageort = File("/tmp/ablageort_456.jpg")
+            val newTempAblageort = File("/tmp/ablageort_new.jpg")
+            whenever(fotoManager.erstelleTempDatei(eq("ablageort")))
+                .thenReturn(tempAblageort)
+                .thenReturn(newTempAblageort)
             viewModel = setupBisDialog()
             advanceUntilIdle()
             navigiereBisDialog(viewModel)
@@ -423,20 +433,17 @@ class DemontageViewModelTest {
             viewModel.onAblageortFotografieren()
             advanceUntilIdle()
 
-            val tempAblageort = File("/tmp/ablageort_456.jpg")
-            whenever(fotoManager.erstelleTempDatei(eq("ablageort"))).thenReturn(tempAblageort)
-            viewModel.onAblageortFotoAufnehmen()
             viewModel.onAblageortFotoAufgenommen()
             assertEquals(PreviewZustand.VORSCHAU, viewModel.uiState.value.previewZustand)
 
             // When: onAblageortFotoWiederholen()
             viewModel.onAblageortFotoWiederholen()
 
-            // Then: INITIAL, tempFotoPfad = null, bleibt in PREVIEW_ABLAGEORT
+            // Then: Kamera startet direkt, kein Zwischenscreen
             val state = viewModel.uiState.value
             assertEquals(DemontageFlowState.PREVIEW_ABLAGEORT, state.flowState)
-            assertEquals(PreviewZustand.INITIAL, state.previewZustand)
-            assertNull(state.tempFotoPfad)
+            assertTrue(state.kameraIntentAktiv)
+            assertEquals(newTempAblageort.absolutePath, state.tempFotoPfad)
             verify(fotoManager).loescheTempFoto(tempAblageort.absolutePath)
         }
     }
@@ -449,6 +456,8 @@ class DemontageViewModelTest {
             // Given: kein unabgeschlossener Schritt, holeNaechsteSchrittNummer liefert 1
             val schritt = testSchritt(id = 10L, nummer = 1)
             whenever(repository.schrittAnlegen(1L)).thenReturn(schritt)
+            val tempFile = File("/tmp/bauteil_temp.jpg")
+            whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
 
             // When: ViewModel init
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
@@ -474,8 +483,7 @@ class DemontageViewModelTest {
             advanceUntilIdle()
             assertEquals(3, viewModel.uiState.value.schrittNummer)
 
-            // Navigate to dialog
-            viewModel.onFotoAufnehmenGetippt()
+            // Navigate to dialog (Kamera auto-gestartet)
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
@@ -504,7 +512,6 @@ class DemontageViewModelTest {
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
             advanceUntilIdle()
 
-            viewModel.onFotoAufnehmenGetippt()
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
@@ -538,15 +545,13 @@ class DemontageViewModelTest {
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
             advanceUntilIdle()
 
-            // Bauteil-Foto -> Arbeitsphase -> Dialog -> Ablageort
-            viewModel.onFotoAufnehmenGetippt()
+            // Bauteil-Foto -> Arbeitsphase -> Dialog -> Ablageort (Kamera auto-gestartet)
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
             viewModel.onAusgebautGetippt()
             viewModel.onAblageortFotografieren()
             advanceUntilIdle()
-            viewModel.onAblageortFotoAufnehmen()
             viewModel.onAblageortFotoAufgenommen()
 
             // When: Ablageort-Foto bestaetigt
@@ -569,7 +574,6 @@ class DemontageViewModelTest {
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
             advanceUntilIdle()
 
-            viewModel.onFotoAufnehmenGetippt()
             viewModel.onFotoAufgenommen()
             viewModel.onFotoBestaetigt()
             advanceUntilIdle()
@@ -614,7 +618,7 @@ class DemontageViewModelTest {
         }
 
         @Test
-        fun `unterbrochener schritt ohne foto zeigt preview erneut`() = runTest {
+        fun `unterbrochener schritt ohne foto zeigt preview mit Kamera-Autostart`() = runTest {
             // Given: findUnabgeschlossenenSchritt liefert Schritt mit bauteilFotoPfad = null
             val unterbrochenerSchritt = Schritt(
                 id = 50L,
@@ -625,16 +629,20 @@ class DemontageViewModelTest {
                 gestartetAm = Instant.now()
             )
             whenever(repository.findUnabgeschlossenenSchritt(1L)).thenReturn(unterbrochenerSchritt)
+            val tempFile = File("/tmp/bauteil_temp.jpg")
+            whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
 
             // When: ViewModel init
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
             advanceUntilIdle()
 
-            // Then: flowState = PREVIEW_BAUTEIL, schrittNummer = schritt.schrittNummer
+            // Then: flowState = PREVIEW_BAUTEIL, Kamera startet automatisch
             val state = viewModel.uiState.value
             assertEquals(DemontageFlowState.PREVIEW_BAUTEIL, state.flowState)
             assertEquals(5, state.schrittNummer)
             assertEquals(50L, state.schrittId)
+            assertTrue(state.kameraIntentAktiv)
+            assertEquals(tempFile.absolutePath, state.tempFotoPfad)
         }
 
         @Test
@@ -672,6 +680,8 @@ class DemontageViewModelTest {
             whenever(repository.findUnabgeschlossenenSchritt(1L)).thenReturn(null)
             val neuerSchritt = testSchritt(id = 60L, nummer = 6)
             whenever(repository.schrittAnlegen(1L)).thenReturn(neuerSchritt)
+            val tempFile = File("/tmp/bauteil_temp.jpg")
+            whenever(fotoManager.erstelleTempDatei(eq("bauteil"))).thenReturn(tempFile)
 
             // When: ViewModel init -> neuer Schritt angelegt
             viewModel = DemontageViewModel(repository, fotoManager, savedStateHandle)
