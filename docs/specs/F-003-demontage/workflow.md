@@ -4,50 +4,54 @@
 
 | State | View | Beschreibung |
 |-------|------|-------------|
-| `PREVIEW_BAUTEIL` | Preview-View (Bauteil-Modus) | Schrittnummer + "Foto aufnehmen"-Button, nach Aufnahme: Foto-Vorschau mit Bestaetigen/Wiederholen |
+| `PREVIEW_BAUTEIL` | Preview-View (Bauteil-Modus) | System-Kamera wird direkt per Intent gestartet. Bei Abbruch: Schrittnummer + Platzhalter-Bild + "Foto aufnehmen"-Button. Nach Aufnahme: Foto-Vorschau mit Bestaetigen/Wiederholen |
 | `ARBEITSPHASE` | Arbeitsphase-View | Schrittnummer + Bauteil-Foto + "Ausgebaut"-Button |
 | `DIALOG` | Dialog-View | 3 Optionen: Ablageort / Weiter / Beenden |
-| `PREVIEW_ABLAGEORT` | Preview-View (Ablageort-Modus) | Ablageort-Hinweis + "Foto aufnehmen"-Button, nach Aufnahme: Banner "Ist das der Ablageort?" + Bestaetigen/Wiederholen |
+| `PREVIEW_ABLAGEORT` | Preview-View (Ablageort-Modus) | System-Kamera wird direkt per Intent gestartet. Bei Abbruch: Ablageort-Hinweis + Platzhalter-Bild + "Foto aufnehmen"-Button. Nach Aufnahme: Banner "Ist das der Ablageort?" + Bestaetigen/Wiederholen |
 
-**Hinweis:** Die System-Kamera ist kein eigener State. Sie wird per `ActivityResultContracts.TakePicture()` Intent aus der Preview-View aufgerufen und kehrt nach Aufnahme zur Preview zurueck.
+**Hinweis:** Die System-Kamera wird beim Betreten der Preview-View automatisch per `ActivityResultContracts.TakePicture()` Intent gestartet. Bei Abbruch zeigt die Preview-View ein Platzhalter-Bild mit "Foto aufnehmen"-Button. Es ist kein manueller Button-Tap fuer den Erststart noetig.
 
 ## Transitions
 
 | Von | Event | Nach | Bedingung | DB-Aktion |
 |-----|-------|------|-----------|-----------|
-| -- (Entry) | Flow starten | `PREVIEW_BAUTEIL` | Reparaturvorgang ist OFFEN | `Schritt` anlegen: `schrittNummer`, `gestartetAm` |
-| `PREVIEW_BAUTEIL` | "Foto aufnehmen" | System-Kamera Intent | -- | -- |
+| -- (Entry) | Flow starten | `PREVIEW_BAUTEIL` | Reparaturvorgang ist OFFEN | `Schritt` anlegen: `schrittNummer`, `gestartetAm`, System-Kamera automatisch starten |
+| `PREVIEW_BAUTEIL` | Eintritt (automatisch) | System-Kamera Intent | -- | -- |
+| `PREVIEW_BAUTEIL` (Abgebrochen) | "Foto aufnehmen" | System-Kamera Intent | -- | -- |
 | System-Kamera | Foto aufgenommen | `PREVIEW_BAUTEIL` (Vorschau-Zustand) | -- | Foto in `photos/temp/` speichern |
-| System-Kamera | Abgebrochen | `PREVIEW_BAUTEIL` (Initial-Zustand) | -- | -- |
+| System-Kamera | Abgebrochen | `PREVIEW_BAUTEIL` (Abgebrochen-Zustand) | -- | -- |
 | `PREVIEW_BAUTEIL` | "Wiederholen" | System-Kamera Intent | -- | Temp-Datei loeschen |
 | `PREVIEW_BAUTEIL` | "Bestaetigen" | `ARBEITSPHASE` | -- | Foto nach `photos/` verschieben, `bauteilFotoPfad` setzen |
 | `ARBEITSPHASE` | "Ausgebaut"-Tap | `DIALOG` | Debounce 300ms | -- |
 | `DIALOG` | "Ablageort fotografieren" | `PREVIEW_ABLAGEORT` | -- | `typ = AUSGEBAUT` setzen |
 | `DIALOG` | "Weiter ohne Ablageort" | `PREVIEW_BAUTEIL` | -- | `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen, neuen `Schritt` anlegen (N+1) |
 | `DIALOG` | "Beenden" | Uebersicht (F-001) | -- | `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen |
-| `PREVIEW_ABLAGEORT` | "Foto aufnehmen" | System-Kamera Intent | -- | -- |
+| `PREVIEW_ABLAGEORT` | Eintritt (automatisch) | System-Kamera Intent | -- | -- |
+| `PREVIEW_ABLAGEORT` (Abgebrochen) | "Foto aufnehmen" | System-Kamera Intent | -- | -- |
 | System-Kamera (Ablageort) | Foto aufgenommen | `PREVIEW_ABLAGEORT` (Vorschau-Zustand) | -- | Foto in `photos/temp/` speichern |
-| System-Kamera (Ablageort) | Abgebrochen | `PREVIEW_ABLAGEORT` (Initial-Zustand) | -- | -- |
+| System-Kamera (Ablageort) | Abgebrochen | `PREVIEW_ABLAGEORT` (Abgebrochen-Zustand) | -- | -- |
 | `PREVIEW_ABLAGEORT` | "Wiederholen" | System-Kamera Intent | -- | Temp-Datei loeschen |
 | `PREVIEW_ABLAGEORT` | "Bestaetigen" | `PREVIEW_BAUTEIL` | -- | Foto nach `photos/` verschieben, `ablageortFotoPfad` setzen, `abgeschlossenAm` setzen, neuen `Schritt` anlegen (N+1) |
 
 ## Navigations-Diagramm
 
 ```
-Preview (Schritt N, Initial-Zustand) -- zeigt Schrittnummer, "Foto aufnehmen"-Button
-  -> [Foto aufnehmen] -> System-Kamera Intent
-    -> [Foto aufgenommen] -> Preview (Schritt N, Vorschau-Zustand)
+[Entry: Flow starten] -- Schritt in DB anlegen, System-Kamera automatisch starten
+  -> System-Kamera Intent (automatisch)
+    -> [Foto aufgenommen] -> Preview (Schritt N, Vorschau-Zustand: Foto + Bestaetigen/Wiederholen)
       -> [Bestaetigen] -> Arbeitsphase-Screen (Schrittnummer gross + Bauteil-Foto)
         -> [Ausgebaut] -> Dialog
-          -> [Ablageort fotografieren] -> typ=AUSGEBAUT -> Preview (Ablageort-Modus, Initial-Zustand)
-            -> [Foto aufnehmen] -> System-Kamera Intent
-              -> [Foto aufgenommen] -> Preview (Ablageort-Modus, Vorschau-Zustand)
-                -> [Bestaetigen] -> Preview (Schritt N+1)
-                -> [Wiederholen] -> System-Kamera erneut (bleibt in Preview Ablageort)
-          -> [Weiter ohne Ablageort] -> typ=AM_FAHRZEUG -> Preview (Schritt N+1)
+          -> [Ablageort fotografieren] -> typ=AUSGEBAUT -> System-Kamera Intent (automatisch, Ablageort-Modus)
+            -> [Foto aufgenommen] -> Preview (Ablageort-Modus, Vorschau-Zustand)
+              -> [Bestaetigen] -> System-Kamera Intent (Schritt N+1, automatisch)
+              -> [Wiederholen] -> System-Kamera erneut (bleibt in Preview Ablageort)
+            -> [Abgebrochen] -> Preview (Ablageort-Modus, Abgebrochen-Zustand: Platzhalter + Button)
+              -> [Foto aufnehmen] -> System-Kamera Intent (Ablageort)
+          -> [Weiter ohne Ablageort] -> typ=AM_FAHRZEUG -> System-Kamera Intent (Schritt N+1, automatisch)
           -> [Beenden] -> typ=AM_FAHRZEUG -> Uebersicht (F-001)
       -> [Wiederholen] -> System-Kamera erneut (bleibt in Preview Bauteil)
-    -> [Abgebrochen] -> Preview (Schritt N, Initial-Zustand)
+    -> [Abgebrochen] -> Preview (Schritt N, Abgebrochen-Zustand: Platzhalter + Button)
+      -> [Foto aufnehmen] -> System-Kamera Intent
 
 Back-Taste: Blockiert im gesamten Flow (-> "Beenden" ueber Dialog)
 ```
@@ -72,42 +76,43 @@ Die Schrittnummer wird **nicht** inkrementiert wenn:
 ### Aus US-003.4 AK 4: Schrittnummer nach Abschluss
 
 - **Given** der Mechaniker hat einen Schritt abgeschlossen (Dialog-Auswahl getroffen)
-  **When** die Preview-View fuer den naechsten Schritt oeffnet
-  **Then** zeigt der Schrittzaehler die um 1 erhoehte Nummer
+  **When** die System-Kamera fuer den naechsten Schritt automatisch startet
+  **Then** zeigt der Vorschau-Zustand nach Foto-Aufnahme die um 1 erhoehte Nummer
 
 ### Aus US-003.4 AK 5: Inkrementierung ohne Ablageort
 
 - **Given** der Mechaniker hat "Weiter ohne Ablageort" gewaehlt (kein Ablageort-Foto)
-  **When** die Preview-View fuer den naechsten Schritt oeffnet
+  **When** die System-Kamera fuer den naechsten Schritt automatisch startet
   **Then** ist die Schrittnummer trotzdem inkrementiert
 
 ## Timestamp-Semantik
 
 | Feld | Wird gesetzt wenn... | Bedeutung |
 |------|---------------------|-----------|
-| `gestartetAm` | Preview-View fuer diesen Schritt oeffnet sich | Beginn der Arbeit am Schritt |
+| `gestartetAm` | Preview-View fuer diesen Schritt betreten wird (System-Kamera startet automatisch) | Beginn der Arbeit am Schritt |
 | `abgeschlossenAm` | Dialog-Auswahl getroffen ("Weiter"/"Beenden") ODER Ablageort-Foto bestaetigt | Schritt vollstaendig dokumentiert |
 
 **Sonderfall:** Wenn der Mechaniker die App nach Foto-Bestaetigung aber vor Dialog-Auswahl schliesst, ist `abgeschlossenAm = null` und `typ = null`. Beim Fortsetzen wird der Arbeitsphase-Screen fuer diesen Schritt erneut angezeigt.
 
 ## Foto-Flow Logik
 
-1. **Schritt anlegen:** Preview-View oeffnet sich -> `Schritt`-Entity in DB anlegen mit `schrittNummer` und `gestartetAm`, `bauteilFotoPfad = null`, `typ = null`
-2. **Foto aufnehmen:** "Foto aufnehmen"-Button -> System-Kamera Intent -> Foto in `photos/temp/`
-3. **Vorschau anzeigen:** Rueckkehr von System-Kamera -> Bild in Preview-View im Vorschau-Zustand darstellen
-4. **Wiederholen:** Temporaere Datei loeschen, System-Kamera erneut per Intent oeffnen
-5. **Bestaetigen:**
+1. **Schritt anlegen:** Preview-View wird betreten -> `Schritt`-Entity in DB anlegen mit `schrittNummer` und `gestartetAm`, `bauteilFotoPfad = null`, `typ = null`, System-Kamera automatisch starten
+2. **Foto aufnehmen:** System-Kamera Intent (automatisch bei Eintritt) -> Foto in `photos/temp/`
+3. **Kamera abgebrochen:** Preview-View zeigt Platzhalter-Bild + "Foto aufnehmen"-Button (Abgebrochen-Zustand)
+4. **Vorschau anzeigen:** Rueckkehr von System-Kamera mit Foto -> Bild in Preview-View im Vorschau-Zustand darstellen
+5. **Wiederholen:** Temporaere Datei loeschen, System-Kamera erneut per Intent oeffnen
+6. **Bestaetigen:**
    - Datei von `photos/temp/` nach `photos/` verschieben (rename)
    - `bauteilFotoPfad` im `Schritt`-Entity per Update setzen
    - Weiter zu Arbeitsphase-Screen
-6. **Dialog-Auswahl:** `typ` und `abgeschlossenAm` setzen, dann:
-   - "Ablageort fotografieren" -> `typ = AUSGEBAUT`, Preview-View im Ablageort-Modus
-   - "Weiter ohne Ablageort" -> `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen, naechsten Schritt starten
+7. **Dialog-Auswahl:** `typ` und `abgeschlossenAm` setzen, dann:
+   - "Ablageort fotografieren" -> `typ = AUSGEBAUT`, Preview-View im Ablageort-Modus (System-Kamera automatisch)
+   - "Weiter ohne Ablageort" -> `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen, naechsten Schritt starten (System-Kamera automatisch)
    - "Beenden" -> `typ = AM_FAHRZEUG`, `abgeschlossenAm` setzen, zurueck zur Uebersicht
 
 ## Sofort-Save Strategie
 
-- **Schritt-Entity:** Wird beim Preview-View-Oeffnen sofort in DB angelegt (mit `gestartetAm`, ohne `bauteilFotoPfad`, `typ = null`)
+- **Schritt-Entity:** Wird beim Preview-View-Betreten sofort in DB angelegt (mit `gestartetAm`, ohne `bauteilFotoPfad`, `typ = null`)
 - **Bauteil-Foto:** Wird beim Bestaetigen von `photos/temp/` nach `photos/` verschoben und Pfad in DB aktualisiert
 - **Ablageort-Foto:** Wird beim Bestaetigen von `photos/temp/` nach `photos/` verschoben und Pfad in DB aktualisiert
 - **Typ:** Wird bei Dialog-Auswahl sofort in DB geschrieben (`AUSGEBAUT` oder `AM_FAHRZEUG`)
@@ -127,7 +132,7 @@ Der Demontage-Flow wird gestartet:
 - **Given** der Demontage-Flow wurde bei Schritt 5 unterbrochen (App geschlossen)
   **When** der Mechaniker den Vorgang erneut oeffnet und die Demontage fortsetzt
   **Then** prueft die App, ob Schritt 5 abgeschlossen ist (`abgeschlossenAm` vorhanden):
-  - **Falls ja:** Preview-View oeffnet sich fuer Schritt 6
+  - **Falls ja:** System-Kamera startet automatisch fuer Schritt 6
   - **Falls nein:** Arbeitsphase-Screen fuer Schritt 5 wird angezeigt (Schritt fortsetzen)
 
 ### Aus US-003.5 AK 2: Alle Schritte sichtbar nach Beenden
@@ -140,19 +145,19 @@ Der Demontage-Flow wird gestartet:
 
 - **Given** die Demontage wurde beendet und die Uebersicht zeigt 5 Schritte
   **When** der Mechaniker den Vorgang erneut antippt und "Demontage fortsetzen" waehlt
-  **Then** oeffnet sich die Preview-View fuer Schritt 6
-  **And** die Schrittnummer zeigt "Schritt 6"
+  **Then** startet die System-Kamera automatisch fuer Schritt 6
+  **And** der Vorschau-Zustand nach Foto-Aufnahme zeigt "Schritt 6"
 
 ## App-Unterbrechungs-Verhalten
 
 | Unterbrechung bei... | Persistierter Zustand | Verhalten beim Fortsetzen |
 |----------------------|----------------------|--------------------------|
-| Preview im Initial-Zustand, kein Foto | `Schritt` in DB (ohne Foto, `typ = null`) | Preview-View oeffnet sich erneut fuer diesen Schritt (Initial-Zustand) |
-| System-Kamera aktiv | `Schritt` in DB (ohne Foto, `typ = null`) | Preview-View oeffnet sich erneut fuer diesen Schritt (Initial-Zustand) |
-| Preview im Vorschau-Zustand | `Schritt` in DB (ohne Foto, `typ = null`), temp. Datei | Temp-Datei cleanup, Preview-View oeffnet sich erneut (Initial-Zustand) |
+| System-Kamera aktiv (kein Foto) | `Schritt` in DB (ohne Foto, `typ = null`) | System-Kamera wird automatisch gestartet |
+| Preview im Abgebrochen-Zustand | `Schritt` in DB (ohne Foto, `typ = null`) | System-Kamera wird automatisch gestartet |
+| Preview im Vorschau-Zustand | `Schritt` in DB (ohne Foto, `typ = null`), temp. Datei | Temp-Datei cleanup, System-Kamera wird automatisch gestartet |
 | Arbeitsphase-Screen | `Schritt` in DB (mit Foto, `typ = null`, ohne `abgeschlossenAm`) | Arbeitsphase-Screen wird angezeigt |
 | Dialog offen | `Schritt` in DB (mit Foto, `typ = null`, ohne `abgeschlossenAm`) | Arbeitsphase-Screen wird angezeigt |
-| Ablageort-Preview (Initial oder System-Kamera) | `Schritt` in DB (mit Bauteil-Foto, `typ = AUSGEBAUT`, ohne Ablageort, ohne `abgeschlossenAm`) | Arbeitsphase-Screen wird angezeigt |
+| Ablageort-Preview (System-Kamera oder Abgebrochen) | `Schritt` in DB (mit Bauteil-Foto, `typ = AUSGEBAUT`, ohne Ablageort, ohne `abgeschlossenAm`) | Arbeitsphase-Screen wird angezeigt |
 
 ## Back-Navigation (US-003.6)
 

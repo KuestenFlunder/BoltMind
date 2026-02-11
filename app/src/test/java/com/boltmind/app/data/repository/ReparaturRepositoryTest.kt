@@ -5,6 +5,7 @@ import com.boltmind.app.data.local.SchrittDao
 import com.boltmind.app.data.model.Reparaturvorgang
 import com.boltmind.app.data.model.ReparaturvorgangMitAnzahl
 import com.boltmind.app.data.model.Schritt
+import com.boltmind.app.data.model.SchrittTyp
 import com.boltmind.app.data.model.VorgangStatus
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -43,6 +46,20 @@ class ReparaturRepositoryTest {
         auftragsnummer = auftragsnummer,
         status = status,
         aktualisiertAm = aktualisiertAm
+    )
+
+    private fun testSchritt(
+        id: Long = 1L,
+        vorgangId: Long = 1L,
+        schrittNummer: Int = 1,
+        bauteilFotoPfad: String? = null,
+        typ: SchrittTyp? = null
+    ) = Schritt(
+        id = id,
+        reparaturvorgangId = vorgangId,
+        schrittNummer = schrittNummer,
+        bauteilFotoPfad = bauteilFotoPfad,
+        typ = typ
     )
 
     @Nested
@@ -182,18 +199,6 @@ class ReparaturRepositoryTest {
     inner class `Schritte verwalten` {
 
         @Test
-        fun `gibt belegte Ablageorte zurueck`() = runTest {
-            // Given
-            whenever(schrittDao.holeBelegteAblageorte(1L)).thenReturn(listOf(1, 3, 5))
-
-            // When
-            val result = repository.holeBelegteAblageorte(1L)
-
-            // Then
-            assertEquals(listOf(1, 3, 5), result)
-        }
-
-        @Test
         fun `zaehlt Schritte eines Vorgangs`() = runTest {
             // Given
             whenever(vorgangDao.zaehleSchritte(1L)).thenReturn(5)
@@ -210,9 +215,8 @@ class ReparaturRepositoryTest {
             // Given
             val schritt = Schritt(
                 reparaturvorgangId = 1L,
-                fotoPfad = "/test/schritt.jpg",
-                ablageortNummer = 3,
-                reihenfolge = 1
+                schrittNummer = 1,
+                bauteilFotoPfad = "/test/schritt.jpg"
             )
             whenever(schrittDao.einfuegen(schritt)).thenReturn(10L)
 
@@ -230,9 +234,8 @@ class ReparaturRepositoryTest {
             val schritt = Schritt(
                 id = 5L,
                 reparaturvorgangId = 1L,
-                fotoPfad = "/test/schritt.jpg",
-                ablageortNummer = 3,
-                reihenfolge = 1,
+                schrittNummer = 1,
+                bauteilFotoPfad = "/test/schritt.jpg",
                 eingebautBeiMontage = true
             )
 
@@ -241,6 +244,101 @@ class ReparaturRepositoryTest {
 
             // Then
             verify(schrittDao).aktualisieren(schritt)
+        }
+    }
+
+    @Nested
+    inner class `Demontage-Operationen` {
+
+        @Test
+        fun `schrittAnlegen erstellt Schritt mit korrekter Nummer`() = runTest {
+            // Given
+            whenever(schrittDao.holeNaechsteSchrittNummer(1L)).thenReturn(3)
+            whenever(schrittDao.einfuegen(any())).thenReturn(10L)
+
+            // When
+            val schritt = repository.schrittAnlegen(1L)
+
+            // Then
+            assertEquals(3, schritt.schrittNummer)
+            assertEquals(1L, schritt.reparaturvorgangId)
+            assertNull(schritt.bauteilFotoPfad)
+            assertNull(schritt.typ)
+            verify(schrittDao).einfuegen(any())
+        }
+
+        @Test
+        fun `bauteilFotoBestaetigen delegiert an DAO`() = runTest {
+            // When
+            repository.bauteilFotoBestaetigen(5L, "/photos/bauteil_5.jpg")
+
+            // Then
+            verify(schrittDao).aktualisiereBauteilFoto(5L, "/photos/bauteil_5.jpg")
+        }
+
+        @Test
+        fun `ablageortFotoBestaetigen setzt Foto und Abschluss`() = runTest {
+            // When
+            repository.ablageortFotoBestaetigen(5L, "/photos/ablageort_5.jpg")
+
+            // Then
+            verify(schrittDao).aktualisiereAblageortFotoUndAbschluss(
+                eq(5L),
+                eq("/photos/ablageort_5.jpg"),
+                any()
+            )
+        }
+
+        @Test
+        fun `schrittTypSetzen delegiert an DAO mit String-Konvertierung`() = runTest {
+            // When
+            repository.schrittTypSetzen(5L, SchrittTyp.AUSGEBAUT)
+
+            // Then
+            verify(schrittDao).aktualisiereTyp(5L, "AUSGEBAUT")
+        }
+
+        @Test
+        fun `schrittAbschliessen setzt Typ und Abschluss-Timestamp`() = runTest {
+            // When
+            repository.schrittAbschliessen(5L, SchrittTyp.AM_FAHRZEUG)
+
+            // Then
+            verify(schrittDao).aktualisiereTypUndAbschluss(
+                eq(5L),
+                eq("AM_FAHRZEUG"),
+                any()
+            )
+        }
+
+        @Test
+        fun `findUnabgeschlossenenSchritt delegiert an DAO`() = runTest {
+            // Given
+            val schritt = Schritt(
+                id = 5L,
+                reparaturvorgangId = 1L,
+                schrittNummer = 3,
+                bauteilFotoPfad = "/test.jpg"
+            )
+            whenever(schrittDao.findUnabgeschlossenenSchritt(1L)).thenReturn(schritt)
+
+            // When
+            val result = repository.findUnabgeschlossenenSchritt(1L)
+
+            // Then
+            assertEquals(schritt, result)
+        }
+
+        @Test
+        fun `findUnabgeschlossenenSchritt gibt null wenn keiner offen`() = runTest {
+            // Given
+            whenever(schrittDao.findUnabgeschlossenenSchritt(1L)).thenReturn(null)
+
+            // When
+            val result = repository.findUnabgeschlossenenSchritt(1L)
+
+            // Then
+            assertNull(result)
         }
     }
 }

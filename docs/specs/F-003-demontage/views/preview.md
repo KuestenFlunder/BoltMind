@@ -2,19 +2,24 @@
 
 ## Zweck
 
-Zentraler Screen fuer die Foto-Aufnahme im Demontage-Flow. Zeigt die Schrittnummer, ruft die System-Kamera per Intent auf, zeigt die Foto-Vorschau und bietet Bestaetigen/Wiederholen. Existiert in zwei Modi: **Bauteil-Modus** (Standard) und **Ablageort-Modus** (mit Hinweis-Banner).
+Zentraler Screen fuer die Foto-Aufnahme im Demontage-Flow. Startet die System-Kamera automatisch beim Betreten, zeigt die Foto-Vorschau und bietet Bestaetigen/Wiederholen. Bei Kamera-Abbruch zeigt die View ein Platzhalter-Bild mit "Foto aufnehmen"-Button. Existiert in zwei Modi: **Bauteil-Modus** (Standard) und **Ablageort-Modus** (mit Hinweis-Banner).
 
 ## UI-Elemente
 
-### Vor Foto-Aufnahme (Initial-Zustand)
+### Eintritts-Verhalten (Kamera-Auto-Start)
+
+Beim Betreten der Preview-View wird die System-Kamera automatisch per `ActivityResultContracts.TakePicture()` Intent gestartet. Es ist kein manueller Button-Tap noetig. Die Schrittnummer ist erst nach Foto-Aufnahme im Vorschau-Zustand sichtbar.
+
+### Nach Kamera-Abbruch (Abgebrochen-Zustand)
 
 - **Schrittnummer** (prominent, z.B. "Schritt 3")
-- **"Foto aufnehmen"-Button** (gross, fuer Handschuhe geeignet -- oeffnet System-Kamera)
+- **Platzhalter-Bild** (grauer Bereich mit Kamera-Icon)
+- **"Foto aufnehmen"-Button** (gross, fuer Handschuhe geeignet -- startet System-Kamera erneut)
 - **Ablageort-Hinweis** (nur im Ablageort-Modus): Text "Jetzt den Ablageort fotografieren"
 
 ### Nach Foto-Aufnahme (Vorschau-Zustand)
 
-- **Schrittnummer** (weiterhin sichtbar)
+- **Schrittnummer** (prominent, z.B. "Schritt 3")
 - **Vollbild-Fotovorschau** des aufgenommenen Bildes
 - **Ablageort-Banner** (nur im Ablageort-Modus): Frage "Ist das der Ablageort?" ueber der Vorschau
 - **Button "Bestaetigen"** -- Foto uebernehmen
@@ -22,26 +27,25 @@ Zentraler Screen fuer die Foto-Aufnahme im Demontage-Flow. Zeigt die Schrittnumm
 
 ## Verhalten + DB-Interaktion
 
-### Aus US-003.1 AK 1: Preview oeffnet sich beim Flow-Start
+### Aus US-003.1 AK 1: System-Kamera startet automatisch beim Flow-Start
 
 - **Given** ein Reparaturvorgang existiert und ist im Status OFFEN
   **When** der Mechaniker den Demontage-Flow startet (ueber Uebersicht oder direkt nach Anlage)
-  **Then** oeffnet sich die Preview-View im Initial-Zustand mit Schrittnummer und "Foto aufnehmen"-Button
-  **And** ein neuer `Schritt` wird in der DB angelegt mit `gestartetAm` = aktueller Timestamp, `bauteilFotoPfad = null`, `typ = null`
+  **Then** wird ein neuer `Schritt` in der DB angelegt mit `gestartetAm` = aktueller Timestamp, `bauteilFotoPfad = null`, `typ = null`
+  **And** die System-Kamera wird automatisch per Intent gestartet (kein manueller Button-Tap)
 
-### Aus US-003.1 AK 2: Foto aufnehmen per System-Kamera
+### Aus US-003.1 AK 2: Foto aufgenommen per System-Kamera
 
-- **Given** die Preview-View ist im Initial-Zustand
-  **When** der Mechaniker den "Foto aufnehmen"-Button antippt
-  **Then** wird die System-Kamera per `ActivityResultContracts.TakePicture()` Intent geoeffnet
-  **And** nach Rueckkehr zeigt die Preview-View das aufgenommene Foto im Vorschau-Zustand
+- **Given** die System-Kamera wurde automatisch gestartet (oder ueber "Foto aufnehmen"-Button nach Abbruch)
+  **When** der Mechaniker ein Foto aufnimmt
+  **Then** zeigt die Preview-View das aufgenommene Foto im Vorschau-Zustand mit der Schrittnummer, Bestaetigen- und Wiederholen-Buttons
 
 ### Aus US-003.1 AK 3: Wiederholen (Bauteil-Foto)
 
 - **Given** die Preview-View zeigt das aufgenommene Foto im Vorschau-Zustand
   **When** der Mechaniker "Wiederholen" antippt
   **Then** wird die temporaere Foto-Datei geloescht
-  **And** die System-Kamera wird erneut per Intent geoeffnet
+  **And** die System-Kamera wird erneut per Intent geoeffnet (direkt, kein Zwischenscreen)
 
 ### Aus US-003.1 AK 4: Bestaetigen (Bauteil-Foto)
 
@@ -53,31 +57,37 @@ Zentraler Screen fuer die Foto-Aufnahme im Demontage-Flow. Zeigt die Schrittnumm
 ### Aus US-003.1 AK 5: Keine Kamera-App verfuegbar
 
 - **Given** auf dem Geraet ist keine App installiert, die den `TakePicture()`-Intent bedienen kann
-  **When** der "Foto aufnehmen"-Button getippt wird
+  **When** die Preview-View die System-Kamera automatisch starten will
   **Then** erscheint ein Hinweis-Dialog "Keine Kamera-App gefunden"
-  **And** die Preview-View bleibt im Initial-Zustand
+  **And** die Preview-View zeigt den Abgebrochen-Zustand (Platzhalter + Button)
 
 ### Aus US-003.1 AK 6: System-Kamera wird abgebrochen
 
-- **Given** die System-Kamera wurde per Intent geoeffnet
+- **Given** die System-Kamera wurde gestartet (automatisch oder ueber Button)
   **When** der Mechaniker die System-Kamera abbricht (Back-Taste oder Abbrechen)
-  **Then** kehrt die App zur Preview-View im Initial-Zustand zurueck
+  **Then** zeigt die Preview-View den Abgebrochen-Zustand: Schrittnummer + Platzhalter-Bild + "Foto aufnehmen"-Button
   **And** kein Foto wird gespeichert
 
 ### Aus US-003.3 AK 1: Ablageort-Modus mit Banner
 
 - **Given** der Mechaniker hat im Dialog "Ablageort fotografieren" gewaehlt
-  **When** die Preview-View im Ablageort-Modus geoeffnet wird
-  **Then** zeigt die Preview-View den Hinweis "Jetzt den Ablageort fotografieren" im Initial-Zustand
+  **When** die Preview-View im Ablageort-Modus betreten wird
+  **Then** startet die System-Kamera automatisch per Intent
   **And** nach Foto-Aufnahme zeigt die Preview-View die Frage "Ist das der Ablageort?" als Banner ueber der Vorschau
   **And** die aktuelle Schrittnummer bleibt sichtbar
+
+### Aus US-003.3 AK 2: Ablageort-Modus Kamera-Abbruch
+
+- **Given** die System-Kamera wurde im Ablageort-Modus gestartet
+  **When** der Mechaniker die Kamera abbricht
+  **Then** zeigt die Preview-View den Abgebrochen-Zustand mit Ablageort-Hinweis "Jetzt den Ablageort fotografieren" + Platzhalter-Bild + "Foto aufnehmen"-Button
 
 ### Aus US-003.3 AK 3: Wiederholen (Ablageort-Foto)
 
 - **Given** die Preview des Ablageort-Fotos wird im Vorschau-Zustand angezeigt
   **When** der Mechaniker "Wiederholen" antippt
   **Then** wird die temporaere Foto-Datei geloescht
-  **And** die System-Kamera wird erneut per Intent im Ablageort-Modus geoeffnet
+  **And** die System-Kamera wird erneut per Intent geoeffnet (direkt, kein Zwischenscreen)
 
 ### Aus US-003.3 AK 4: Bestaetigen (Ablageort-Foto)
 
@@ -90,21 +100,22 @@ Zentraler Screen fuer die Foto-Aufnahme im Demontage-Flow. Zeigt die Schrittnumm
 ### Aus US-003.4 AK 1: Schrittnummer in Preview
 
 - **Given** der Demontage-Flow ist aktiv
-  **When** die Preview-View angezeigt wird (Initial- oder Vorschau-Zustand)
+  **When** die Preview-View angezeigt wird (Vorschau- oder Abgebrochen-Zustand)
   **Then** wird die aktuelle Schrittnummer prominent angezeigt (z.B. "Schritt 3")
 
 ### Aus US-003.4 AK 3: Schrittnummer bei neuem Vorgang
 
 - **Given** ein neuer Reparaturvorgang ohne Schritte existiert
-  **When** der Demontage-Flow gestartet wird
-  **Then** zeigt der Schrittzaehler "Schritt 1"
+  **When** der Demontage-Flow gestartet wird und die System-Kamera automatisch startet
+  **Then** zeigt der Vorschau-Zustand nach Foto-Aufnahme "Schritt 1"
 
 ## DB-Interaktion
 
 | Aktion | Modus | DB-Operation |
 |--------|-------|-------------|
-| Preview oeffnet sich (Bauteil-Modus) | Bauteil | Neuen `Schritt` in DB anlegen: `schrittNummer`, `gestartetAm`, `bauteilFotoPfad = null`, `typ = null` |
+| Preview wird betreten (Bauteil-Modus) | Bauteil | Neuen `Schritt` in DB anlegen: `schrittNummer`, `gestartetAm`, `bauteilFotoPfad = null`, `typ = null`, System-Kamera automatisch starten |
 | Foto aufnehmen | Beide | System-Kamera -> Foto in `photos/temp/` (noch kein DB-Update) |
+| Kamera abgebrochen | Beide | Kein DB-Update, Abgebrochen-Zustand anzeigen |
 | Bestaetigen | Bauteil | Datei von `photos/temp/` nach `photos/` verschieben, `bauteilFotoPfad` im `Schritt`-Entity setzen |
 | Bestaetigen | Ablageort | Datei von `photos/temp/` nach `photos/` verschieben, `ablageortFotoPfad` im `Schritt`-Entity setzen, `abgeschlossenAm` setzen |
 | Wiederholen | Beide | Temporaere Foto-Datei loeschen (kein DB-Update) |
@@ -118,7 +129,9 @@ Zentraler Screen fuer die Foto-Aufnahme im Demontage-Flow. Zeigt die Schrittnumm
 ## Technische Hinweise
 
 - **System-Kamera:** `ActivityResultContracts.TakePicture()` -- KEIN CameraX
+- **Auto-Start:** Kamera-Intent wird automatisch beim Composable-Eintritt ausgeloest (z.B. via `LaunchedEffect`), nicht durch Button-Tap
 - **Foto-Speicherung:** System-Kamera speichert in uebergebene URI (`photos/temp/`), bei Bestaetigung nach `photos/` verschieben
 - **Datei-Verschiebung:** `File.renameTo()` von `photos/temp/` nach `photos/` (rename, kein Copy)
-- **Modus-Parameter:** Bauteil vs. Ablageort -- bestimmt UI-Elemente (Banner), welches DB-Feld (`bauteilFotoPfad` oder `ablageortFotoPfad`) aktualisiert wird, und den Initial-Hinweistext
-- **Intent-Fehlerbehandlung:** `resolveActivity()` pruefen bevor Intent gestartet wird; Fallback-Dialog bei fehlender Kamera-App
+- **Modus-Parameter:** Bauteil vs. Ablageort -- bestimmt UI-Elemente (Banner), welches DB-Feld (`bauteilFotoPfad` oder `ablageortFotoPfad`) aktualisiert wird
+- **Intent-Fehlerbehandlung:** `resolveActivity()` pruefen bevor Intent gestartet wird; Fallback auf Abgebrochen-Zustand bei fehlender Kamera-App
+- **Abgebrochen-Zustand:** Zeigt Platzhalter-Bild + "Foto aufnehmen"-Button, dient als Fallback nach Kamera-Cancel oder bei fehlender Kamera-App

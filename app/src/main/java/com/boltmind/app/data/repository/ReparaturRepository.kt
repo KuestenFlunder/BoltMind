@@ -5,8 +5,10 @@ import com.boltmind.app.data.local.SchrittDao
 import com.boltmind.app.data.model.Reparaturvorgang
 import com.boltmind.app.data.model.ReparaturvorgangMitAnzahl
 import com.boltmind.app.data.model.Schritt
+import com.boltmind.app.data.model.SchrittTyp
 import com.boltmind.app.data.model.VorgangStatus
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 class ReparaturRepository(
     private val vorgangDao: ReparaturvorgangDao,
@@ -52,6 +54,41 @@ class ReparaturRepository(
     suspend fun aktualisiereSchritt(schritt: Schritt) =
         schrittDao.aktualisieren(schritt)
 
-    suspend fun holeBelegteAblageorte(vorgangId: Long): List<Int> =
-        schrittDao.holeBelegteAblageorte(vorgangId)
+    // Demontage-Operationen
+
+    suspend fun schrittAnlegen(vorgangId: Long): Schritt {
+        val nummer = schrittDao.holeNaechsteSchrittNummer(vorgangId)
+        val schritt = Schritt(
+            reparaturvorgangId = vorgangId,
+            schrittNummer = nummer,
+            gestartetAm = Instant.now()
+        )
+        val id = schrittDao.einfuegen(schritt)
+        return schritt.copy(id = id)
+    }
+
+    suspend fun bauteilFotoBestaetigen(schrittId: Long, fotoPfad: String) {
+        schrittDao.aktualisiereBauteilFoto(schrittId, fotoPfad)
+    }
+
+    suspend fun ablageortFotoBestaetigen(schrittId: Long, fotoPfad: String) {
+        schrittDao.aktualisiereAblageortFotoUndAbschluss(
+            schrittId, fotoPfad, Instant.now().toEpochMilli()
+        )
+    }
+
+    suspend fun schrittTypSetzen(schrittId: Long, typ: SchrittTyp) {
+        schrittDao.aktualisiereTyp(schrittId, typ.name)
+    }
+
+    suspend fun schrittAbschliessen(schrittId: Long, typ: SchrittTyp) {
+        schrittDao.aktualisiereTypUndAbschluss(
+            schrittId, typ.name, Instant.now().toEpochMilli()
+        )
+    }
+
+    suspend fun findUnabgeschlossenenSchritt(vorgangId: Long): Schritt? {
+        return schrittDao.findUnabgeschlossenenSchritt(vorgangId)
+    }
+
 }
