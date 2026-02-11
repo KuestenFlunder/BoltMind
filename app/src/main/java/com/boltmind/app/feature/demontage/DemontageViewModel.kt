@@ -39,37 +39,19 @@ class DemontageViewModel(
     }
 
     private fun setzeFortsetzungsState(schritt: Schritt) {
-        val flowState = when {
-            schritt.bauteilFotoPfad == null -> DemontageFlowState.PREVIEW_BAUTEIL
-            else -> DemontageFlowState.ARBEITSPHASE
-        }
-        if (flowState == DemontageFlowState.PREVIEW_BAUTEIL) {
-            val tempDatei = fotoManager.erstelleTempDatei("bauteil")
-            _uiState.update {
-                it.copy(
-                    flowState = flowState,
-                    previewZustand = PreviewZustand.INITIAL,
-                    schrittNummer = schritt.schrittNummer,
-                    schrittId = schritt.id,
-                    bauteilFotoPfad = null,
-                    ablageortFotoPfad = null,
-                    tempFotoPfad = tempDatei.absolutePath,
-                    kameraIntentAktiv = true
-                )
-            }
-        } else {
-            _uiState.update {
-                it.copy(
-                    flowState = flowState,
-                    previewZustand = PreviewZustand.INITIAL,
-                    schrittNummer = schritt.schrittNummer,
-                    schrittId = schritt.id,
-                    bauteilFotoPfad = schritt.bauteilFotoPfad,
-                    ablageortFotoPfad = null,
-                    tempFotoPfad = null,
-                    kameraIntentAktiv = false
-                )
-            }
+        val hatFoto = schritt.bauteilFotoPfad != null
+        val tempDatei = if (!hatFoto) fotoManager.erstelleTempDatei("bauteil") else null
+        _uiState.update {
+            it.copy(
+                flowState = if (hatFoto) DemontageFlowState.ARBEITSPHASE else DemontageFlowState.PREVIEW_BAUTEIL,
+                previewZustand = PreviewZustand.INITIAL,
+                schrittNummer = schritt.schrittNummer,
+                schrittId = schritt.id,
+                bauteilFotoPfad = schritt.bauteilFotoPfad,
+                ablageortFotoPfad = null,
+                tempFotoPfad = tempDatei?.absolutePath,
+                kameraIntentAktiv = !hatFoto
+            )
         }
     }
 

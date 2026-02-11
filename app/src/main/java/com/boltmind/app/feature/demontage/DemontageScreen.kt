@@ -10,6 +10,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.FileProvider
+import androidx.compose.ui.tooling.preview.Preview
+import com.boltmind.app.ui.theme.BoltMindTheme
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 
@@ -94,6 +96,18 @@ fun DemontageScreen(
             onFotoWiederholen = viewModel::onAblageortFotoWiederholen,
             onKameraAbgebrochen = viewModel::onKameraAbgebrochen,
             onKeineKameraDialogBestaetigt = viewModel::onKeineKameraDialogBestaetigt,
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun DemontageScreenPreview() {
+    BoltMindTheme {
+        ArbeitsphaseView(
+            schrittNummer = 3,
+            bauteilFotoPfad = "",
+            onAusgebautGetippt = {}
         )
     }
 }
