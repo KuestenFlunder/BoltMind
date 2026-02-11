@@ -103,6 +103,10 @@ private fun InitialZustand(
         Spacer(modifier = Modifier.height(16.dp))
     }
 
+    PlatzhalterBild(modifier = Modifier.padding(vertical = 8.dp))
+
+    Spacer(modifier = Modifier.height(16.dp))
+
     val debounceHandler = remember { DebounceClickHandler() }
     Button(
         onClick = { debounceHandler.onClick { onFotoAufnehmenGetippt() } },
