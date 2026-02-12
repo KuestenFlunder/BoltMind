@@ -2,7 +2,6 @@ package com.boltmind.app.feature.uebersicht
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,17 +12,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -34,8 +31,6 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,9 +39,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.boltmind.app.R
+import com.boltmind.app.ui.components.BoltMindButton
+import com.boltmind.app.ui.components.BoltMindButtonStyle
+import com.boltmind.app.ui.components.BoltMindCard
+import com.boltmind.app.ui.components.BoltMindDialog
+import com.boltmind.app.ui.components.BoltMindTopBar
 import com.boltmind.app.ui.components.FotoPreview
+import com.boltmind.app.ui.components.StatusBadge
+import com.boltmind.app.ui.components.StatusBadgeTyp
+import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
 
 @Composable
@@ -80,13 +82,16 @@ fun UebersichtScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
-            )
+            BoltMindTopBar(title = stringResource(R.string.app_name))
         },
         floatingActionButton = {
             if (uiState.selectedTab == 0) {
-                FloatingActionButton(onClick = onNeuerVorgangGetippt) {
+                FloatingActionButton(
+                    onClick = onNeuerVorgangGetippt,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(BoltMindDimensions.fabSize),
+                ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.neuer_vorgang),
@@ -166,8 +171,8 @@ private fun OffeneVorgaengeListe(
     } else {
         LazyColumn(
             modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(BoltMindDimensions.spacingM),
+            verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
         ) {
             items(
                 items = vorgaenge,
@@ -202,8 +207,8 @@ private fun ArchivListe(
     } else {
         LazyColumn(
             modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(BoltMindDimensions.spacingM),
+            verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
         ) {
             items(
                 items = archivierteVorgaenge,
@@ -248,9 +253,9 @@ private fun SwipeToDeleteVorgangKarte(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(MaterialTheme.shapes.medium)
                     .background(color)
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = BoltMindDimensions.spacingL),
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 Icon(
@@ -276,26 +281,31 @@ private fun VorgangKarte(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+    BoltMindCard(
+        onClick = onClick,
+        modifier = modifier,
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FotoPreview(
                 fotoPfad = vorgang.fahrzeugFotoPfad,
                 contentDescription = stringResource(R.string.fahrzeugfoto),
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "#${vorgang.auftragsnummer}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(BoltMindDimensions.spacingM))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingS),
+                ) {
+                    Text(
+                        text = "#${vorgang.auftragsnummer}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    StatusBadge(typ = StatusBadgeTyp.Offen)
+                }
+                Spacer(modifier = Modifier.height(BoltMindDimensions.spacingXs))
                 Text(
                     text = stringResource(R.string.schritte_anzahl, vorgang.anzahlSchritte),
                     style = MaterialTheme.typography.bodyMedium,
@@ -316,24 +326,27 @@ private fun ArchivVorgangKarte(
     vorgang: ArchivVorgangUiItem,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    BoltMindCard(modifier = modifier) {
         Row(
-            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FotoPreview(
                 fotoPfad = vorgang.fahrzeugFotoPfad,
                 contentDescription = stringResource(R.string.fahrzeugfoto),
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "#${vorgang.auftragsnummer}",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(BoltMindDimensions.spacingM))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingS),
+                ) {
+                    Text(
+                        text = "#${vorgang.auftragsnummer}",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    StatusBadge(typ = StatusBadgeTyp.Archiviert)
+                }
+                Spacer(modifier = Modifier.height(BoltMindDimensions.spacingXs))
                 Text(
                     text = stringResource(R.string.schritte_anzahl, vorgang.anzahlSchritte),
                     style = MaterialTheme.typography.bodyMedium,
@@ -361,45 +374,59 @@ private fun AuswahlDialog(
     onMontageStarten: () -> Unit,
     onVerwerfen: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onVerwerfen,
-        title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                FotoPreview(
-                    fotoPfad = dialogState.fahrzeugFotoPfad,
-                    contentDescription = stringResource(R.string.fahrzeugfoto),
-                    groesse = 56.dp,
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "#${dialogState.auftragsnummer}",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Button(
-                    onClick = onWeiterDemontieren,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.weiter_demontieren))
-                }
-                Button(
-                    onClick = onMontageStarten,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.montage_starten))
-                }
-            }
-        },
-        confirmButton = {},
-    )
+    BoltMindDialog(onDismissRequest = onVerwerfen) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FotoPreview(
+                fotoPfad = dialogState.fahrzeugFotoPfad,
+                contentDescription = stringResource(R.string.fahrzeugfoto),
+                groesse = BoltMindDimensions.touchTargetMin,
+            )
+            Spacer(modifier = Modifier.width(BoltMindDimensions.spacingM))
+            Text(
+                text = "#${dialogState.auftragsnummer}",
+                style = MaterialTheme.typography.titleLarge,
+            )
+        }
+        Spacer(modifier = Modifier.height(BoltMindDimensions.spacingL))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
+        ) {
+            BoltMindButton(
+                text = stringResource(R.string.weiter_demontieren),
+                onClick = onWeiterDemontieren,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(BoltMindDimensions.buttonTall),
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Build,
+                        contentDescription = null,
+                        modifier = Modifier.size(BoltMindDimensions.iconLarge),
+                    )
+                },
+                iconAboveText = true,
+            )
+            BoltMindButton(
+                text = stringResource(R.string.montage_starten),
+                onClick = onMontageStarten,
+                style = BoltMindButtonStyle.Secondary,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(BoltMindDimensions.buttonTall),
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(BoltMindDimensions.iconLarge),
+                    )
+                },
+                iconAboveText = true,
+            )
+        }
+    }
 }
 
 @Composable
@@ -408,35 +435,31 @@ private fun LoeschenBestaetigungDialog(
     onBestaetigt: () -> Unit,
     onAbgebrochen: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onAbgebrochen,
-        title = null,
-        text = {
-            Text(
-                text = stringResource(R.string.loeschen_bestaetigung, dialogState.auftragsnummer),
-                style = MaterialTheme.typography.bodyLarge,
+    BoltMindDialog(onDismissRequest = onAbgebrochen) {
+        Text(
+            text = stringResource(R.string.loeschen_bestaetigung, dialogState.auftragsnummer),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Spacer(modifier = Modifier.height(BoltMindDimensions.spacingL))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
+        ) {
+            BoltMindButton(
+                text = stringResource(R.string.abbrechen),
+                onClick = onAbgebrochen,
+                modifier = Modifier.fillMaxWidth(),
             )
-        },
-        confirmButton = {
-            Button(
+            BoltMindButton(
+                text = stringResource(R.string.loeschen),
                 onClick = onBestaetigt,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) {
-                Text(stringResource(R.string.loeschen))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onAbgebrochen) {
-                Text(stringResource(R.string.abbrechen))
-            }
-        },
-    )
+                style = BoltMindButtonStyle.Danger,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun UebersichtScreenMitVorgaengenPreview() {
     BoltMindTheme {
@@ -472,7 +495,7 @@ private fun UebersichtScreenMitVorgaengenPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun UebersichtScreenLeerPreview() {
     BoltMindTheme {
@@ -491,7 +514,7 @@ private fun UebersichtScreenLeerPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun UebersichtScreenArchivPreview() {
     BoltMindTheme {
@@ -530,7 +553,7 @@ private fun UebersichtScreenArchivPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun UebersichtScreenArchivLeerPreview() {
     BoltMindTheme {
@@ -549,7 +572,7 @@ private fun UebersichtScreenArchivLeerPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun AuswahlDialogPreview() {
     BoltMindTheme {
@@ -566,7 +589,7 @@ private fun AuswahlDialogPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun LoeschenBestaetigungDialogPreview() {
     BoltMindTheme {

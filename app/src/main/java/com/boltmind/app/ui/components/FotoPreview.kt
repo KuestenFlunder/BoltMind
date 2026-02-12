@@ -1,9 +1,9 @@
 package com.boltmind.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -14,10 +14,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.boltmind.app.R
+import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
+import com.boltmind.app.ui.theme.BoltOutlineVariant
 import java.io.File
 
 /**
@@ -45,9 +46,9 @@ fun FotoPreview(
     fotoPfad: String?,
     contentDescription: String,
     modifier: Modifier = Modifier,
-    groesse: Dp = 72.dp,
+    groesse: Dp = BoltMindDimensions.fotoPreviewSmall,
 ) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = MaterialTheme.shapes.small
 
     if (sollteFotoAnzeigen(fotoPfad)) {
         AsyncImage(
@@ -56,13 +57,15 @@ fun FotoPreview(
             contentScale = ContentScale.Crop,
             modifier = modifier
                 .size(groesse)
-                .clip(shape),
+                .clip(shape)
+                .border(BoltMindDimensions.borderThin, BoltOutlineVariant, shape),
         )
     } else {
         Box(
             modifier = modifier
                 .size(groesse)
                 .clip(shape)
+                .border(BoltMindDimensions.borderThin, BoltOutlineVariant, shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
@@ -75,7 +78,7 @@ fun FotoPreview(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun FotoPreviewMitBildPreview() {
     BoltMindTheme {
@@ -86,7 +89,7 @@ private fun FotoPreviewMitBildPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun FotoPreviewOhneBildPreview() {
     BoltMindTheme {

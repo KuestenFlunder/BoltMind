@@ -1,7 +1,6 @@
 package com.boltmind.app.feature.neuervorgang
 
 import android.Manifest
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -16,24 +15,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -47,16 +39,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview as ComposePreview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.boltmind.app.R
+import com.boltmind.app.ui.components.BoltMindButton
+import com.boltmind.app.ui.components.BoltMindButtonStyle
+import com.boltmind.app.ui.components.BoltMindTopBar
 import com.boltmind.app.ui.components.FotoPreview
+import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NeuerVorgangScreen(
     uiState: NeuerVorgangUiState,
@@ -91,7 +85,6 @@ fun NeuerVorgangScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KameraSchritt(
     onFotoAufgenommen: (String) -> Unit,
@@ -121,16 +114,9 @@ private fun KameraSchritt(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.neuer_vorgang)) },
-                navigationIcon = {
-                    IconButton(onClick = onZurueck) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.zurueck),
-                        )
-                    }
-                },
+            BoltMindTopBar(
+                title = stringResource(R.string.neuer_vorgang),
+                onZurueck = onZurueck,
             )
         },
         floatingActionButton = {
@@ -158,7 +144,9 @@ private fun KameraSchritt(
                             },
                         )
                     },
-                    modifier = Modifier.size(72.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(BoltMindDimensions.fabSize),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_camera_placeholder),
@@ -224,7 +212,6 @@ private fun KameraSchritt(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FormularSchritt(
     uiState: NeuerVorgangUiState,
@@ -237,16 +224,9 @@ private fun FormularSchritt(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.neuer_vorgang)) },
-                navigationIcon = {
-                    IconButton(onClick = onZurueck) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.zurueck),
-                        )
-                    }
-                },
+            BoltMindTopBar(
+                title = stringResource(R.string.neuer_vorgang),
+                onZurueck = onZurueck,
             )
         },
         modifier = modifier,
@@ -255,28 +235,28 @@ private fun FormularSchritt(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = BoltMindDimensions.spacingM)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
 
             FotoPreview(
                 fotoPfad = uiState.fotoPfad,
                 contentDescription = stringResource(R.string.fahrzeugfoto),
-                groesse = 200.dp,
+                groesse = BoltMindDimensions.fotoPreviewLarge,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingS))
 
-            TextButton(
+            BoltMindButton(
+                text = stringResource(R.string.bild_wiederholen),
                 onClick = onBildWiederholen,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
-                Text(stringResource(R.string.bild_wiederholen))
-            }
+                style = BoltMindButtonStyle.Outlined,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
 
             OutlinedTextField(
                 value = uiState.auftragsnummer,
@@ -287,10 +267,12 @@ private fun FormularSchritt(
                     { Text(fehler) }
                 },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = BoltMindDimensions.touchTargetMin),
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
 
             OutlinedTextField(
                 value = uiState.beschreibung,
@@ -300,34 +282,22 @@ private fun FormularSchritt(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingL))
 
-            Button(
+            BoltMindButton(
+                text = stringResource(R.string.starten_button),
                 onClick = onStartenGetippt,
+                isLoading = uiState.isSpeichernd,
                 enabled = !uiState.isSpeichernd,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-            ) {
-                if (uiState.isSpeichernd) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.starten_button),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-            }
+                modifier = Modifier.fillMaxWidth(),
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
         }
     }
 }
 
-@ComposePreview(showBackground = true)
+@ComposePreview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun NeuerVorgangFormularPreview() {
     BoltMindTheme {
@@ -347,7 +317,7 @@ private fun NeuerVorgangFormularPreview() {
     }
 }
 
-@ComposePreview(showBackground = true)
+@ComposePreview(showBackground = true, backgroundColor = 0xFF121110)
 @Composable
 private fun NeuerVorgangFormularMitFehlerPreview() {
     BoltMindTheme {

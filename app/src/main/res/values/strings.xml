@@ -43,4 +43,8 @@
     <string name="demontage_ablageort_frage">Ist das der Ablageort?</string>
     <string name="demontage_keine_kamera">Keine Kamera-App gefunden</string>
     <string name="demontage_keine_kamera_ok">OK</string>
+
+    <!-- Status-Badges -->
+    <string name="status_offen">Offen</string>
+    <string name="status_archiviert">Archiviert</string>
 </resources>
