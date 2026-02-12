@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -391,14 +392,18 @@ private fun AuswahlDialog(
         BoltMindButton(
             text = stringResource(R.string.weiter_demontieren),
             onClick = onWeiterDemontieren,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f),
         )
         Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
         BoltMindButton(
             text = stringResource(R.string.montage_starten),
             onClick = onMontageStarten,
             style = BoltMindButtonStyle.Secondary,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f),
         )
     }
 }
