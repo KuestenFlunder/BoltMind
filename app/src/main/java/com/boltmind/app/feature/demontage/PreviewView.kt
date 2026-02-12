@@ -224,7 +224,7 @@ private fun PlatzhalterBild(modifier: Modifier = Modifier) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun PreviewInitialBauteil() {
     BoltMindTheme {
@@ -243,7 +243,7 @@ private fun PreviewInitialBauteil() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun PreviewInitialAblageort() {
     BoltMindTheme {
@@ -262,7 +262,7 @@ private fun PreviewInitialAblageort() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun PreviewVorschauBauteil() {
     BoltMindTheme {
@@ -281,7 +281,7 @@ private fun PreviewVorschauBauteil() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun PreviewVorschauAblageort() {
     BoltMindTheme {

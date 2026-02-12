@@ -63,7 +63,7 @@ fun BoltMindTopBar(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindTopBarPreview() {
     BoltMindTheme {
@@ -71,7 +71,7 @@ private fun BoltMindTopBarPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindTopBarMitZurueckPreview() {
     BoltMindTheme {

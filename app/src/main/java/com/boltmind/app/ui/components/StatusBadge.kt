@@ -59,7 +59,7 @@ fun StatusBadge(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun StatusBadgeOffenPreview() {
     BoltMindTheme {
@@ -67,7 +67,7 @@ private fun StatusBadgeOffenPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun StatusBadgeArchiviertPreview() {
     BoltMindTheme {

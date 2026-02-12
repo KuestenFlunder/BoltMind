@@ -64,7 +64,7 @@ fun BoltMindCard(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindCardPreview() {
     BoltMindTheme {
@@ -74,7 +74,7 @@ private fun BoltMindCardPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindCardClickablePreview() {
     BoltMindTheme {

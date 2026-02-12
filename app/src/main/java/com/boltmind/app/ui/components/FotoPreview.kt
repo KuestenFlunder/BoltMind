@@ -78,7 +78,7 @@ fun FotoPreview(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun FotoPreviewMitBildPreview() {
     BoltMindTheme {
@@ -89,7 +89,7 @@ private fun FotoPreviewMitBildPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun FotoPreviewOhneBildPreview() {
     BoltMindTheme {

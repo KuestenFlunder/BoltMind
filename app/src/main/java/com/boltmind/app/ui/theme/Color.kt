@@ -2,35 +2,35 @@ package com.boltmind.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Backgrounds – warm-tinted darks (leichter Braunstich, nicht kaltes Grau)
-val BoltBackground = Color(0xFF121110)
-val BoltSurface = Color(0xFF1C1A18)
-val BoltSurfaceVariant = Color(0xFF302C28)
+// Backgrounds – reines Schwarz
+val BoltBackground = Color(0xFF000000)
+val BoltSurface = Color(0xFF0F0F0F)
+val BoltSurfaceVariant = Color(0xFF1E1E1E)
 
-// Primary – Amber/Gold (Funkenflug, Warnlampen, Workshop-Energie)
-val BoltPrimary = Color(0xFFFFAB40)
-val BoltOnPrimary = Color(0xFF2A1700)
-val BoltPrimaryContainer = Color(0xFF3D2400)
-val BoltOnPrimaryContainer = Color(0xFFFFDDB3)
+// Primary – Orange
+val BoltPrimary = Color(0xFFFF741F)
+val BoltOnPrimary = Color(0xFF2E0E00)
+val BoltPrimaryContainer = Color(0xFF4A1A00)
+val BoltOnPrimaryContainer = Color(0xFFFFBD99)
 
-// Secondary – Warm Sand/Beige (harmonisch zum Amber)
-val BoltSecondary = Color(0xFFD4C4A8)
-val BoltOnSecondary = Color(0xFF38301E)
-val BoltSecondaryContainer = Color(0xFF504633)
-val BoltOnSecondaryContainer = Color(0xFFF0E0C3)
+// Secondary – Peach/Lachs
+val BoltSecondary = Color(0xFFFFC4A1)
+val BoltOnSecondary = Color(0xFF3D1E0A)
+val BoltSecondaryContainer = Color(0xFF5A3420)
+val BoltOnSecondaryContainer = Color(0xFFFFE0CC)
 
-// Tertiary – gedämpftes Kupfer-Orange für Akzente
-val BoltTertiary = Color(0xFFE0956C)
-val BoltOnTertiary = Color(0xFF2E1500)
+// Tertiary – Cyan/Akzent
+val BoltTertiary = Color(0xFF00F6F9)
+val BoltOnTertiary = Color(0xFF002B2C)
 
-// Text – warme Weißtöne
-val BoltOnBackground = Color(0xFFECE5DD)
-val BoltOnSurface = Color(0xFFECE5DD)
-val BoltOnSurfaceVariant = Color(0xFF9C9488)
+// Text
+val BoltOnBackground = Color(0xFFEDEDED)
+val BoltOnSurface = Color(0xFFEDEDED)
+val BoltOnSurfaceVariant = Color(0xFF9E9E9E)
 
-// Outline – warme Grautöne
-val BoltOutline = Color(0xFF6B6358)
-val BoltOutlineVariant = Color(0xFF44403A)
+// Outline
+val BoltOutline = Color(0xFF5A5A5A)
+val BoltOutlineVariant = Color(0xFF333333)
 
 // Error
 val BoltError = Color(0xFFFFB4AB)

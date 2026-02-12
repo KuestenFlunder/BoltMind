@@ -18,9 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -390,42 +388,18 @@ private fun AuswahlDialog(
             )
         }
         Spacer(modifier = Modifier.height(BoltMindDimensions.spacingL))
-        Row(
+        BoltMindButton(
+            text = stringResource(R.string.weiter_demontieren),
+            onClick = onWeiterDemontieren,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
-        ) {
-            BoltMindButton(
-                text = stringResource(R.string.weiter_demontieren),
-                onClick = onWeiterDemontieren,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(BoltMindDimensions.buttonTall),
-                icon = {
-                    Icon(
-                        imageVector = Icons.Filled.Build,
-                        contentDescription = null,
-                        modifier = Modifier.size(BoltMindDimensions.iconLarge),
-                    )
-                },
-                iconAboveText = true,
-            )
-            BoltMindButton(
-                text = stringResource(R.string.montage_starten),
-                onClick = onMontageStarten,
-                style = BoltMindButtonStyle.Secondary,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(BoltMindDimensions.buttonTall),
-                icon = {
-                    Icon(
-                        imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(BoltMindDimensions.iconLarge),
-                    )
-                },
-                iconAboveText = true,
-            )
-        }
+        )
+        Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
+        BoltMindButton(
+            text = stringResource(R.string.montage_starten),
+            onClick = onMontageStarten,
+            style = BoltMindButtonStyle.Secondary,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -459,7 +433,7 @@ private fun LoeschenBestaetigungDialog(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun UebersichtScreenMitVorgaengenPreview() {
     BoltMindTheme {
@@ -495,7 +469,7 @@ private fun UebersichtScreenMitVorgaengenPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun UebersichtScreenLeerPreview() {
     BoltMindTheme {
@@ -514,7 +488,7 @@ private fun UebersichtScreenLeerPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun UebersichtScreenArchivPreview() {
     BoltMindTheme {
@@ -553,7 +527,7 @@ private fun UebersichtScreenArchivPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun UebersichtScreenArchivLeerPreview() {
     BoltMindTheme {
@@ -572,7 +546,7 @@ private fun UebersichtScreenArchivLeerPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun AuswahlDialogPreview() {
     BoltMindTheme {
@@ -589,7 +563,7 @@ private fun AuswahlDialogPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun LoeschenBestaetigungDialogPreview() {
     BoltMindTheme {

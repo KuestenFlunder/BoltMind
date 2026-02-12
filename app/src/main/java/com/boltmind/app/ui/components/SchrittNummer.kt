@@ -67,7 +67,7 @@ fun SchrittNummer(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun SchrittNummerLargePreview() {
     BoltMindTheme {
@@ -78,7 +78,7 @@ private fun SchrittNummerLargePreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun SchrittNummerMediumPreview() {
     BoltMindTheme {

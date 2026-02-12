@@ -297,7 +297,7 @@ private fun FormularSchritt(
     }
 }
 
-@ComposePreview(showBackground = true, backgroundColor = 0xFF121110)
+@ComposePreview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun NeuerVorgangFormularPreview() {
     BoltMindTheme {
@@ -317,7 +317,7 @@ private fun NeuerVorgangFormularPreview() {
     }
 }
 
-@ComposePreview(showBackground = true, backgroundColor = 0xFF121110)
+@ComposePreview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun NeuerVorgangFormularMitFehlerPreview() {
     BoltMindTheme {

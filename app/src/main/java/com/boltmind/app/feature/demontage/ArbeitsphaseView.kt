@@ -112,7 +112,7 @@ private fun PlatzhalterBild(modifier: Modifier = Modifier) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun ArbeitsphaseViewPreview() {
     BoltMindTheme {

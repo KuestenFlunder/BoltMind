@@ -161,7 +161,7 @@ private fun ButtonContent(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindButtonPrimaryPreview() {
     BoltMindTheme {
@@ -173,7 +173,7 @@ private fun BoltMindButtonPrimaryPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindButtonSecondaryPreview() {
     BoltMindTheme {
@@ -186,7 +186,7 @@ private fun BoltMindButtonSecondaryPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindButtonDangerPreview() {
     BoltMindTheme {
@@ -199,7 +199,7 @@ private fun BoltMindButtonDangerPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121110)
+@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun BoltMindButtonOutlinedPreview() {
     BoltMindTheme {
