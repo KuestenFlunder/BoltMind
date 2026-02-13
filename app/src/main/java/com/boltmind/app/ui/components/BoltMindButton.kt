@@ -1,9 +1,13 @@
 package com.boltmind.app.ui.components
 
+import android.graphics.BlurMaskFilter
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -21,18 +25,49 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.boltmind.app.ui.theme.BoltError
+import com.boltmind.app.ui.theme.BoltErrorLight
 import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
+import com.boltmind.app.ui.theme.BoltPrimary
+import com.boltmind.app.ui.theme.BoltPrimaryLight
 
 enum class BoltMindButtonStyle {
     Primary,
     Secondary,
     Danger,
     Outlined,
+}
+
+private fun Modifier.glowEffect(
+    color: Color,
+    shape: Shape,
+    blurRadius: Dp = 16.dp,
+    alpha: Float = 0.4f,
+) = drawBehind {
+    drawIntoCanvas { canvas ->
+        val paint = Paint().apply {
+            this.color = color.copy(alpha = alpha)
+            asFrameworkPaint().maskFilter =
+                BlurMaskFilter(blurRadius.toPx(), BlurMaskFilter.Blur.NORMAL)
+        }
+        val outline = shape.createOutline(size, layoutDirection, this@drawBehind)
+        canvas.drawOutline(outline, paint)
+    }
 }
 
 @Composable
@@ -67,13 +102,27 @@ fun BoltMindButton(
 
     when (style) {
         BoltMindButtonStyle.Primary -> {
-            Button(
-                onClick = debouncedClick,
-                enabled = enabled && !isLoading,
-                shape = MaterialTheme.shapes.medium,
-                modifier = buttonModifier,
+            val shape = MaterialTheme.shapes.medium
+            val gradient = Brush.horizontalGradient(
+                listOf(BoltPrimary, BoltPrimaryLight),
+            )
+            Box(
+                modifier = buttonModifier
+                    .glowEffect(color = BoltPrimary, shape = shape)
+                    .clip(shape)
+                    .background(gradient, shape),
             ) {
-                ButtonContent(text = text, isLoading = isLoading, icon = icon, iconAboveText = iconAboveText)
+                Button(
+                    onClick = debouncedClick,
+                    enabled = enabled && !isLoading,
+                    shape = shape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    ButtonContent(text = text, isLoading = isLoading, icon = icon, iconAboveText = iconAboveText)
+                }
             }
         }
         BoltMindButtonStyle.Secondary -> {
@@ -91,17 +140,28 @@ fun BoltMindButton(
             }
         }
         BoltMindButtonStyle.Danger -> {
-            Button(
-                onClick = debouncedClick,
-                enabled = enabled && !isLoading,
-                shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-                modifier = buttonModifier,
+            val shape = MaterialTheme.shapes.medium
+            val gradient = Brush.horizontalGradient(
+                listOf(BoltError, BoltErrorLight),
+            )
+            Box(
+                modifier = buttonModifier
+                    .glowEffect(color = BoltError, shape = shape)
+                    .clip(shape)
+                    .background(gradient, shape),
             ) {
-                ButtonContent(text = text, isLoading = isLoading, icon = icon, iconAboveText = iconAboveText)
+                Button(
+                    onClick = debouncedClick,
+                    enabled = enabled && !isLoading,
+                    shape = shape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    ButtonContent(text = text, isLoading = isLoading, icon = icon, iconAboveText = iconAboveText)
+                }
             }
         }
         BoltMindButtonStyle.Outlined -> {

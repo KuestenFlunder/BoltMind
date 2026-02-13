@@ -38,6 +38,10 @@ val BoltOnError = Color(0xFF690005)
 val BoltErrorContainer = Color(0xFF93000A)
 val BoltOnErrorContainer = Color(0xFFFFDAD6)
 
+// Gradient
+val BoltPrimaryLight = Color(0xFFFF9F4F)
+val BoltErrorLight = Color(0xFFFF6B6B)
+
 // Semantic
 val BoltSuccess = Color(0xFF81C784)
 val BoltWarning = Color(0xFFFFD54F)
