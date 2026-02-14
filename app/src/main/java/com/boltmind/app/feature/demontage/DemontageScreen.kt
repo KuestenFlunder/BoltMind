@@ -4,13 +4,16 @@ import android.content.ActivityNotFoundException
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.FileProvider
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.FileProvider
 import com.boltmind.app.ui.theme.BoltMindTheme
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
@@ -62,41 +65,48 @@ fun DemontageScreen(
         }
     }
 
-    when (uiState.flowState) {
-        DemontageFlowState.PREVIEW_BAUTEIL -> PreviewView(
-            schrittNummer = uiState.schrittNummer,
-            previewZustand = uiState.previewZustand,
-            istAblageortModus = false,
-            tempFotoPfad = uiState.tempFotoPfad,
-            keineKameraApp = uiState.keineKameraApp,
-            onFotoAufnehmenGetippt = viewModel::onFotoAufnehmenGetippt,
-            onFotoBestaetigt = viewModel::onFotoBestaetigt,
-            onFotoWiederholen = viewModel::onFotoWiederholen,
-            onKameraAbgebrochen = viewModel::onKameraAbgebrochen,
-            onKeineKameraDialogBestaetigt = viewModel::onKeineKameraDialogBestaetigt,
-        )
-        DemontageFlowState.ARBEITSPHASE -> ArbeitsphaseView(
-            schrittNummer = uiState.schrittNummer,
-            bauteilFotoPfad = uiState.bauteilFotoPfad ?: "",
-            onAusgebautGetippt = viewModel::onAusgebautGetippt,
-        )
-        DemontageFlowState.DIALOG -> DemontageDialog(
-            onAblageortFotografieren = viewModel::onAblageortFotografieren,
-            onWeiterOhneAblageort = viewModel::onWeiterOhneAblageort,
-            onBeenden = viewModel::onBeenden,
-        )
-        DemontageFlowState.PREVIEW_ABLAGEORT -> PreviewView(
-            schrittNummer = uiState.schrittNummer,
-            previewZustand = uiState.previewZustand,
-            istAblageortModus = true,
-            tempFotoPfad = uiState.tempFotoPfad,
-            keineKameraApp = uiState.keineKameraApp,
-            onFotoAufnehmenGetippt = viewModel::onAblageortFotoAufnehmen,
-            onFotoBestaetigt = viewModel::onAblageortFotoBestaetigt,
-            onFotoWiederholen = viewModel::onAblageortFotoWiederholen,
-            onKameraAbgebrochen = viewModel::onKameraAbgebrochen,
-            onKeineKameraDialogBestaetigt = viewModel::onKeineKameraDialogBestaetigt,
-        )
+    Scaffold { innerPadding ->
+        val contentModifier = Modifier.padding(innerPadding)
+        when (uiState.flowState) {
+            DemontageFlowState.PREVIEW_BAUTEIL -> PreviewView(
+                schrittNummer = uiState.schrittNummer,
+                previewZustand = uiState.previewZustand,
+                istAblageortModus = false,
+                tempFotoPfad = uiState.tempFotoPfad,
+                keineKameraApp = uiState.keineKameraApp,
+                onFotoAufnehmenGetippt = viewModel::onFotoAufnehmenGetippt,
+                onFotoBestaetigt = viewModel::onFotoBestaetigt,
+                onFotoWiederholen = viewModel::onFotoWiederholen,
+                onKameraAbgebrochen = viewModel::onKameraAbgebrochen,
+                onKeineKameraDialogBestaetigt = viewModel::onKeineKameraDialogBestaetigt,
+                modifier = contentModifier,
+            )
+            DemontageFlowState.ARBEITSPHASE -> ArbeitsphaseView(
+                schrittNummer = uiState.schrittNummer,
+                bauteilFotoPfad = uiState.bauteilFotoPfad ?: "",
+                onAusgebautGetippt = viewModel::onAusgebautGetippt,
+                modifier = contentModifier,
+            )
+            DemontageFlowState.DIALOG -> DemontageDialog(
+                onAblageortFotografieren = viewModel::onAblageortFotografieren,
+                onWeiterOhneAblageort = viewModel::onWeiterOhneAblageort,
+                onBeenden = viewModel::onBeenden,
+                modifier = contentModifier,
+            )
+            DemontageFlowState.PREVIEW_ABLAGEORT -> PreviewView(
+                schrittNummer = uiState.schrittNummer,
+                previewZustand = uiState.previewZustand,
+                istAblageortModus = true,
+                tempFotoPfad = uiState.tempFotoPfad,
+                keineKameraApp = uiState.keineKameraApp,
+                onFotoAufnehmenGetippt = viewModel::onAblageortFotoAufnehmen,
+                onFotoBestaetigt = viewModel::onAblageortFotoBestaetigt,
+                onFotoWiederholen = viewModel::onAblageortFotoWiederholen,
+                onKameraAbgebrochen = viewModel::onKameraAbgebrochen,
+                onKeineKameraDialogBestaetigt = viewModel::onKeineKameraDialogBestaetigt,
+                modifier = contentModifier,
+            )
+        }
     }
 }
 
