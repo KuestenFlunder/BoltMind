@@ -4,6 +4,7 @@ import android.graphics.BlurMaskFilter
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -58,11 +60,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.boltmind.app.R
-import com.boltmind.app.ui.components.AnimatedCounter
 import com.boltmind.app.ui.components.BoltMindButton
 import com.boltmind.app.ui.components.BoltMindButtonStyle
 import com.boltmind.app.ui.components.BoltMindDialog
-import com.boltmind.app.ui.components.BoltMindTopBar
 import com.boltmind.app.ui.components.FotoPreview
 import com.boltmind.app.ui.components.StatusBadge
 import com.boltmind.app.ui.components.StatusBadgeTyp
@@ -76,11 +76,9 @@ import com.boltmind.app.ui.theme.BoltOnSurfaceVariant
 import com.boltmind.app.ui.theme.BoltOutline
 import com.boltmind.app.ui.theme.BoltPrimary
 import com.boltmind.app.ui.theme.BoltPrimaryLight
-import com.boltmind.app.ui.theme.BoltSuccess
 import com.boltmind.app.ui.theme.BoltSurface
 import com.boltmind.app.ui.theme.BoltSurfaceContainerHigh
 import com.boltmind.app.ui.theme.BoltSurfaceVariant
-import com.boltmind.app.ui.theme.BoltTertiary
 import java.io.File
 
 @Composable
@@ -117,12 +115,12 @@ fun UebersichtScreen(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        topBar = {
-            BoltMindTopBar(title = stringResource(R.string.app_name))
-        },
         floatingActionButton = {
             if (uiState.selectedTab == 0 && uiState.vorgaenge.isNotEmpty()) {
-                BoltMindFab(onClick = onNeuerVorgangGetippt)
+                BoltMindFab(
+                    onClick = onNeuerVorgangGetippt,
+                    modifier = Modifier.offset(x = BoltMindDimensions.spacingXl),
+                )
             }
         },
         modifier = modifier,
@@ -132,12 +130,6 @@ fun UebersichtScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            StatsHeader(
-                offeneVorgaenge = uiState.vorgaenge.size,
-                gesamtSchritte = uiState.vorgaenge.sumOf { it.anzahlSchritte },
-                archivierteVorgaenge = uiState.archivierteVorgaenge.size,
-            )
-
             FilterChipBar(
                 selectedTab = uiState.selectedTab,
                 offeneAnzahl = uiState.vorgaenge.size,
@@ -182,111 +174,6 @@ fun UebersichtScreen(
             dialogState = dialog,
             onBestaetigt = onLoeschenBestaetigt,
             onAbgebrochen = onLoeschenAbgebrochen,
-        )
-    }
-}
-
-// ============================================================
-// Stats-Header
-// ============================================================
-
-@Composable
-private fun StatsHeader(
-    offeneVorgaenge: Int,
-    gesamtSchritte: Int,
-    archivierteVorgaenge: Int,
-    modifier: Modifier = Modifier,
-) {
-    val gradient = Brush.verticalGradient(
-        colors = listOf(BoltSurfaceContainerHigh, BoltSurface),
-    )
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(gradient)
-            .padding(
-                horizontal = BoltMindDimensions.spacingM,
-                vertical = BoltMindDimensions.spacingL,
-            ),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            StatItem(
-                wert = offeneVorgaenge,
-                label = stringResource(R.string.stats_offen),
-                akzentFarbe = BoltPrimary,
-                hatGlow = offeneVorgaenge > 0,
-            )
-
-            Box(
-                modifier = Modifier
-                    .width(BoltMindDimensions.borderThin)
-                    .height(48.dp)
-                    .background(BoltOutline),
-            )
-
-            StatItem(
-                wert = gesamtSchritte,
-                label = stringResource(R.string.stats_schritte),
-                akzentFarbe = BoltTertiary,
-                hatGlow = false,
-            )
-
-            Box(
-                modifier = Modifier
-                    .width(BoltMindDimensions.borderThin)
-                    .height(48.dp)
-                    .background(BoltOutline),
-            )
-
-            StatItem(
-                wert = archivierteVorgaenge,
-                label = stringResource(R.string.stats_archiviert),
-                akzentFarbe = BoltSuccess,
-                hatGlow = false,
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatItem(
-    wert: Int,
-    label: String,
-    akzentFarbe: Color,
-    hatGlow: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        AnimatedCounter(
-            targetValue = wert,
-            style = MaterialTheme.typography.headlineLarge,
-            color = akzentFarbe,
-            fontWeight = FontWeight.Black,
-            modifier = if (hatGlow) {
-                Modifier.drawBehind {
-                    drawIntoCanvas { canvas ->
-                        val paint = Paint().apply {
-                            color = akzentFarbe.copy(alpha = 0.3f)
-                            asFrameworkPaint().maskFilter =
-                                BlurMaskFilter(16.dp.toPx(), BlurMaskFilter.Blur.NORMAL)
-                        }
-                        canvas.drawCircle(center, 24.dp.toPx(), paint)
-                    }
-                }
-            } else Modifier,
-        )
-        Spacer(modifier = Modifier.height(BoltMindDimensions.spacingXs))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = BoltOnSurfaceVariant,
         )
     }
 }
@@ -444,47 +331,22 @@ private fun BoltMindFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val gradient = Brush.linearGradient(
-        colors = listOf(BoltPrimary, BoltPrimaryLight),
-    )
-
-    Box(
-        modifier = modifier
-            .size(BoltMindDimensions.fabSize)
-            .drawBehind {
-                drawIntoCanvas { canvas ->
-                    val paint = Paint().apply {
-                        color = BoltPrimary.copy(alpha = 0.5f)
-                        asFrameworkPaint().maskFilter =
-                            BlurMaskFilter(
-                                BoltMindDimensions.glowRadiusLarge.toPx(),
-                                BlurMaskFilter.Blur.NORMAL,
-                            )
-                    }
-                    canvas.drawCircle(center, (BoltMindDimensions.fabSize / 2).toPx(), paint)
-                }
-            }
-            .clip(CircleShape)
-            .background(gradient),
-        contentAlignment = Alignment.Center,
+    FloatingActionButton(
+        onClick = onClick,
+        shape = CircleShape,
+        containerColor = Color.Transparent,
+        contentColor = Color.Transparent,
+        modifier = modifier.size(BoltMindDimensions.fabSize),
+        elevation = FloatingActionButtonDefaults.elevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+        ),
     ) {
-        FloatingActionButton(
-            onClick = onClick,
-            shape = CircleShape,
-            containerColor = Color.Transparent,
-            contentColor = BoltOnPrimary,
-            modifier = Modifier.matchParentSize(),
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 0.dp,
-                pressedElevation = 0.dp,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = stringResource(R.string.neuer_vorgang),
-                modifier = Modifier.size(BoltMindDimensions.topBarIconSize),
-            )
-        }
+        Image(
+            painter = painterResource(R.drawable.ic_boltmind_logo),
+            contentDescription = stringResource(R.string.neuer_vorgang),
+            modifier = Modifier.size(BoltMindDimensions.fabSize),
+        )
     }
 }
 

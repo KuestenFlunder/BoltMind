@@ -31,7 +31,7 @@ object BoltMindDimensions {
     val fotoPreviewLarge = 240.dp
 
     // Sonstiges
-    val fabSize = 80.dp
+    val fabSize = 156.dp
     val topBarIconSize = 32.dp
 
     // Neue Button-Dimensionen
