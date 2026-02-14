@@ -438,7 +438,7 @@ private fun LoeschenBestaetigungDialog(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun UebersichtScreenMitVorgaengenPreview() {
     BoltMindTheme {
@@ -474,7 +474,7 @@ private fun UebersichtScreenMitVorgaengenPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun UebersichtScreenLeerPreview() {
     BoltMindTheme {
@@ -493,7 +493,7 @@ private fun UebersichtScreenLeerPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun UebersichtScreenArchivPreview() {
     BoltMindTheme {
@@ -532,7 +532,7 @@ private fun UebersichtScreenArchivPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun UebersichtScreenArchivLeerPreview() {
     BoltMindTheme {
@@ -551,7 +551,7 @@ private fun UebersichtScreenArchivLeerPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun AuswahlDialogPreview() {
     BoltMindTheme {
@@ -568,7 +568,7 @@ private fun AuswahlDialogPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun LoeschenBestaetigungDialogPreview() {
     BoltMindTheme {

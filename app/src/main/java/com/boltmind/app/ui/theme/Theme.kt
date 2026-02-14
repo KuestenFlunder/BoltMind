@@ -26,12 +26,19 @@ private val BoltMindColorScheme = darkColorScheme(
     onSurface = BoltOnSurface,
     surfaceVariant = BoltSurfaceVariant,
     onSurfaceVariant = BoltOnSurfaceVariant,
+    surfaceContainerHigh = BoltSurfaceContainerHigh,
+    surfaceBright = BoltSurfaceBright,
+    surfaceContainer = BoltSurfaceContainer,
     outline = BoltOutline,
     outlineVariant = BoltOutlineVariant,
     error = BoltError,
     onError = BoltOnError,
     errorContainer = BoltErrorContainer,
     onErrorContainer = BoltOnErrorContainer,
+    inverseSurface = BoltInverseSurface,
+    inverseOnSurface = BoltInverseOnSurface,
+    inversePrimary = BoltInversePrimary,
+    scrim = BoltScrim,
 )
 
 @Composable

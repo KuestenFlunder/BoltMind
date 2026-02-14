@@ -78,7 +78,7 @@ fun DemontageDialog(
     }
 }
 
-@ComposePreview(showBackground = true, backgroundColor = 0xFF000000)
+@ComposePreview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun DemontageDialogPreview() {
     BoltMindTheme {

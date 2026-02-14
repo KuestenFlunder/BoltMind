@@ -19,7 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.boltmind.app.R
 import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
-import com.boltmind.app.ui.theme.BoltOutlineVariant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +33,7 @@ fun BoltMindTopBar(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             },
             navigationIcon = {
@@ -46,6 +46,7 @@ fun BoltMindTopBar(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.zurueck),
                             modifier = Modifier.size(BoltMindDimensions.topBarIconSize),
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
@@ -53,17 +54,17 @@ fun BoltMindTopBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.surface,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
-                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                navigationIconContentColor = MaterialTheme.colorScheme.primary,
             ),
         )
         HorizontalDivider(
-            color = BoltOutlineVariant,
+            color = MaterialTheme.colorScheme.outlineVariant,
             thickness = BoltMindDimensions.borderThin,
         )
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun BoltMindTopBarPreview() {
     BoltMindTheme {
@@ -71,7 +72,7 @@ private fun BoltMindTopBarPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun BoltMindTopBarMitZurueckPreview() {
     BoltMindTheme {

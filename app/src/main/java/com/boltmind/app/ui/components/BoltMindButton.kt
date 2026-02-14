@@ -34,7 +34,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.toArgb
+
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -56,8 +56,8 @@ enum class BoltMindButtonStyle {
 private fun Modifier.glowEffect(
     color: Color,
     shape: Shape,
-    blurRadius: Dp = 16.dp,
-    alpha: Float = 0.4f,
+    blurRadius: Dp = BoltMindDimensions.glowRadius,
+    alpha: Float = 0.45f,
 ) = drawBehind {
     drawIntoCanvas { canvas ->
         val paint = Paint().apply {
@@ -108,7 +108,11 @@ fun BoltMindButton(
             )
             Box(
                 modifier = buttonModifier
-                    .glowEffect(color = BoltPrimary, shape = shape)
+                    .glowEffect(
+                        color = BoltPrimary,
+                        shape = shape,
+                        blurRadius = BoltMindDimensions.glowRadiusLarge,
+                    )
                     .clip(shape)
                     .background(gradient, shape),
             ) {
@@ -118,6 +122,7 @@ fun BoltMindButton(
                     shape = shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -146,7 +151,11 @@ fun BoltMindButton(
             )
             Box(
                 modifier = buttonModifier
-                    .glowEffect(color = BoltError, shape = shape)
+                    .glowEffect(
+                        color = BoltError,
+                        shape = shape,
+                        blurRadius = BoltMindDimensions.glowRadiusLarge,
+                    )
                     .clip(shape)
                     .background(gradient, shape),
             ) {
@@ -156,7 +165,7 @@ fun BoltMindButton(
                     shape = shape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent,
-                        contentColor = MaterialTheme.colorScheme.onError,
+                        contentColor = Color.White,
                     ),
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -169,6 +178,9 @@ fun BoltMindButton(
                 onClick = debouncedClick,
                 enabled = enabled && !isLoading,
                 shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ),
                 modifier = buttonModifier,
             ) {
                 ButtonContent(text = text, isLoading = isLoading, icon = icon, iconAboveText = iconAboveText)
@@ -221,7 +233,7 @@ private fun ButtonContent(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun BoltMindButtonPrimaryPreview() {
     BoltMindTheme {
@@ -233,7 +245,7 @@ private fun BoltMindButtonPrimaryPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun BoltMindButtonSecondaryPreview() {
     BoltMindTheme {
@@ -246,12 +258,12 @@ private fun BoltMindButtonSecondaryPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun BoltMindButtonDangerPreview() {
     BoltMindTheme {
         BoltMindButton(
-            text = "Löschen",
+            text = "Loeschen",
             onClick = {},
             modifier = Modifier.fillMaxWidth(),
             style = BoltMindButtonStyle.Danger,
@@ -259,7 +271,7 @@ private fun BoltMindButtonDangerPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun BoltMindButtonOutlinedPreview() {
     BoltMindTheme {

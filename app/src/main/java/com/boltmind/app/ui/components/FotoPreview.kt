@@ -18,7 +18,6 @@ import coil.compose.AsyncImage
 import com.boltmind.app.R
 import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
-import com.boltmind.app.ui.theme.BoltOutlineVariant
 import java.io.File
 
 /**
@@ -58,14 +57,22 @@ fun FotoPreview(
             modifier = modifier
                 .size(groesse)
                 .clip(shape)
-                .border(BoltMindDimensions.borderThin, BoltOutlineVariant, shape),
+                .border(
+                    BoltMindDimensions.borderThin,
+                    MaterialTheme.colorScheme.outlineVariant,
+                    shape,
+                ),
         )
     } else {
         Box(
             modifier = modifier
                 .size(groesse)
                 .clip(shape)
-                .border(BoltMindDimensions.borderThin, BoltOutlineVariant, shape)
+                .border(
+                    BoltMindDimensions.borderThin,
+                    MaterialTheme.colorScheme.outlineVariant,
+                    shape,
+                )
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
@@ -78,7 +85,7 @@ fun FotoPreview(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun FotoPreviewMitBildPreview() {
     BoltMindTheme {
@@ -89,7 +96,7 @@ private fun FotoPreviewMitBildPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun FotoPreviewOhneBildPreview() {
     BoltMindTheme {

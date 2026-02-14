@@ -39,7 +39,7 @@ import com.boltmind.app.ui.components.SchrittNummer
 import com.boltmind.app.ui.components.SchrittNummerGroesse
 import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
-import com.boltmind.app.ui.theme.BoltOutlineVariant
+
 
 @Composable
 fun PreviewView(
@@ -211,7 +211,7 @@ private fun PlatzhalterBild(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .aspectRatio(4f / 3f)
             .clip(MaterialTheme.shapes.medium)
-            .border(BoltMindDimensions.borderThin, BoltOutlineVariant, MaterialTheme.shapes.medium)
+            .border(BoltMindDimensions.borderThin, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
     ) {
@@ -224,7 +224,7 @@ private fun PlatzhalterBild(modifier: Modifier = Modifier) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewInitialBauteil() {
     BoltMindTheme {
@@ -243,7 +243,7 @@ private fun PreviewInitialBauteil() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewInitialAblageort() {
     BoltMindTheme {
@@ -262,7 +262,7 @@ private fun PreviewInitialAblageort() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewVorschauBauteil() {
     BoltMindTheme {
@@ -281,7 +281,7 @@ private fun PreviewVorschauBauteil() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewVorschauAblageort() {
     BoltMindTheme {

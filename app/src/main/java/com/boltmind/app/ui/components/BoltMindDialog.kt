@@ -15,7 +15,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
-import com.boltmind.app.ui.theme.BoltOutlineVariant
+import com.boltmind.app.ui.theme.BoltPrimary
 
 @Composable
 fun BoltMindDialog(
@@ -33,12 +33,16 @@ fun BoltMindDialog(
     ) {
         Surface(
             shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 12.dp,
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = BoltMindDimensions.spacingL)
-                .border(BoltMindDimensions.borderThin, BoltOutlineVariant, MaterialTheme.shapes.large),
+                .border(
+                    BoltMindDimensions.borderThin,
+                    BoltPrimary.copy(alpha = 0.2f),
+                    MaterialTheme.shapes.large,
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(BoltMindDimensions.spacingL),
@@ -49,7 +53,7 @@ fun BoltMindDialog(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun BoltMindDialogPreview() {
     BoltMindTheme {

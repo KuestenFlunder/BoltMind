@@ -18,12 +18,13 @@ object BoltMindDimensions {
     val spacingM = 16.dp
     val spacingL = 24.dp
     val spacingXl = 32.dp
+    val spacingXxl = 48.dp
 
     // Ecken
-    val cornerS = 8.dp
-    val cornerM = 12.dp
-    val cornerL = 16.dp
-    val cornerXl = 24.dp
+    val cornerS = 10.dp
+    val cornerM = 14.dp
+    val cornerL = 18.dp
+    val cornerXl = 26.dp
 
     // Foto-Preview
     val fotoPreviewSmall = 80.dp
@@ -47,4 +48,8 @@ object BoltMindDimensions {
 
     // FotoPreview
     val fotoPreviewMedium = 96.dp
+
+    // Glow
+    val glowRadius = 20.dp
+    val glowRadiusLarge = 28.dp
 }

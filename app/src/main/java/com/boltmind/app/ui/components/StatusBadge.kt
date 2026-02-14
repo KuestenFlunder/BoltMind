@@ -37,7 +37,7 @@ fun StatusBadge(
         StatusBadgeTyp.Archiviert -> BoltOnSurfaceVariant
     }
     val backgroundColor = when (typ) {
-        StatusBadgeTyp.Offen -> BoltSuccess.copy(alpha = 0.12f)
+        StatusBadgeTyp.Offen -> BoltSuccess.copy(alpha = 0.15f)
         StatusBadgeTyp.Archiviert -> BoltOnSurfaceVariant.copy(alpha = 0.12f)
     }
 
@@ -53,13 +53,14 @@ fun StatusBadge(
             text = text,
             color = textColor,
             fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             lineHeight = 20.sp,
+            letterSpacing = 0.25.sp,
         )
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun StatusBadgeOffenPreview() {
     BoltMindTheme {
@@ -67,7 +68,7 @@ private fun StatusBadgeOffenPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun StatusBadgeArchiviertPreview() {
     BoltMindTheme {
