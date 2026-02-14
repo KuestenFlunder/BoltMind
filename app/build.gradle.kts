@@ -89,6 +89,9 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
 
+    // Squircle Shape
+    implementation(libs.squircle.shape)
+
     // Image Loading
     implementation(libs.coil.compose)
 

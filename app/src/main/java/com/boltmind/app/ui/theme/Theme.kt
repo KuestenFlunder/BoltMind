@@ -1,45 +1,67 @@
 package com.boltmind.app.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+private val BoltMindColorScheme = darkColorScheme(
+    primary = BoltPrimary,
+    onPrimary = BoltOnPrimary,
+    primaryContainer = BoltPrimaryContainer,
+    onPrimaryContainer = BoltOnPrimaryContainer,
+    secondary = BoltSecondary,
+    onSecondary = BoltOnSecondary,
+    secondaryContainer = BoltSecondaryContainer,
+    onSecondaryContainer = BoltOnSecondaryContainer,
+    tertiary = BoltTertiary,
+    onTertiary = BoltOnTertiary,
+    background = BoltBackground,
+    onBackground = BoltOnBackground,
+    surface = BoltSurface,
+    onSurface = BoltOnSurface,
+    surfaceVariant = BoltSurfaceVariant,
+    onSurfaceVariant = BoltOnSurfaceVariant,
+    surfaceContainerHigh = BoltSurfaceContainerHigh,
+    surfaceBright = BoltSurfaceBright,
+    surfaceContainer = BoltSurfaceContainer,
+    outline = BoltOutline,
+    outlineVariant = BoltOutlineVariant,
+    error = BoltError,
+    onError = BoltOnError,
+    errorContainer = BoltErrorContainer,
+    onErrorContainer = BoltOnErrorContainer,
+    inverseSurface = BoltInverseSurface,
+    inverseOnSurface = BoltInverseOnSurface,
+    inversePrimary = BoltInversePrimary,
+    scrim = BoltScrim,
 )
 
 @Composable
-fun BoltMindTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+fun BoltMindTheme(content: @Composable () -> Unit) {
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            @Suppress("DEPRECATION")
+            window.statusBarColor = BoltBackground.toArgb()
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = BoltBackground.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
     }
 
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        colorScheme = BoltMindColorScheme,
+        typography = BoltMindTypography,
+        shapes = BoltMindShapes,
+        content = content,
     )
 }

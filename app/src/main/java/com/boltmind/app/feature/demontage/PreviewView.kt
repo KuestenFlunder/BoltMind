@@ -3,36 +3,43 @@ package com.boltmind.app.feature.demontage
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.boltmind.app.R
-import com.boltmind.app.ui.components.DebounceClickHandler
+import com.boltmind.app.ui.components.BoltMindButton
+import com.boltmind.app.ui.components.BoltMindButtonStyle
+import com.boltmind.app.ui.components.BoltMindDialog
+import com.boltmind.app.ui.components.SchrittNummer
+import com.boltmind.app.ui.components.SchrittNummerGroesse
+import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltMindTheme
+
 
 @Composable
 fun PreviewView(
@@ -46,129 +53,137 @@ fun PreviewView(
     onFotoWiederholen: () -> Unit,
     onKameraAbgebrochen: () -> Unit,
     onKeineKameraDialogBestaetigt: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = stringResource(R.string.demontage_schritt_nummer, schrittNummer),
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        when (previewZustand) {
-            PreviewZustand.INITIAL -> InitialZustand(
-                istAblageortModus = istAblageortModus,
-                onFotoAufnehmenGetippt = onFotoAufnehmenGetippt
-            )
-            PreviewZustand.VORSCHAU -> VorschauZustand(
-                istAblageortModus = istAblageortModus,
-                tempFotoPfad = tempFotoPfad,
-                onFotoBestaetigt = onFotoBestaetigt,
-                onFotoWiederholen = onFotoWiederholen
-            )
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(BoltMindDimensions.spacingM),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            when (previewZustand) {
+                PreviewZustand.INITIAL -> this.InitialZustand(
+                    istAblageortModus = istAblageortModus,
+                    onFotoAufnehmenGetippt = onFotoAufnehmenGetippt,
+                )
+                PreviewZustand.VORSCHAU -> this.VorschauZustand(
+                    istAblageortModus = istAblageortModus,
+                    tempFotoPfad = tempFotoPfad,
+                    onFotoBestaetigt = onFotoBestaetigt,
+                    onFotoWiederholen = onFotoWiederholen,
+                )
+            }
         }
+
+        SchrittNummer(
+            schrittNummer = schrittNummer,
+            groesse = SchrittNummerGroesse.Medium,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(BoltMindDimensions.spacingM),
+        )
     }
 
     if (keineKameraApp) {
-        AlertDialog(
+        BoltMindDialog(
             onDismissRequest = onKeineKameraDialogBestaetigt,
-            title = { Text(stringResource(R.string.demontage_keine_kamera)) },
-            confirmButton = {
-                TextButton(onClick = onKeineKameraDialogBestaetigt) {
-                    Text(stringResource(R.string.demontage_keine_kamera_ok))
-                }
+            dismissOnClickOutside = false,
+        ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = null,
+                    modifier = Modifier.size(BoltMindDimensions.iconLarge),
+                    tint = MaterialTheme.colorScheme.error,
+                )
             }
-        )
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
+            Text(
+                text = stringResource(R.string.demontage_keine_kamera),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(BoltMindDimensions.spacingL))
+            BoltMindButton(
+                text = stringResource(R.string.demontage_keine_kamera_ok),
+                onClick = onKeineKameraDialogBestaetigt,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
 @Composable
-private fun InitialZustand(
+private fun ColumnScope.InitialZustand(
     istAblageortModus: Boolean,
-    onFotoAufnehmenGetippt: () -> Unit
+    onFotoAufnehmenGetippt: () -> Unit,
 ) {
     if (istAblageortModus) {
         Text(
             text = stringResource(R.string.demontage_ablageort_hinweis),
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
     }
 
-    PlatzhalterBild(modifier = Modifier.padding(vertical = 8.dp))
+    PlatzhalterBild(modifier = Modifier.padding(vertical = BoltMindDimensions.spacingS))
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
 
-    val debounceHandler = remember { DebounceClickHandler() }
-    Button(
-        onClick = { debounceHandler.onClick { onFotoAufnehmenGetippt() } },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.demontage_foto_aufnehmen),
-            style = MaterialTheme.typography.titleMedium
-        )
-    }
+    BoltMindButton(
+        text = stringResource(R.string.demontage_foto_aufnehmen),
+        onClick = onFotoAufnehmenGetippt,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
-private fun VorschauZustand(
+private fun ColumnScope.VorschauZustand(
     istAblageortModus: Boolean,
     tempFotoPfad: String?,
     onFotoBestaetigt: () -> Unit,
-    onFotoWiederholen: () -> Unit
+    onFotoWiederholen: () -> Unit,
 ) {
     if (istAblageortModus) {
         Text(
             text = stringResource(R.string.demontage_ablageort_frage),
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(BoltMindDimensions.spacingS))
     }
 
     FotoVorschau(
         fotoPfad = tempFotoPfad,
-        modifier = Modifier.padding(vertical = 8.dp)
+        modifier = Modifier.padding(vertical = BoltMindDimensions.spacingS),
     )
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
 
-    val debounceBestaetigen = remember { DebounceClickHandler() }
-    val debounceWiederholen = remember { DebounceClickHandler() }
+    BoltMindButton(
+        text = stringResource(R.string.demontage_bestaetigen),
+        onClick = onFotoBestaetigt,
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+    )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        OutlinedButton(
-            onClick = { debounceWiederholen.onClick { onFotoWiederholen() } },
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-        ) {
-            Text(stringResource(R.string.demontage_wiederholen))
-        }
+    Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
 
-        Button(
-            onClick = { debounceBestaetigen.onClick { onFotoBestaetigt() } },
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-        ) {
-            Text(stringResource(R.string.demontage_bestaetigen))
-        }
-    }
+    BoltMindButton(
+        text = stringResource(R.string.demontage_wiederholen),
+        onClick = onFotoWiederholen,
+        style = BoltMindButtonStyle.Outlined,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(BoltMindDimensions.buttonCompact),
+    )
 }
 
 @Composable
@@ -182,7 +197,7 @@ private fun FotoVorschau(fotoPfad: String?, modifier: Modifier = Modifier) {
                 bitmap = bitmap,
                 contentDescription = null,
                 modifier = modifier.fillMaxWidth(),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Fit,
             )
         } else {
             PlatzhalterBild(modifier)
@@ -198,19 +213,21 @@ private fun PlatzhalterBild(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(4f / 3f)
+            .clip(MaterialTheme.shapes.medium)
+            .border(BoltMindDimensions.borderThin, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_foto_platzhalter),
             contentDescription = stringResource(R.string.foto_platzhalter),
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(BoltMindDimensions.iconLarge),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewInitialBauteil() {
     BoltMindTheme {
@@ -224,12 +241,12 @@ private fun PreviewInitialBauteil() {
             onFotoBestaetigt = {},
             onFotoWiederholen = {},
             onKameraAbgebrochen = {},
-            onKeineKameraDialogBestaetigt = {}
+            onKeineKameraDialogBestaetigt = {},
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewInitialAblageort() {
     BoltMindTheme {
@@ -243,12 +260,12 @@ private fun PreviewInitialAblageort() {
             onFotoBestaetigt = {},
             onFotoWiederholen = {},
             onKameraAbgebrochen = {},
-            onKeineKameraDialogBestaetigt = {}
+            onKeineKameraDialogBestaetigt = {},
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewVorschauBauteil() {
     BoltMindTheme {
@@ -262,12 +279,12 @@ private fun PreviewVorschauBauteil() {
             onFotoBestaetigt = {},
             onFotoWiederholen = {},
             onKameraAbgebrochen = {},
-            onKeineKameraDialogBestaetigt = {}
+            onKeineKameraDialogBestaetigt = {},
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, backgroundColor = 0xFF060B14)
 @Composable
 private fun PreviewVorschauAblageort() {
     BoltMindTheme {
@@ -281,7 +298,7 @@ private fun PreviewVorschauAblageort() {
             onFotoBestaetigt = {},
             onFotoWiederholen = {},
             onKameraAbgebrochen = {},
-            onKeineKameraDialogBestaetigt = {}
+            onKeineKameraDialogBestaetigt = {},
         )
     }
 }

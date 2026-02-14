@@ -22,6 +22,7 @@ out/
 
 # Claude Code
 .claude/
+.mcp.json
 
 # Kotlin incremental compilation
 .kotlin/

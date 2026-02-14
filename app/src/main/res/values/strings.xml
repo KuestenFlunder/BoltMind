@@ -43,4 +43,20 @@
     <string name="demontage_ablageort_frage">Ist das der Ablageort?</string>
     <string name="demontage_keine_kamera">Keine Kamera-App gefunden</string>
     <string name="demontage_keine_kamera_ok">OK</string>
+
+    <!-- Status-Badges -->
+    <string name="status_offen">Offen</string>
+    <string name="status_archiviert">Archiviert</string>
+
+    <!-- Stats-Header -->
+    <string name="stats_offen">Offen</string>
+    <string name="stats_schritte">Schritte</string>
+    <string name="stats_archiviert">Erledigt</string>
+
+    <!-- Empty-States -->
+    <string name="empty_state_titel">Bereit für den ersten Auftrag</string>
+    <string name="empty_state_beschreibung">Starte einen neuen Reparaturvorgang und dokumentiere jeden Schritt.</string>
+    <string name="empty_state_cta">Ersten Vorgang starten</string>
+    <string name="empty_state_archiv_titel">Noch keine abgeschlossenen Aufträge</string>
+    <string name="empty_state_archiv_beschreibung">Abgeschlossene Reparaturvorgänge erscheinen hier.</string>
 </resources>
