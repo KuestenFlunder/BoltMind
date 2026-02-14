@@ -39,14 +39,14 @@ val BoltOutline = Color(0xFF2A3D52)
 val BoltOutlineVariant = Color(0xFF162232)
 
 // === Error - Neon Red ===
-val BoltError = Color(0xFFFF5252)
-val BoltOnError = Color(0xFF420000)
+val BoltError = Color(0xFFFF6B6B)
+val BoltOnError = Color(0xFF2C0000)
 val BoltErrorContainer = Color(0xFF7A0000)
 val BoltOnErrorContainer = Color(0xFFFFCDD2)
 
 // === Gradient Endpoints ===
 val BoltPrimaryLight = Color(0xFF64FFDA)
-val BoltErrorLight = Color(0xFFFF8A80)
+val BoltErrorLight = Color(0xFFFFB4AB)
 
 // === Semantic ===
 val BoltSuccess = Color(0xFF69F0AE)

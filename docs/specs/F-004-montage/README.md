@@ -20,28 +20,27 @@ Mechaniker in der Werkstatt, der ein zuvor demontiertes Fahrzeug wieder zusammen
 
 - Schritte in umgekehrter Reihenfolge anzeigen (Bauteil-Foto + Ablageort)
 - Schritte als "eingebaut" abhaken (Toggle, Sofort-Save)
-- Fortschrittsanzeige (Schritt X von Y, Fortschrittsbalken)
-- Frei zwischen Schritten blaettern (nicht nur linear)
-- Direkt zu Schrittnummer springen (Ablageort-Korrelation)
+- Fortschrittsanzeige
 - Montage abschliessen und Vorgang archivieren
 
 ## Zusammenspiel mit Schrittnummer (F-003)
 
 Die Schrittnummer aus der Demontage dient als Orientierung:
+
 - **Fortschritt:** "Schritt 3 von 15" zeigt den Zusammenbau-Fortschritt
-- **Ablageort-Korrelation:** Physische Ablageorte mit Schrittnummern beschriftet → Nummer in der App zeigt, wo das Teil liegt
+- **Ablageort-Korrelation:** Physische Ablageorte mit Schrittnummern beschriftet → Nummer in der App zeigt, wo das Teil liegt bzw. Ablageort-Foto.
 - **SchrittTyp:** `AUSGEBAUT` zeigt Ablageort-Foto, `AM_FAHRZEUG` zeigt Hinweis "Am Fahrzeug"
 
 ## Abhaengigkeiten
 
-| Richtung | Feature | Beziehung |
-|---|---|---|
-| ← | F-001 | "Montage starten" in Uebersicht oeffnet diesen Flow |
-| ← | F-003 | Liest Demontage-Schritte (Fotos, Schrittnummern, SchrittTyp) |
-| ← | F-005 | Timer-Service fuer Einbau-Zeitmessung (spaeter) |
+| Richtung | Feature | Beziehung                                                    |
+| -------- | ------- | ------------------------------------------------------------ |
+| ←        | F-001   | "Montage starten" in Uebersicht oeffnet diesen Flow          |
+| ←        | F-003   | Liest Demontage-Schritte (Fotos, Schrittnummern, SchrittTyp) |
+| ←        | F-005   | Timer-Service fuer Einbau-Zeitmessung (spaeter)              |
 
 ## Ordner-Inhalt
 
-| Datei | Beschreibung |
-|---|---|
+| Datei                    | Beschreibung                                                      |
+| ------------------------ | ----------------------------------------------------------------- |
 | [montage.md](montage.md) | User Stories, Akzeptanzkriterien, UI-Skizzen, technische Hinweise |

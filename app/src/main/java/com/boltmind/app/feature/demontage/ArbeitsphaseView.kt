@@ -35,32 +35,37 @@ fun ArbeitsphaseView(
     onAusgebautGetippt: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(BoltMindDimensions.spacingM),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(BoltMindDimensions.spacingM),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
+        ) {
+            BauteilFoto(
+                fotoPfad = bauteilFotoPfad,
+                schrittNummer = schrittNummer,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+
+            BoltMindButton(
+                text = stringResource(R.string.demontage_ausgebaut),
+                onClick = onAusgebautGetippt,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(BoltMindDimensions.touchTargetCamera),
+            )
+        }
+
         SchrittNummer(
             schrittNummer = schrittNummer,
             groesse = SchrittNummerGroesse.Large,
-        )
-
-        BauteilFoto(
-            fotoPfad = bauteilFotoPfad,
-            schrittNummer = schrittNummer,
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        )
-
-        BoltMindButton(
-            text = stringResource(R.string.demontage_ausgebaut),
-            onClick = onAusgebautGetippt,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(BoltMindDimensions.touchTargetCamera),
+                .align(Alignment.TopStart)
+                .padding(BoltMindDimensions.spacingM),
         )
     }
 }

@@ -424,14 +424,15 @@ private fun LoeschenBestaetigungDialog(
             verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.spacingM),
         ) {
             BoltMindButton(
-                text = stringResource(R.string.abbrechen),
-                onClick = onAbgebrochen,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            BoltMindButton(
                 text = stringResource(R.string.loeschen),
                 onClick = onBestaetigt,
                 style = BoltMindButtonStyle.Danger,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            BoltMindButton(
+                text = stringResource(R.string.abbrechen),
+                onClick = onAbgebrochen,
+                style = BoltMindButtonStyle.Outlined,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

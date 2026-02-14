@@ -55,31 +55,34 @@ fun PreviewView(
     onKeineKameraDialogBestaetigt: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(BoltMindDimensions.spacingM),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(BoltMindDimensions.spacingM),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            when (previewZustand) {
+                PreviewZustand.INITIAL -> this.InitialZustand(
+                    istAblageortModus = istAblageortModus,
+                    onFotoAufnehmenGetippt = onFotoAufnehmenGetippt,
+                )
+                PreviewZustand.VORSCHAU -> this.VorschauZustand(
+                    istAblageortModus = istAblageortModus,
+                    tempFotoPfad = tempFotoPfad,
+                    onFotoBestaetigt = onFotoBestaetigt,
+                    onFotoWiederholen = onFotoWiederholen,
+                )
+            }
+        }
+
         SchrittNummer(
             schrittNummer = schrittNummer,
             groesse = SchrittNummerGroesse.Medium,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(BoltMindDimensions.spacingM),
         )
-
-        Spacer(modifier = Modifier.height(BoltMindDimensions.spacingM))
-
-        when (previewZustand) {
-            PreviewZustand.INITIAL -> this.InitialZustand(
-                istAblageortModus = istAblageortModus,
-                onFotoAufnehmenGetippt = onFotoAufnehmenGetippt,
-            )
-            PreviewZustand.VORSCHAU -> this.VorschauZustand(
-                istAblageortModus = istAblageortModus,
-                tempFotoPfad = tempFotoPfad,
-                onFotoBestaetigt = onFotoBestaetigt,
-                onFotoWiederholen = onFotoWiederholen,
-            )
-        }
     }
 
     if (keineKameraApp) {

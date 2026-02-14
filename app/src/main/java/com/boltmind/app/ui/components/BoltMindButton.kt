@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -124,7 +123,7 @@ fun BoltMindButton(
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.matchParentSize(),
                 ) {
                     ButtonContent(text = text, isLoading = isLoading, icon = icon, iconAboveText = iconAboveText)
                 }
@@ -167,7 +166,7 @@ fun BoltMindButton(
                         containerColor = Color.Transparent,
                         contentColor = Color.White,
                     ),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.matchParentSize(),
                 ) {
                     ButtonContent(text = text, isLoading = isLoading, icon = icon, iconAboveText = iconAboveText)
                 }
