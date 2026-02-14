@@ -195,5 +195,5 @@ Die Schrittnummer aus der Demontage dient im Montage-Flow als Orientierung:
 
 **Fehlerbehandlung:**
 
-- Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild statt Crash
+- Fehlende Foto-Dateien (z.B. nach Backup/Restore): Platzhalter-Bild (app icon) statt Crash
 - Vorgang ohne Schritte: Hinweis "Keine Demontage-Schritte vorhanden. Zuerst demontieren."
