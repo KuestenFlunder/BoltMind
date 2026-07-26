@@ -6,17 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 ./gradlew assembleDebug          # Debug-Build
-./gradlew test                   # Unit-Tests
-./gradlew connectedAndroidTest   # Instrumented Tests (Emulator/Gerät)
+./gradlew test                   # Unit-Tests (JVM, JUnit 5)
 ./gradlew lint                   # Android Lint
-./gradlew ktlintCheck            # Kotlin Formatting Check
-./gradlew ktlintFormat           # Auto-Format
-./gradlew detekt                 # Static Analysis
 ```
 
-Single test: `./gradlew test --tests "com.boltmind.app.ClassName.testName"`
+Single test: `./gradlew test --tests "com.boltmind.app.ClassName"`
 
-Build target: compileSdk 36, minSdk 26, Java 17.
+Build target: compileSdk 36, minSdk 26, targetSdk 36, Java 17, Gradle 8.14, AGP 8.10.1, Kotlin 2.1.10.
+
+### Wichtig: Toolchain-Realität (Stand 2026-07-26)
+
+| Erwartung | Realität |
+|---|---|
+| `./gradlew ktlintCheck` / `ktlintFormat` | **Existiert nicht.** Kein ktlint-Plugin in `build.gradle.kts` oder `libs.versions.toml`. |
+| `./gradlew detekt` | **Existiert nicht.** Kein detekt-Plugin, kein `config/detekt/detekt.yml`. |
+| `./gradlew connectedAndroidTest` | Läuft ins Leere — `app/src/androidTest/` enthält **keine** Quellen. |
+| Android SDK | Auf dieser Maschine **nicht installiert**. `./gradlew test` bricht mit `SDK location not found` ab. Vor dem ersten Build: SDK installieren und `local.properties` mit `sdk.dir=...` anlegen (oder `ANDROID_HOME` setzen). |
+
+Diese Punkte sind in `docs/CODING_RULES.md` als Soll beschrieben, aber noch nicht umgesetzt. Nicht so tun, als liefen die Checks — entweder Plugins einrichten oder den Schritt explizit als übersprungen melden.
+
+### Test-Stack
+
+JUnit 5 (`useJUnitPlatform()`), nicht JUnit 4. Verfügbar: `junit-jupiter-api/engine/params`, `mockito-kotlin`, `turbine`, `kotlinx-coroutines-test`, `koin-test-junit4`, `room-testing`.
 
 ## Architecture
 
@@ -29,24 +40,41 @@ Screen (Stateless @Composable) → observes StateFlow
       Room DAO → SQLite
 ```
 
-Package-Layout unter `com.boltmind.app/`:
+Package-Layout unter `com.boltmind.app/` (✅ = existiert, ⬜ = geplant):
 
 ```
-di/                     # Koin Module
-data/local/             # Room Database, DAOs
-data/model/             # Room Entities
-data/repository/        # Repositories
-feature/uebersicht/     # F-001: Vorgangs-Übersicht
-feature/neuervorgang/   # F-002: Vorgang anlegen
-feature/demontage/      # F-003: Demontage-Flow
-feature/montage/        # F-004: Montage-Flow
-service/zeiterfassung/  # F-005: Timer-Service
-ui/navigation/          # NavHost
-ui/theme/               # Material3 Theme
+di/                     ✅ AppModule.kt (Koin)
+data/local/             ✅ BoltMindDatabase, Converters, ReparaturvorgangDao, SchrittDao
+                        ⬜ SchrittFotoDao — Zielmodell F-003
+data/model/             ✅ Reparaturvorgang, Schritt, SchrittTyp, VorgangStatus,
+                           ReparaturvorgangMitAnzahl (@Embedded Projection)
+                        ⬜ SchrittFoto — Zielmodell F-003; SchrittTyp entfällt dabei
+data/repository/        ✅ ReparaturRepository
+data/foto/              ✅ FotoManager — Filesystem-Handling, temp→permanent, EXIF-Stripping
+feature/uebersicht/     ✅ F-001
+feature/neuervorgang/   ✅ F-002
+feature/demontage/      ✅ F-003 (Screen + ArbeitsphaseView, DemontageDialog, PreviewView)
+feature/montage/        ⬜ F-004 — Route existiert, zeigt nur "kommt in F-004"
+service/zeiterfassung/  ⬜ F-005 — nichts implementiert (kein ZeitMessung-Entity/DAO/Service)
+ui/navigation/          ✅ BoltMindNavHost + BoltMindRoutes
+ui/schrittbrowser/      ⬜ F-006 — SchrittBrowser, SchrittBrowserState,
+                           SchrittThumbnailLeiste, SchrittFotoKarussell
+ui/theme/               ✅ Color, Dimensions, Shape, Theme, Type (Dark-only "Titanium Forge")
+ui/components/          ✅ BoltMindButton/Card/Dialog/TopBar, DebounceClick, FotoPreview,
+                           PremiumEffects, SchrittNummer, StatusBadge
 ```
 
 Jedes Feature-Package enthält: `*Screen.kt`, `*ViewModel.kt`, `*UiState.kt`.
 Service-Packages enthalten: `*Service.kt`, `*Dao.kt`, Entity.
+`ui/schrittbrowser/` (F-006) ist bewusst **kein** Feature-Package: geteilte, zustandslose Compose-Komponente ohne ViewModel, UiState oder DB-Zugriff — der Consumer liefert den State und reagiert auf Callbacks.
+
+### Room-Datenbank
+
+DB-Name `boltmind.db`, aktuell **Version 2** mit `MIGRATION_1_2` (Umbenennung `reihenfolge`→`schrittNummer`, `fotoPfad`→`bauteilFotoPfad`, neue Felder `typ`/`ablageortFotoPfad`). Schemas werden nach `app/schemas/` exportiert (`1.json`, `2.json`) — bei Entity-Änderungen **Migration schreiben**, kein `fallbackToDestructiveMigration`.
+
+**Zielzustand ist Version 3** (spezifiziert in `docs/specs/F-003-demontage/README.md`): neue Tabelle `schritt_foto`, `schritt` verliert `typ`, `bauteilFotoPfad` und `ablageortFotoPfad`. `MIGRATION_2_3` ist noch nicht geschrieben, `3.json` noch nicht exportiert.
+
+`Instant` wird via `Converters` als Epoch-Millis persistiert.
 
 ## Domain-Sprache (DDD)
 
@@ -55,19 +83,83 @@ Domain-Begriffe auf **Deutsch**, technische Begriffe auf **Englisch**:
 | Domain (DE) | Bedeutung | Beispiel-Code |
 |---|---|---|
 | Reparaturvorgang | Repair job | `Reparaturvorgang.kt`, `ReparaturRepository` |
-| Schritt | Disassembly step | `Schritt.kt`, `SchrittDao` |
-| SchrittTyp | Step type (AUSGEBAUT/AM_FAHRZEUG) | `schrittTyp: SchrittTyp` |
-| Bauteil-Foto | Component photo (before removal) | `bauteilFotoPfad: String` |
-| Ablageort-Foto | Storage location photo | `ablageortFotoPfad: String?` |
+| Schritt | Disassembly step, hält N Fotos | `Schritt.kt`, `SchrittDao` |
+| SchrittFoto | Ein einzelnes Foto eines Schritts (0..n), mit Reihenfolge und Labeln | `SchrittFoto.kt`, `SchrittFotoDao` |
+| Foto-Label | Bauteil / Übersicht / Ablageort — unabhängig, kombinierbar, Default Bauteil | `istBauteil`, `istUebersicht`, `istAblageort` |
+| Ablageort | Physischer Ablageort des ausgebauten Teils — ein **Foto-Label**, kein eigener Schritt und kein Schritt-Typ | `istAblageort: Boolean` |
 | Fahrzeugfoto | Vehicle photo | `fahrzeugFotoPfad: String` |
 | Auftragsnummer | Order number | `auftragsnummer: String` |
 | ZeitMessung | Time measurement | `ZeitMessung.kt`, `ZeitMessungDao` |
 
-Funktionsnamen für Domain-Events ebenfalls Deutsch: `onFotoAufgenommen()`, `onAblageortBestaetigt()`.
+Funktionsnamen für Domain-Events ebenfalls Deutsch: `onFotoAufgenommen()`, `onLabelGeaendert()`.
+
+**Nicht mehr gültig:** `SchrittTyp` (AUSGEBAUT/AM_FAHRZEUG), `bauteilFotoPfad`, `ablageortFotoPfad` und feste Foto-Slots am Schritt. Sie entfallen ersatzlos (F-003 README, F-004 README, `governance.md`). Der Code hält sie noch — siehe Implementierungsstand, nicht als Vorbild verwenden.
 
 ## Spec-driven Development
 
-Feature-Specs in `docs/specs/F-XXX-name/` (Ordnerstruktur mit README.md + Detail-Specs) sind Source of Truth. Projektweite Regeln stehen in `docs/specs/governance.md`. Issues referenzieren Specs via `[F-XXX]` im Titel. Immer Spec lesen bevor ein Feature implementiert wird.
+### Die Kette: Spec → Issue → Test → Code
+
+```
+docs/specs/F-XXX-name/           Feature-Spec = Source of Truth
+  README.md                      Intention, Problem, Lösung, Abhängigkeiten (stabil)
+  <feature>.md | views/*.md      User Stories US-XXX.N + Given/When/Then-Akzeptanzkriterien
+  workflow.md                    (nur komplexe Features) State Machine, Transitions
+        ↓
+GitHub Issue                     Titel: "[F-XXX] Beschreibung (US-XXX.N)", Body = Story + AKs (Copy),
+                                 Label = Feature (z.B. F-001), Milestone = Feature-Phase
+        ↓
+Test                             1 User Story = 1 @Nested inner class `US-XXX_Y ...`
+                                 1 Akzeptanzkriterium = 1 @Test (Name aus dem Then)
+        ↓
+Code                             Erst nach RED. Siehe TDD-Workflow unten.
+```
+
+**Regeln aus `docs/SpecBestPractices.md`:**
+- Einzeldatei wenn Feature ≤1 View, kein komplexer Workflow, <200 Zeilen. Sonst Ordner.
+- Jede Spec-Datei hat **einen** Änderungsgrund (View-Spec / Workflow-Spec / Service-Spec / Komponenten-Spec / README).
+- View-Specs bündeln UI **und** DB-Interaktion derselben View — sie ändern sich gemeinsam.
+- Service-Features (F-005) und gemeinsame Komponenten-Module (F-006) kennen ihre Consumer nicht. Die Consumer beschreiben die Integration in ihrer eigenen Spec. Abhängigkeitsrichtung immer Consumer → Modul.
+- Offene Punkte werden explizit mit `[OFFEN]` markiert und vor der Implementierung geklärt.
+
+### Issue-Tracker (github.com/KuestenFlunder/BoltMind)
+
+Issues via `gh issue list`. Ein Issue ist eine **Vertical Slice**: es geht durch alle Schichten (Datenschicht → ViewModel → UI → Tests) und liefert für sich Nutzerwert. Milestones bündeln Scheiben zu Liefer-Wellen:
+
+```
+R1: Foto-Modell              Fundament — SchrittFoto, Label, System-Kamera
+R2: Schritt-Browser          F-006 als gemeinsames Modul, freie Navigation
+R3: Montage und Archiv       Montage-Flow, Archiv-Detailansicht
+R4: Zeiterfassung end-to-end F-005 inklusive Consumer
+```
+
+**Nicht mehr verwenden:** die früheren Schichten-Milestones `F-XXX-A/B/C` (Datenschicht / ViewModel / UI). Sie sind geschlossen. Eine Datenschicht ohne Oberfläche ist nicht abnehmbar, und die Issues einer Schicht altern gemeinsam, wenn sich die Spec ändert — genau das ist bei den F-004-Issues passiert.
+
+**Titel-Konvention:** `[F-XXX] Beschreibung (US-XXX.N)`. Ausnahmen: die frühen F-001/F-002-Issues (#13–#20) nutzen noch `[US-XXX.N] Titel` (Altbestand), und Arbeit ohne besitzende User Story trägt `[Governance]` — siehe unten.
+
+**Issue-Body-Struktur:** `## Kontext` → `## Spec-Referenz` (Datei + **Abschnittsüberschrift**, keine Zeilennummern — die rotten) → `## Aufgaben` (Checkliste) → `## Akzeptanzkriterien`. Bei Abhängigkeiten zusätzlich `## Blockiert von` / `## Entblockt`.
+
+**Labels:** `F-001` … `F-006`, `spec`, `feature`, `infra`, `bug`, `enhancement` + GitHub-Defaults. Jedes Feature hat ein eigenes Label; Issues ohne Feature-Label sind ein Versehen.
+
+### `[Governance]`-Issues
+
+Manche Arbeit folgt aus `governance.md` oder `docs/CODING_RULES.md` statt aus einer User Story — Design-Token, Test-Infrastruktur, projektweite Invarianten. Eine US-Nummer zu erfinden wäre unehrlich, weil der Reviewer das Kriterium in keiner Spec fände.
+
+Solche Issues tragen `[Governance]` ohne US-Suffix, das Label `infra` und alle berührten Feature-Label. Sie dürfen den Nutzerwert-Test nur überspringen, wenn **alle drei** gelten: mindestens zwei Scheiben brauchen sie, sie sind allein verifizierbar (ein Test oder Gradle-Task wird grün), und der Body nennt unter `## Entblockt` die abhängigen Scheiben namentlich. Sonst gehört die Arbeit in die eine Scheibe, die sie braucht.
+
+### Produktentscheidungen, die älteren Ständen vorgehen
+
+Diese Punkte wurden nach mehreren Spec-Überarbeitungen entschieden. Wenn ein älterer Text, ein Issue-Kommentar oder eine Erinnerung etwas anderes sagt, gilt das hier:
+
+- **Ablageort ist ein Foto-Label, kein eigener Schritt.** Ein Schritt hält N Fotos (`SchrittFoto`), jedes mit den drei kombinierbaren Flags Bauteil / Übersicht / Ablageort, Default Bauteil. `SchrittTyp` ist ersatzlos gestrichen.
+- **Schrittnummer und Fortschritt sind zwei verschiedene Dinge.** „Schritt 12" ist immer die Demontage-Nummer und wird nie umnummeriert — sie ist die Korrelation zum physischen Ablageort. Der Fortschritt heißt getrennt davon „3 von 15 eingebaut". Formulierungen wie „Schritt 5 von 15" vermischen beides und sind verboten.
+- **F-006 besitzt die Schritt-Navigation vollständig** — Thumbnail-Sprung *und* Vor/Zurück. F-001, F-003 und F-004 verweisen darauf, statt eigene Bedienelemente zu spezifizieren. Einen Sprung-Dialog mit Nummerneingabe gibt es nicht.
+- **Horizontales Wischen** im Bildbereich wechselt das **Foto innerhalb des Schritts** (Karussell), nie den Schritt.
+- **Label sind nur in der Demontage änderbar.** F-004 und das Archiv zeigen sie, ändern sie aber nicht.
+- **Abschluss nur über den Abschluss-Screen.** Ist der letzte Schritt abgehakt, erscheint „Zusammenbau abgeschlossen!" mit „Archivieren"-Button. Back führt zum letzten Schritt zurück, **ohne** zu archivieren. Der „Weiter"-Button wird nicht zum Abschlussbutton — Archivieren nimmt den Vorgang aus der aktiven Liste und braucht mit Handschuhen eine Bestätigung.
+- **Häkchen zurücknehmen nur mit Warndialog.** Bei Abbruch bleibt die Markierung.
+- **Wiederholen löscht erst nach Erfolg.** Erst die Kamera starten, das alte Foto und seine Datei erst nach bestätigter Neuaufnahme löschen. Ein Kamera-Abbruch darf nie ein vorhandenes Foto vernichten.
+
+**Warnung aus der Projekthistorie:** Die zwölf F-004-Issues #64–#75 wurden 21 Minuten vor dem Merge der überarbeiteten `montage.md` erstellt und beschrieben monatelang einen Stand, den es nicht mehr gab (Fortschrittsbalken, Numpad-Sprung, Perlenkette). Sie sind inzwischen geschlossen und durch #83–#85 ersetzt. Lehre: **Spec ist Source of Truth, nicht der Issue-Text.** Weicht ein Issue von der Spec ab, erst das Issue korrigieren.
 
 ## Pflichtlektüre vor Code-Änderungen
 
@@ -77,15 +169,67 @@ Feature-Specs in `docs/specs/F-XXX-name/` (Ordnerstruktur mit README.md + Detail
 3. `docs/specs/F-XXX-name/README.md` — Feature-Intention und Abhängigkeiten
 4. `docs/specs/F-XXX-name/*.md` — Detail-Specs (User Stories, Workflow, Views)
 
+## Implementierungsstand (Stand 2026-07-26, main @ d982b63)
+
+| Feature | Stand | Details |
+|---|---|---|
+| **F-001** Übersicht | ✅ weitgehend | Offen-/Archiv-Tabs, Vorgangsliste mit Foto+Schrittzahl+Datum, Auswahl-Dialog (0 Schritte → direkt Demontage), SwipeToDismiss + Bestätigungsdialog, FAB. **Lücke:** US-001.5 letztes AK — die Nur-Lese-Detailansicht für archivierte Vorgänge fehlt (braucht F-006). **Abweichung:** `UebersichtViewModel.formatiereGesamtdauer(schritte)` rechnet die Gesamtdauer aus `Schritt.gestartetAm`/`abgeschlossenAm`. Das sind Workflow-Timestamps, keine Zeitmessung (Governance: keine Dual-Purpose-Felder). Quelle ist `zeit_messung` aus F-005; solange F-005 fehlt, gibt es keine belastbare Dauer. |
+| **F-002** Vorgang anlegen | ⚠️ läuft, weicht ab | Foto-first, Formular mit Pflicht-Auftragsnummer, Bild wiederholen, Back verwirft das Foto. **Aber:** die Kamera läuft über CameraX mit `CAMERA`-Permission, nicht über die System-Kamera — siehe „Kamera & Fotos". Umstellung ist beschlossen, aber nicht umgesetzt. |
+| **F-003** Demontage | ⚠️ läuft, aber altes Modell | Implementiert ist die alte State Machine `PREVIEW_BAUTEIL → ARBEITSPHASE → DIALOG → PREVIEW_ABLAGEORT` mit `PreviewView`/`ArbeitsphaseView`/`DemontageDialog`, Kamera-Autostart per `LaunchedEffect`, Sofort-Save je Transition, Unterbrechungs-Fortsetzung über `findUnabgeschlossenenSchritt`, `BackHandler`-Blockade (US-003.6). **Die Spec beschreibt inzwischen eine andere Lösung:** eine einzige Schritt-Ansicht, N Fotos je Schritt (`schritt_foto`), Foto-Label statt `SchrittTyp`, keine app-eigene Foto-Bestätigung. `SchrittTyp`, `bauteilFotoPfad`, `ablageortFotoPfad` und DB-Version 2 bestehen im Code weiter; `SchrittFoto`, `SchrittFotoDao` und `MIGRATION_2_3` fehlen. **Lücke:** keine Timer-Anbindung (F-005). |
+| **F-004** Montage | ⬜ nicht implementiert | Route `montage/{vorgangId}` zeigt Platzhaltertext. `Schritt.eingebautBeiMontage` und `SchrittDao.beobachteSchritteAbsteigend` existieren bereits. Issues #83–#85 in R3. Braucht F-006. |
+| **F-005** Zeiterfassung | ⬜ nicht implementiert | Kein `ZeitMessung`-Entity, kein `ZeitMessungDao`, kein `ZeiterfassungService`. Spec (Interface + Entity + Lifecycle) ist fertig. **Keine Issues angelegt.** |
+| **F-006** Schritt-Browser | ⬜ nicht implementiert | Kein `ui/schrittbrowser/`-Package. Spec (Interface, Modi, User Stories) ist fertig. Blockiert die Nur-Lese-Detailansicht in F-001, den kompletten F-004-Flow und die neue Schritt-Ansicht in F-003. **Keine Issues angelegt.** |
+
+**Tests:** 7 Unit-Test-Klassen, ~2500 LOC, alle mit `@Nested inner class` je User Story (US-001.1–.5, US-002.1–.3, US-003.1–.5) plus `ReparaturRepositoryTest`, `FotoManagerTest`, `DebounceClickTest`, `FotoPreviewLogicTest`. Instrumented Tests: keine.
+
+**Issue-Historie:** Sprint 1–5 (#1–#20) = F-001/F-002 + Infrastruktur. #34–#51 = F-003 im alten Schichtenschnitt. #53–#61 = Design-System („Titanium Forge"). #64–#75 = F-004, geschlossen und durch Vertical Slices ersetzt. Ab #76 = Vertical Slices in den Wellen R1–R4.
+
+**Nächste sinnvolle Schritte:** (1) F-006 Schritt-Browser bauen — er blockiert F-001-Archivansicht, F-003-Neubau und F-004 komplett. (2) F-003 auf das neue Datenmodell ziehen (`SchrittFoto`, `SchrittFotoDao`, `MIGRATION_2_3` + `3.json`, Migrations-Test). (3) F-004-Issues gegen die heutige `montage.md` nachziehen. (4) F-005 implementieren — blockiert die Dauer-Anzeige im F-001-Archiv, Spec ist sauber, aber es gibt noch keine Issues.
+
+### Veraltete Doku
+
+`claudedocs/Structure.md` stammt vom 2026-02-07 und behauptet „5 Kotlin-Dateien, 0 Entities, 0 Tests". Das ist überholt — nicht als Referenz verwenden. Gültig sind `docs/architecture.md`, `docs/CODING_RULES.md` und die Specs.
+
 ## Coding Conventions
 
-- **DI**: Koin (Module in `di/`)
+- **DI**: Koin (Module in `di/`). ViewModels via `koinViewModel()`, Nav-Argumente via `SavedStateHandle` (siehe `DemontageViewModel`).
 - **State**: `MutableStateFlow<UiState>` im ViewModel, Screen erhält State + Callbacks
 - **Persistence**: Room DB für Metadaten, Filesystem für Fotos. Sofort-Save bei jeder Aktion
 - **Strings**: Alle UI-Strings in `res/values/strings.xml`, keine Hardcoded-Strings
 - **Coroutines**: `viewModelScope` verwenden, kein `GlobalScope`
 - **DB-Zugriffe**: Immer asynchron (suspend functions)
 - **Compose**: State Hoisting, `@Preview` für jeden Screen
+
+### Kamera & Fotos
+
+**Zielzustand (in `docs/specs/governance.md` verankert, gilt projektweit ohne Ausnahme):**
+
+- Ausschließlich die **System-Kamera** via `ActivityResultContracts.TakePicture()` + `FileProvider`. Kein CameraX, keine app-eigene Kameraansicht.
+- **Keine `CAMERA`-Permission** im Manifest — die System-Kamera-App verwaltet ihre Berechtigung selbst.
+- **Keine app-eigene Foto-Bestätigung.** Die System-Kamera bestätigt selbst; danach hängt das Foto direkt am Kontext und wird sofort persistiert. Kein zusätzlicher Preview-Screen mit „Bestätigen"/„Wiederholen".
+- „Wiederholen" existiert nur als Aktion **am bereits aufgenommenen Foto**: Foto löschen, Kamera erneut starten.
+- **Kein `photos/temp/` mehr — projektweit, auch nicht in F-002.** Die System-Kamera schreibt direkt in die Zieldatei unter `photos/`. Bei Kamera-Abbruch oder verworfenem Anlage-Flow wird die Datei gelöscht.
+- **Cleanup-Regel (governance.md):** beim App-Start werden Dateien in `photos/` gelöscht, auf die keine DB-Zeile verweist — geprüft gegen `SchrittFoto.pfad` **und** `Reparaturvorgang.fahrzeugFotoPfad`.
+- Foto-Qualität ist bei einer fremden Kamera-App **nicht steuerbar**: ca. 2–3 MB sind ein Erwartungswert, keine erzwingbare Vorgabe. Die App übernimmt die gelieferte Datei wie sie ist.
+
+**Ist-Zustand im Code — weicht ab:**
+
+| | F-002 Anlage | F-003 Demontage |
+|---|---|---|
+| Implementierung | **CameraX**, app-eigene Kameraansicht (`NeuerVorgangScreen.kt`) | System-Kamera, `ActivityResultContracts.TakePicture()` + `FileProvider` |
+| `CAMERA`-Permission | wird zur Laufzeit abgefragt, steht im Manifest | nicht nötig |
+| Nach dem Auslösen | Foto direkt ins Formular, „Bild wiederholen" | System-Bestätigung, **dann nochmal** App-Bestätigen/Wiederholen |
+
+`architecture.md` und `F-002/anlegen.md` kennzeichnen diese Abweichung inzwischen korrekt als Ist-Zustand. Umzustellen sind: CameraX und `CAMERA`-Permission raus (F-002), app-eigene Foto-Bestätigung raus (F-003).
+
+`FotoManager` kapselt das Dateihandling und hängt noch am alten Zyklus:
+- `photos/temp/` = unbestätigte Aufnahmen, wird bei App-Start via `BoltMindApplication.onCreate()` geleert — **entfällt im Zielzustand**
+- `photos/` = Zielordner, aktuell per `renameTo()` aus `temp/` befüllt
+- EXIF-Stripping (GPS + Zeitstempel), best-effort — bleibt, wandert an die Übernahme der Datei
+
+### UI-Theme
+
+Dark-only Design-System („Titanium Forge", Orange `#FF741F` auf Schwarz). Eigene Komponenten in `ui/components/` statt roher Material3-Widgets verwenden — insbesondere `BoltMindButton` (enthält die 300ms-Debounce aus der Governance) und `SchrittNummer`. Abstände/Touch-Targets kommen aus `ui/theme/Dimensions.kt`, nicht als Magic Numbers.
 
 ## TDD Workflow (verbindlich)
 
@@ -95,8 +239,10 @@ TDD ist keine Empfehlung, sondern Pflicht bei JEDER Code-Änderung (Feature, Bug
 ```
 1. RED:      Test schreiben/anpassen → ./gradlew test (muss fehlschlagen)
 2. GREEN:    Implementieren          → ./gradlew test (muss grün sein)
-3. REFACTOR: Aufräumen               → ./gradlew test + ktlintCheck + detekt (grün)
+3. REFACTOR: Aufräumen               → ./gradlew test (grün bleiben)
 ```
+
+Der Zyklus nennt bewusst nur real existierende Gradle-Tasks. `ktlintCheck`, `detekt` und `connectedAndroidTest` sind in `docs/CODING_RULES.md` als offene Werkzeug-Lücke dokumentiert, nicht als Pflichtschritt. Nie behaupten, sie seien gelaufen.
 
 **Verboten:** Code ohne vorherigen Test schreiben. Tests deaktivieren/löschen um Build grün zu bekommen.
 
@@ -106,19 +252,33 @@ TDD ist keine Empfehlung, sondern Pflicht bei JEDER Code-Änderung (Feature, Bug
 
 Branch-Naming: `feature/F-XXX/kurze-beschreibung`
 Commit-Prefix: `[F-XXX] Beschreibung`
+Remote: `github.com/KuestenFlunder/BoltMind`, Default-Branch `main`, Merge über PRs.
+
+CI: `.github/workflows/claude.yml` (@claude-Mentions) und `claude-code-review.yml` (automatischer Review bei jedem PR). **Keine** Build-/Test-Pipeline in CI — Tests laufen nur lokal.
 
 ## Key Documentation
 
-- `docs/architecture.md` — Arc42-light Architektur-Übersicht
-- `docs/CODING_RULES.md` — Vollständige Coding-Konventionen
-- `docs/specs/governance.md` — Projektweite Regeln (Sofort-Save, DDD, Service-Architektur)
-- `docs/specs/SpecBestPractices.md` — Spec-Schreibregeln und Ordner-Struktur
-- `docs/specs/F-XXX-name/` — Feature-Spezifikationen als Ordner (F-001 bis F-005)
+- `docs/architecture.md` — Arc42-light Architektur-Übersicht (Vision, Domäne, Quality Goals, MVP-Abgrenzung)
+- `docs/CODING_RULES.md` — Vollständige Coding-Konventionen und Test-Struktur
+- `docs/specs/governance.md` — Projektweite Regeln (Sofort-Save, Debounce, Foto-Handling, DDD, Service-Architektur)
+- `docs/SpecBestPractices.md` — Spec-Schreibregeln, INVEST, Ordner-Struktur (liegt unter `docs/`, **nicht** in `docs/specs/`)
+- `docs/specs/F-XXX-name/` — Feature-Spezifikationen als Ordner (F-001 bis F-006)
+- `docs/specs/F-006-schritt-browser/` — gemeinsames UI-Modul (Thumbnail-Leiste, Foto-Karussell, Vollbild, Label-Checkboxen, Schritt-Navigation), genutzt von F-001, F-003 und F-004. Kein Service, kein eigenes ViewModel.
+
+### Quality Goals (Priorität absteigend)
+
+1. **Bedienbarkeit unter Werkstatt-Bedingungen** — Handschuhe, ölige Hände, Arbeit im Stehen. Große Touch-Targets (verbindliche Mindestmaße in `docs/specs/governance.md`), minimale Interaktionen, 300ms-Debounce global.
+2. **Zuverlässigkeit** — Sofort-Save, kein Datenverlust bei Unterbrechung. Unterbrechungen sind der Normalfall.
+3. **Performance** — Kamera sofort, Schrittübergänge ohne Wartezeit, kein Spinner beim Listenaufbau.
+
+Bei Design-Entscheidungen in dieser Reihenfolge abwägen.
 
 ## Verbotene Patterns
 
 - Business-Logik in Composables
-- ViewModel > 200 LOC
+- ViewModel > 200 LOC (aktuell: Demontage 190, Uebersicht 170, NeuerVorgang 80 — Demontage ist nah am Limit, bei Erweiterung aufteilen)
 - Synchrone DB-Calls auf Main-Thread
 - Wildcard-Imports
 - `GlobalScope`
+- Dual-Purpose-DB-Felder (ein Feld für Workflow *und* Timer) → eigene Tabelle
+- `fallbackToDestructiveMigration` — Room-Migrationen werden von Hand geschrieben

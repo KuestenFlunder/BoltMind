@@ -29,10 +29,13 @@ com.boltmind.app/
 │   │   ├── BoltMindDatabase.kt      # Room Database
 │   │   ├── ReparaturvorgangDao.kt
 │   │   ├── SchrittDao.kt
+│   │   ├── SchrittFotoDao.kt        # Fotos eines Schritts (F-003)
 │   │   └── ZeitMessungDao.kt        # Timer-Service DAO
 │   ├── model/
 │   │   ├── Reparaturvorgang.kt      # Room Entity
-│   │   ├── Schritt.kt              # Room Entity (mit SchrittTyp)
+│   │   ├── Schritt.kt              # Room Entity (ohne Typ, hält keine Foto-Pfade)
+│   │   ├── SchrittFoto.kt          # Room Entity (0..n je Schritt, drei Label-Flags)
+│   │   ├── SchrittMitFotos.kt      # Room @Relation (Schritt + List<SchrittFoto>)
 │   │   └── ZeitMessung.kt          # Room Entity (Timer-Service)
 │   └── repository/
 │       └── ReparaturRepository.kt
@@ -55,6 +58,11 @@ com.boltmind.app/
 ├── ui/
 │   ├── navigation/
 │   │   └── BoltMindNavHost.kt
+│   ├── schrittbrowser/              # F-006: gemeinsames UI-Modul, stateless,
+│   │   ├── SchrittBrowser.kt        #        kein ViewModel, kein UiState
+│   │   ├── SchrittBrowserState.kt
+│   │   ├── SchrittThumbnailLeiste.kt
+│   │   └── SchrittFotoKarussell.kt
 │   └── theme/
 │       ├── Color.kt
 │       ├── Theme.kt
@@ -62,6 +70,10 @@ com.boltmind.app/
 ├── MainActivity.kt
 └── BoltMindApplication.kt
 ```
+
+`ui/schrittbrowser/` ist bewusst **kein** Feature-Package: der Schritt-Browser (F-006) wird von F-001,
+F-003 und F-004 gemeinsam genutzt, ist zustandslos (State Hoisting) und greift weder auf Repository
+noch auf DAO zu. Deshalb dort kein `*ViewModel.kt` und kein `*UiState.kt`.
 
 ## Sprache & Naming (DDD)
 
@@ -73,13 +85,20 @@ Domänen-Klassen und -Felder verwenden die deutsche Fachsprache aus der Architec
 |----------------|-------------------|-----------------|
 | Reparaturvorgang | `Reparaturvorgang` | `RepairJob` |
 | Schritt | `Schritt` | `Step` |
-| SchrittTyp | `schrittTyp: SchrittTyp` | `stepType` |
-| Bauteil-Foto | `bauteilFotoPfad` | `componentPhotoPath` |
-| Ablageort-Foto | `ablageortFotoPfad` | `storageLocationPhotoPath` |
+| SchrittFoto | `SchrittFoto`, `schrittFotoDao` | `StepPhoto` |
+| Foto-Label Bauteil | `istBauteil` | `isComponent` |
+| Foto-Label Übersicht | `istUebersicht` | `isOverview` |
+| Foto-Label Ablageort | `istAblageort` | `isStorageLocation` |
+| Reihenfolge (Foto im Schritt) | `reihenfolge` | `order`, `index` |
 | Fahrzeugfoto | `fahrzeugFotoPfad` | `vehiclePhotoPath` |
 | Auftragsnummer | `auftragsnummer` | `orderNumber` |
 | Beschreibung | `beschreibung` | `description` |
 | ZeitMessung | `ZeitMessung` | `TimeMeasurement` |
+
+**Ein Schritt hält keine Foto-Pfade und keinen Typ.** `bauteilFotoPfad`, `ablageortFotoPfad`, `typ`
+und das Enum `SchrittTyp` entfallen ersatzlos (F-003 README, governance.md). Ein Schritt hat 0..n
+`SchrittFoto`-Zeilen; **der Ablageort ist ein Foto-Label, kein eigener Schritt und kein Schritt-Typ.**
+Die drei Label sind unabhängig und kombinierbar, Default ist `istBauteil = true`.
 
 ### Technische Begriffe: Englisch
 
@@ -97,7 +116,10 @@ data class Reparaturvorgang(
 )
 
 // Technisch: Englisch
-class ReparaturRepository(private val dao: ReparaturvorgangDao)
+class ReparaturRepository(
+    private val vorgangDao: ReparaturvorgangDao,
+    private val schrittDao: SchrittDao
+)
 class DemontageViewModel(private val repository: ReparaturRepository) : ViewModel()
 @Composable fun DemontageScreen(viewModel: DemontageViewModel)
 ```
@@ -122,6 +144,7 @@ val appModule = module {
     single { BoltMindDatabase.create(get()) }
     single { get<BoltMindDatabase>().reparaturvorgangDao() }
     single { get<BoltMindDatabase>().schrittDao() }
+    single { get<BoltMindDatabase>().schrittFotoDao() }
     single { ReparaturRepository(get(), get()) }
     viewModel { UebersichtViewModel(get()) }
     viewModel { DemontageViewModel(get()) }
@@ -142,8 +165,13 @@ Kein Produktivcode ohne vorherigen Test. TDD ist keine Empfehlung, sondern der v
 2. GREEN:  Minimal implementieren bis Test grün
            └─ ./gradlew test  (grün bestätigen)
 3. REFACTOR: Code aufräumen, Tests müssen grün bleiben
-           └─ ./gradlew test + ./gradlew ktlintCheck + ./gradlew detekt
+           └─ ./gradlew test  (grün bestätigen)
 ```
+
+Der Zyklus schreibt bewusst **nur real existierende Gradle-Tasks** vor. `ktlintCheck` und `detekt`
+sind im Projekt nicht eingerichtet und deshalb kein Pflichtschritt — siehe
+[Werkzeug-Lücken](#werkzeug-lücken-stand-2026-07-26). Optional zusätzlich verfügbar und lauffähig:
+`./gradlew lint` (Android Lint) und `./gradlew assembleDebug`.
 
 ### Gilt für ALLE Änderungstypen
 
@@ -181,13 +209,22 @@ app/src/
 │   │   │   └── DemontageViewModelTest.kt
 │   │   └── montage/
 │   │       └── MontageViewModelTest.kt
+│   ├── ui/schrittbrowser/                # F-006 (reine Unit-Tests, kein ViewModel)
+│   │   └── KategorieVonTest.kt           # Kategorie-Ableitung + Index-Grenzfaelle
 │   └── data/repository/
 │       └── ReparaturRepositoryTest.kt
-├── androidTest/java/com/boltmind/app/    # Integration Tests
+├── androidTest/java/com/boltmind/app/    # Integration Tests (Zielstruktur, noch nicht angelegt)
 │   └── data/local/
 │       ├── ReparaturvorgangDaoTest.kt
-│       └── SchrittDaoTest.kt
+│       ├── SchrittDaoTest.kt
+│       ├── SchrittFotoDaoTest.kt
+│       └── MigrationTest.kt              # Room-Migrationen (MigrationTestHelper)
 ```
+
+Verbindlich ist derzeit nur der Zweig unter `app/src/test/`. `app/src/androidTest/` existiert im Repo
+noch nicht — `./gradlew connectedAndroidTest` läuft damit ins Leere und darf nicht als bestandener
+Check gemeldet werden (siehe [Werkzeug-Lücken](#werkzeug-lücken-stand-2026-07-26)). Wer den ersten
+Integration Test schreibt, legt das Verzeichnis nach obiger Struktur an.
 
 ### User-Story-Traceability in Tests
 
@@ -214,12 +251,12 @@ class UebersichtViewModelTest {
         fun `zeigt alle offenen Vorgaenge sortiert nach letzter Bearbeitung`() {
             // Given: offene Vorgänge existieren
             val vorgaenge = listOf(
-                testVorgang(auftragsnummer = "ALT", updatedAt = gestern),
-                testVorgang(auftragsnummer = "NEU", updatedAt = heute)
+                testVorgang(auftragsnummer = "ALT", aktualisiertAm = gestern),
+                testVorgang(auftragsnummer = "NEU", aktualisiertAm = heute)
             )
             // When: Startscreen geladen
             val uiState = viewModel.uiState.value
-            // Then: sortiert nach updatedAt DESC (neueste oben)
+            // Then: sortiert nach aktualisiertAm DESC (neueste oben)
             assertEquals("NEU", uiState.vorgaenge.first().auftragsnummer)
         }
 
@@ -281,15 +318,15 @@ class NeuerVorgangViewModelTest {
     inner class `US-002_1 Fahrzeug fotografieren` {
 
         @Test
-        fun `oeffnet Kamera sofort beim Start des Anlage-Flows`() {
+        fun `oeffnet System-Kamera sofort beim Start des Anlage-Flows`() {
             // Given: Mechaniker hat auf "+" getippt
             // When: Anlage-Flow startet
-            // Then: Kamera öffnet sich im Vollbild
+            // Then: System-Kamera-Intent wird ausgelöst, kein app-eigener Zwischenscreen
         }
 
         @Test
         fun `legt keinen Vorgang an bei Back ohne Foto`() {
-            // Given: Kamera ist geöffnet
+            // Given: System-Kamera ist gestartet
             // When: System-Back-Button gedrückt
             // Then: zurück zur Übersicht, kein Vorgang angelegt
         }
@@ -338,6 +375,7 @@ class NeuerVorgangViewModelTest {
         }
     }
 }
+```
 
 ## Compose Conventions
 
@@ -349,18 +387,22 @@ class DemontageViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(DemontageUiState())
     val uiState: StateFlow<DemontageUiState> = _uiState.asStateFlow()
 
-    fun onBauteilFotoAufgenommen(photoPath: String) { ... }
-    fun onAblageortFotoAufgenommen(photoPath: String) { ... }
-    fun onSchrittTypGewaehlt(typ: SchrittTyp) { ... }
+    fun onFotoAufgenommen(pfad: String) { ... }
+    fun onLabelGeaendert(fotoId: Long, label: FotoLabel, aktiv: Boolean) { ... }
+    fun onWeiteresFoto() { ... }
+    fun onNaechsterSchritt() { ... }
+    fun onBeenden() { ... }
 }
 
 // Screen ist stateless
 @Composable
 fun DemontageScreen(
     uiState: DemontageUiState,
-    onBauteilFotoAufgenommen: (String) -> Unit,
-    onAblageortFotoAufgenommen: (String) -> Unit,
-    onSchrittTypGewaehlt: (SchrittTyp) -> Unit,
+    onFotoAufgenommen: (String) -> Unit,
+    onLabelGeaendert: (Long, FotoLabel, Boolean) -> Unit,
+    onWeiteresFoto: () -> Unit,
+    onNaechsterSchritt: () -> Unit,
+    onBeenden: () -> Unit,
     modifier: Modifier = Modifier
 )
 ```
@@ -377,11 +419,20 @@ fun DemontageScreenPreview() {
         DemontageScreen(
             uiState = DemontageUiState(
                 schrittNummer = 5,
-                bauteilFotoPfad = "/path/to/photo.jpg"
+                fotos = listOf(
+                    SchrittFoto(
+                        pfad = "/path/to/photo.jpg",
+                        reihenfolge = 0,
+                        istBauteil = true
+                    )
+                ),
+                sichtbaresFotoIndex = 0
             ),
-            onBauteilFotoAufgenommen = {},
-            onAblageortFotoAufgenommen = {},
-            onSchrittTypGewaehlt = {}
+            onFotoAufgenommen = {},
+            onLabelGeaendert = { _, _, _ -> },
+            onWeiteresFoto = {},
+            onNaechsterSchritt = {},
+            onBeenden = {}
         )
     }
 }
@@ -389,17 +440,32 @@ fun DemontageScreenPreview() {
 
 ## Code-Qualität
 
-### ktlint
+### Real vorhandene Checks
 
-- Automatische Formatierung nach Kotlin Coding Conventions
-- Läuft als Gradle Task: `./gradlew ktlintCheck`
-- Format: `./gradlew ktlintFormat`
+Nur diese Gradle-Tasks existieren und dürfen in Zyklen, Checklisten oder PR-Beschreibungen
+vorgeschrieben werden:
 
-### detekt
+| Task | Zweck |
+|------|-------|
+| `./gradlew test` | Unit Tests (JVM, JUnit 5) — der verbindliche Check jedes TDD-Schritts |
+| `./gradlew lint` | Android Lint |
+| `./gradlew assembleDebug` | Debug-Build |
 
-- Statische Code-Analyse: Complexity, Code Smells, Style
-- Konfiguration in `config/detekt/detekt.yml`
-- Läuft als Gradle Task: `./gradlew detekt`
+### Werkzeug-Lücken (Stand 2026-07-26)
+
+Formatierung, statische Analyse und Instrumented Tests sind **gewollt, aber nicht eingerichtet**.
+Die folgende Tabelle beschreibt ein Soll, keinen Ist-Zustand:
+
+| Werkzeug | Soll | Ist |
+|----------|------|-----|
+| ktlint | Automatische Formatierung nach Kotlin Coding Conventions, `./gradlew ktlintCheck` / `ktlintFormat` | **Nicht eingerichtet.** Kein ktlint-Plugin in `build.gradle.kts` oder `gradle/libs.versions.toml`; die Tasks existieren nicht. |
+| detekt | Statische Code-Analyse (Complexity, Code Smells, Style), `./gradlew detekt`, Konfiguration in `config/detekt/detekt.yml` | **Nicht eingerichtet.** Kein detekt-Plugin, kein `config/`-Verzeichnis; die Task existiert nicht. |
+| Instrumented Tests | Room-/DAO-Integrationstests unter `app/src/androidTest/`, `./gradlew connectedAndroidTest` | **Leer.** `app/src/androidTest/` existiert nicht; die Task läuft ins Leere. |
+
+Bis zur Einrichtung ist **keiner dieser Punkte eine Anforderung**: Er darf in keinem TDD-Zyklus als
+Pflichtschritt stehen, kein PR darf an ihm scheitern, und keine Zusammenfassung darf behaupten, der
+Check sei gelaufen. Wer ein Werkzeug einführt, aktualisiert diesen Abschnitt **und** den TDD-Zyklus
+in einem Zug — und erst danach gilt es als Pflicht.
 
 ## Git Workflow
 
@@ -432,10 +498,13 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 3. TDD-Zyklus (pro Akzeptanzkriterium wiederholen):
    a) Test schreiben/anpassen → ./gradlew test (rot)
    b) Implementieren          → ./gradlew test (grün)
-   c) Refactoren              → ./gradlew test + ktlintCheck + detekt (grün)
+   c) Refactoren              → ./gradlew test (grün bleiben)
 4. PR erstellen → Review → Merge nach main
 5. Issue schließen
 ```
+
+Kein Schritt dieses Workflows ruft `ktlintCheck`, `detekt` oder `connectedAndroidTest` auf — diese
+Tasks existieren nicht (siehe [Werkzeug-Lücken](#werkzeug-lücken-stand-2026-07-26)).
 
 ## Verbotene Patterns
 

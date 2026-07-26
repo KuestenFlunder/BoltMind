@@ -8,13 +8,16 @@ Jede Spec muss so konkret sein, dass daraus direkt Issues und Tests ableitbar si
 ## Hierarchie
 
 ```
-Feature-Spec (1 Markdown-Datei pro Feature/Workflow)
+Feature-Spec (Ordner pro Feature, siehe "Spec-Ordner-Struktur")
 ├── User Story 1 → Akzeptanzkriterien (Given/When/Then)
 ├── User Story 2 → Akzeptanzkriterien (Given/When/Then)
 └── User Story N → Akzeptanzkriterien (Given/When/Then)
 ```
 
 Jede User Story kann zu einem eigenen Issue werden.
+
+Der Regelfall ist der **Ordner** (README + Detail-Specs), nicht die Einzeldatei — wann welches,
+steht unter [Wann Ordner, wann Einzeldatei?](#wann-ordner-wann-einzeldatei).
 
 ## Spec-Datei Aufbau
 
@@ -82,7 +85,7 @@ Jede Story muss sein:
 
 ### Was NICHT in die Story gehört
 - Technische Implementierungsdetails (gehört in "Technische Hinweise")
-- UI-Framework-Entscheidungen (Compose, CameraX etc.)
+- UI-Framework- und Bibliotheks-Entscheidungen (Compose, Material3, Coil, Room etc.)
 - Datenbank-Felder oder Entity-Definitionen
 
 ## Akzeptanzkriterien Regeln
@@ -116,10 +119,37 @@ Then:  Beschreibt das erwartete, beobachtbare Ergebnis
 ## Von der Spec zum Issue
 
 Jede User Story wird zu einem GitHub Issue:
-- **Issue-Titel**: `[US-XXX.N] Story-Titel`
-- **Issue-Body**: Story-Text + Akzeptanzkriterien aus der Spec (Copy)
+- **Issue-Titel**: `[F-XXX] Beschreibung (US-XXX.N)` — das Feature-Kuerzel steht vorn, die Story-ID
+  in Klammern. Das ist die gelebte und gueltige Konvention (siehe `CLAUDE.md`, `docs/architecture.md`).
+  Die frueheren F-001/F-002-Issues (#13–#20) nutzen noch `[US-XXX.N] Titel` — Altbestand, nicht nachahmen.
+- **Issue-Body**: `## Kontext` → `## Spec-Referenz` (Pfad + Abschnitt) → `## Aufgaben` (Checkliste)
+  → `## Akzeptanzkriterien` (Copy aus der Spec)
 - **Labels**: Feature-Label (z.B. `F-001`)
-- **Milestone**: Sprint-Zuordnung
+- **Milestone**: Liefer-Welle (`R1`, `R2`, …), nicht Feature-Phase
+
+### Zuschnitt: Vertical Slices
+
+Ein Issue geht durch **alle Schichten** — Datenschicht, ViewModel, UI, Tests — und liefert fuer sich
+genommen Nutzerwert. Nicht nach Schichten schneiden.
+
+**Nicht mehr verwenden:** Die frueheren Milestones `F-XXX-A` (Datenschicht), `F-XXX-B` (ViewModel),
+`F-XXX-C` (UI) waren ein Schichtenschnitt. Er hat sich nicht bewaehrt: eine Datenschicht ohne
+Oberflaeche ist nicht abnehmbar, und die Issues einer Schicht altern gemeinsam, wenn sich die Spec
+aendert. Milestones buendeln stattdessen Scheiben zu einer Liefer-Welle.
+
+### Ausnahme: Issues ohne besitzende User Story
+
+Manche Arbeit folgt aus `governance.md` oder `docs/CODING_RULES.md` statt aus einer User Story —
+etwa ein Design-Token, eine Test-Infrastruktur oder eine projektweite Invariante. Eine US-Nummer zu
+erfinden waere unehrlich, weil der Reviewer das Kriterium dann in keiner Spec findet.
+
+Solche Issues tragen das Praefix **`[Governance]`** ohne US-Suffix, das Label `infra` und alle
+beruehrten `F-XXX`-Label. Sie duerfen den Nutzerwert-Test nur ueberspringen, wenn **alle drei**
+Bedingungen gelten:
+
+1. Mindestens **zwei verschiedene Scheiben** brauchen sie — sonst gehoert die Arbeit in die eine Scheibe.
+2. Sie sind **allein verifizierbar**: ein Test oder ein Gradle-Task wird gruen.
+3. Der Body hat einen Abschnitt **`## Entblockt`**, der die abhaengigen Scheiben namentlich nennt.
 
 ## Von der Spec zum Test
 
@@ -132,36 +162,49 @@ Then  öffnet sich direkt der Demontage-Flow
 → Test: `oeffnet Demontage-Flow direkt wenn Vorgang keine Schritte hat`
 ```
 
-## Spec-Ordner-Struktur (Vorschlag C: Feature-First + Service-Features)
+## Spec-Ordner-Struktur (Feature-First + Service-Features + Komponenten-Module)
 
-Komplexe Features werden als Ordner organisiert. Cross-Cutting Concerns werden zu eigenstaendigen Service-Features hochgestuft.
+Komplexe Features werden als Ordner organisiert. Cross-Cutting Concerns werden zu eigenstaendigen Service-Features hochgestuft, gemeinsam genutzte UI-Bausteine zu eigenstaendigen Komponenten-Modulen.
+
+Die Spec-Schreibregeln (diese Datei) liegen **eine Ebene ueber** den Specs, nicht in `docs/specs/`.
 
 ```
-docs/specs/
-├── governance.md                     # Projektweite Regeln (Sofort-Save, Debounce, DDD)
-│
-├── F-001-uebersicht/                 # oder F-001-uebersicht.md (Einzeldatei fuer einfache Features)
-├── F-002-vorgang-anlegen/
-│
-├── F-003-demontage/                  # Komplexes Feature → Ordner
-│   ├── README.md                     # Kontext, Domain-Konzepte, Entity-Definitionen
-│   ├── workflow.md                   # State Machine, Transitions (eigener Aenderungsgrund)
-│   └── views/                        # View-Specs (UI + DB zusammen, gleicher Aenderungsgrund)
-│       ├── preview.md
-│       ├── arbeitsphase.md
-│       └── dialog.md
-│
-├── F-005-zeiterfassung/              # Service-Feature → Ordner
-│   ├── README.md                     # Kontext, Abgrenzung, Consumer-Uebersicht
-│   └── service.md                    # Interface, Entity, Lifecycle
-│
-└── SpecBestPractices.md              # Diese Datei
+docs/
+├── SpecBestPractices.md              # Diese Datei
+└── specs/
+    ├── governance.md                 # Projektweite Regeln (Sofort-Save, Debounce, DDD)
+    │
+    ├── F-001-uebersicht/
+    │   ├── README.md
+    │   └── uebersicht.md
+    ├── F-002-vorgang-anlegen/
+    │   ├── README.md
+    │   └── anlegen.md
+    │
+    ├── F-003-demontage/              # Komplexes Feature → Ordner
+    │   ├── README.md                 # Kontext, Domain-Konzepte, Entity-Definitionen
+    │   ├── workflow.md               # State Machine, Transitions (eigener Aenderungsgrund)
+    │   └── views/                    # View-Specs (UI + DB zusammen, gleicher Aenderungsgrund)
+    │       └── schritt-ansicht.md
+    │
+    ├── F-004-montage/
+    │   ├── README.md
+    │   └── montage.md
+    │
+    ├── F-005-zeiterfassung/          # Service-Feature → Ordner
+    │   ├── README.md                 # Kontext, Abgrenzung, Consumer-Uebersicht
+    │   └── service.md                # Interface, Entity, Lifecycle
+    │
+    └── F-006-schritt-browser/        # Gemeinsames Komponenten-Modul (F-001, F-003, F-004)
+        ├── README.md                 # Kontext, Modi, Consumer-Uebersicht
+        └── browser.md                # User Stories, Interface
 ```
 
 ### Wann Ordner, wann Einzeldatei?
 
 - **Einzeldatei:** Feature hat ≤1 View, keinen komplexen Workflow, passt in <200 Zeilen
 - **Ordner:** Feature hat >1 View ODER einen eigenstaendigen Workflow ODER ist ein Service
+  ODER ist ein gemeinsames Komponenten-Modul
 
 ### Service-Features
 
@@ -172,16 +215,43 @@ Cross-Cutting Concerns die mehrere Features durchschneiden, werden als **eigenst
 3. Die **Consumer** beschreiben in ihren eigenen Specs, wie sie den Service nutzen
 4. Keine Integration-Dateien im Service-Ordner — Abhaengigkeitsrichtung: Consumer → Service
 
+### Gemeinsame Komponenten-Module
+
+Neben Features und Service-Features gibt es einen dritten Typ: die **gemeinsame UI-Komponente**,
+die mehrere Features identisch verwenden (Beispiel: F-006 Schritt-Browser, genutzt von F-001,
+F-003 und F-004). Sie bekommt eine eigene `F-XXX`-Nummer und einen eigenen Ordner. Abgrenzung
+zum Service-Feature:
+
+| | Service-Feature (F-005) | Komponenten-Modul (F-006) |
+|---|---|---|
+| Eigene Tabelle / Datenhaltung | ja | nein |
+| Eigenes ViewModel / Repository-Zugriff | ja | nein — zustandslos, State Hoisting |
+| Kennt seine Consumer | nein | nein |
+| Consumer beschreibt die Integration | ja, in seiner eigenen Spec | ja, in seiner eigenen Spec |
+
+Fuer beide gilt dieselbe Abhaengigkeitsrichtung: **Consumer → Modul**. Das Modul beschreibt nur
+sich selbst (Interface, Modi, Verhalten), nie wo seine Daten herkommen oder angezeigt werden.
+
+### Pfeil-Konvention in Abhaengigkeits-Tabellen
+
+In den `README.md`-Abhaengigkeitstabellen bedeutet der Pfeil immer dasselbe:
+
+- `→ F-XXX` — **dieses** Feature nutzt oder ruft F-XXX
+- `← F-XXX` — F-XXX nutzt oder ruft **dieses** Feature
+
+Dieselbe Beziehung wird in beiden beteiligten Specs mit entgegengesetztem Pfeil notiert.
+
 ## Single Responsibility fuer Specs
 
 Jede Spec-Datei hat **einen Grund sich zu aendern:**
 
 | Spec-Typ | Aenderungsgrund | Beispiel |
 |---|---|---|
-| View-Spec | UI-Elemente oder DB-Interaktion dieser View aendern sich | preview.md: Neuer Button oder neues DB-Feld |
+| View-Spec | UI-Elemente oder DB-Interaktion dieser View aendern sich | schritt-ansicht.md: Neuer Aktions-Button oder neues Label-Flag |
 | Workflow-Spec | Reihenfolge oder Bedingungen der Transitionen aendern sich | workflow.md: Neuer State, andere Transition |
 | Service-Spec | Das Service-Interface oder die Entity aendert sich | service.md: Neuer Parameter, neues Feld |
-| README | Kontext, Domain-Konzepte oder Entity-Definitionen aendern sich | README.md: Neuer SchrittTyp |
+| Komponenten-Spec | Interface, Modi oder Verhalten der geteilten Komponente aendern sich | browser.md: Neuer Modus, neuer Callback |
+| README | Kontext, Domain-Konzepte oder Entity-Definitionen aendern sich | README.md: Neues Foto-Label |
 
 **Faustregel:** Wenn eine Aenderung an der UI auch immer eine Aenderung an der DB-Interaktion nach sich zieht (oder umgekehrt), gehoeren sie in die gleiche Datei (View-Spec). Wenn ein Workflow sich unabhaengig von den Views aendern kann, gehoert er in eine eigene Datei.
 
