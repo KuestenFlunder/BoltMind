@@ -128,10 +128,11 @@ Code                             Erst nach RED. Siehe TDD-Workflow unten.
 Issues via `gh issue list`. Ein Issue ist eine **Vertical Slice**: es geht durch alle Schichten (Datenschicht → ViewModel → UI → Tests) und liefert für sich Nutzerwert. Milestones bündeln Scheiben zu Liefer-Wellen:
 
 ```
-R1: Foto-Modell              Fundament — SchrittFoto, Label, System-Kamera
-R2: Schritt-Browser          F-006 als gemeinsames Modul, freie Navigation
-R3: Montage und Archiv       Montage-Flow, Archiv-Detailansicht
-R4: Zeiterfassung end-to-end F-005 inklusive Consumer
+R0–R4                        Abgeschlossen und geschlossen (Stand 2026-07-27)
+R5: Absicherung              Aufgaben aus #76–#93, die trotz geschlossenem Issue
+                             offen blieben, plus dabei gefundene Defekte
+R6: Offene Entscheidungen    Produktfragen im gebauten Stand — brauchen eine
+                             Antwort, bevor Code entsteht
 ```
 
 **Nicht mehr verwenden:** die früheren Schichten-Milestones `F-XXX-A/B/C` (Datenschicht / ViewModel / UI). Sie sind geschlossen. Eine Datenschicht ohne Oberfläche ist nicht abnehmbar, und die Issues einer Schicht altern gemeinsam, wenn sich die Spec ändert — genau das ist bei den F-004-Issues passiert.
@@ -181,7 +182,7 @@ unterscheidet sich noch.
 | **F-001** Übersicht | ✅ | Tabs, Vorgangsliste mit Dauer im Archiv, Leerzustände, FAB, Auswahl- und Lösch-Sheet. Vier-Stufen-Datumsregel. Archiv-Detailansicht ist der Browser im Modus ARCHIV. |
 | **F-002** Anlage | ✅ | System-Kamera, Pflicht-Auftragsnummer, Beschreibungsfeld, Direktstart in die Demontage. CameraX und `CAMERA`-Permission sind raus. |
 | **F-003** Demontage | ✅ | Browser im Modus DEMONTAGE. Am Emulator durchgeklickt. |
-| **F-004** Montage | ⚠️ gebaut, nicht durchgespielt | Modus MONTAGE plus Abschluss-Screen. Kompiliert und verdrahtet, aber noch nicht mit echten Daten geprüft. |
+| **F-004** Montage | ✅ | Modus MONTAGE plus Abschluss-Screen. Am 2026-07-27 mit gesetzter Datenbank durchgespielt: Wiedereinstieg, Abhaken, Häkchen zurücknehmen, Archivieren. |
 | **F-005** Zeiterfassung | ✅ | `ZeitMessung`, DAO, Service, Timer-Chip. Pausierbar — siehe unten. |
 | **F-006** Schritt-Browser | ✅ | `ui/schrittbrowser/`, zustandslos, drei Betriebsarten. |
 
@@ -189,16 +190,21 @@ unterscheidet sich noch.
 Der Timer ist von Hand pausierbar, und die Montage misst ebenfalls. Beides kippt eine
 zuvor bindende MVP-Antwort in `F-005/service.md`.
 
-**Tests:** 161 JVM-Tests (`./gradlew test`) plus vier Migrationstests in `androidTest`
-(`./gradlew connectedDebugAndroidTest`). Keine Compose-UI-Tests.
+**Tests:** 175 JVM-Tests (`./gradlew test`) plus vier Migrationstests in `androidTest`
+(`./gradlew connectedDebugAndroidTest`). Keine Compose-UI-Tests — siehe #104.
 
 **Emulator:** AVD `boltmind36` (Android 16, arm64). Starten mit
 `emulator -avd boltmind36 -gpu host`, danach `./gradlew installDebug`. Für ein echtes
 Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neuer.
 
-**Offen:** Splash-Video und Original-Stahltextur ließen sich nicht exportieren und sind
-prozedural ersetzt (als TODO markiert). Die Issues #76–#96 sind noch nicht gegen den
-gebauten Stand nachgezogen.
+**Offen:** vierzehn Issues in zwei Milestones. **R5** ist Arbeit ohne Entscheidungsbedarf
+(Compose-UI-Tests, Touch-Target-Nachweis, EXIF-Guard, Platzhalter-Bild, Leucht-Ring,
+F-006-README). **R6** sind acht Produktfragen, die eine Antwort brauchen, bevor Code
+entsteht — darunter das Splash-Video und die zwei Timer-Entscheidungen aus #94.
+
+Der Issue-Nachzug ist erledigt: #76–#96 wurden gegen den gebauten Stand geprüft, fünf
+rückwirkende Issues (#99–#103) schließen die Lücken der Kette Spec → Issue → Test für
+Arbeit, die in PR #98 ohne Issue entstand.
 
 ### Veraltete Doku
 
