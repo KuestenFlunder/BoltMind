@@ -1,42 +1,55 @@
 # Schritt-Browser: Navigation und Foto-Anzeige
 
+Der Browser ist eine zustandslose Compose-Komponente unter `ui/schrittbrowser/`. Drei Screens komponieren ihn (Demontage, Montage, Archiv); er selbst navigiert nicht, laedt nichts und schreibt nichts.
+
 ## Aufbau der Komponente
 
-Der Browser besteht aus vier Bereichen, die immer gemeinsam auftreten:
+Der Browser fuellt den Bildschirm. Das Foto des aktuellen Schritts liegt formatfuellend darunter, alles Uebrige liegt darueber.
 
 ```
-+-------------------------------------------------------+
-|                                                       |
-|            Foto-Karussell (aktueller Schritt)         |
-|            < horizontal wischbar, N Fotos >           |
-|                        [ 2 von 4 ]     [Wiederholen]  |  <- optionale Consumer-Aktion
-|                                                       |     am sichtbaren Foto
-+-------------------------------------------------------+
-|  [x] Bauteil   [ ] Uebersicht   [x] Ablageort         |  <- Label des sichtbaren Fotos;
-+-------------------------------------------------------+     bedienbar nur bearbeitbar
-|  [ 5 ][ 6 ][*7*][ 8 ][ 9 ][10][11]  < scrollbar >     |  <- Thumbnail-Leiste, alle Schritte
-+-------------------------------------------------------+
-|  [ < Zurueck ]                        [ Weiter > ]    |  <- Schritt-Navigation, an den
-+-------------------------------------------------------+     Raendern deaktiviert
++---------------------------------------------------------------+
+|  [ kopfzeile ]                                                 |
+|                                                     +--------+ |
+|                                                     |  +2 ^  | |
+|              Foto-Karussell des aktuellen           | [ 05 ] | |  <- Thumbnail-Leiste,
+|              Schritts, waagerecht wischbar          |[ *06* ]| |     senkrecht am
+|              Tippen oeffnet das Vollbild            | [ 07 ] | |     rechten Rand
+|                                                     |  +6 v  | |
+|  [ ueberLabels ]                                    +--------+ |
+|  [x] BAUTEIL                                                   |  <- Label des sichtbaren
+|  [ ] UEBERSICHT                                                |     Fotos, nur bei Fotos
+|  [x] ABLAGEORT                                                 |
+|  [ unterLabels ]                                  [ bedien-  ] |
+|  ***  FOTO 2/4  <- WISCHEN                        [ kreise   ] |
++---------------------------------------------------------------+
 ```
 
-Die Anordnung der Bereiche zueinander legt der Consumer fest (die Leiste kann oben oder unten stehen). Aktions-Buttons des Flows (z.B. "Weiteres Foto", "Naechster Schritt", "Beenden", "Eingebaut") gehoeren dem Consumer und sind nicht Teil des Browsers.
+Der Browser bringt mit: Karussell, Thumbnail-Leiste, Label-Spalte, Punkt-Indikatoren mit Zaehler und Wisch-Hinweis sowie das Vollbild. Alles Weitere haengt der Consumer in vier Slots ein:
 
-Auch Aktionen **am sichtbaren Foto** (z.B. "Wiederholen" in F-003) gehoeren fachlich dem Consumer. Der Browser stellt dafuer eine Andockstelle bereit, weil nur er weiss, welches Foto gerade sichtbar ist: der Consumer uebergibt Bezeichnung und Callback, der Browser rendert das Element neben dem Karussell und meldet den Tap zusammen mit dem sichtbaren Foto zurueck (US-006.11). Ohne uebergebene Aktion bleibt der Bereich leer.
+| Slot | Ort | Was Consumer dort einhaengen |
+|---|---|---|
+| `kopfzeile` | oben, ganze Breite | Schrittnummer, Modus-Wort, Vorgangszeile, Ausstieg („FEIERABEND" / „✕") |
+| `ueberLabels` | ueber der Label-Spalte | Timer-Kapsel (F-005), Fortschrittsblock der Montage (F-004) |
+| `unterLabels` | unter der Label-Spalte | „AM FAHRZEUG GEBLIEBEN" (F-004), „ARCHIV · NUR LESEN" (F-001) |
+| `bedienkreise` | unten rechts | die Aktionskreise des Flows — **einschliesslich Vor/Zurueck** |
 
-**Wischgeste (verbindlich):** Horizontales Wischen im Bildbereich wechselt das **Foto innerhalb des Schritts**, niemals den Schritt (US-006.4). Der Schritt-Wechsel laeuft ausschliesslich ueber die Thumbnail-Leiste (US-006.2) und Vor/Zurueck (US-006.10).
+Ein nicht befuellter Slot belegt keinen Platz.
 
-**Modi:**
+**Wischgeste (verbindlich):** Waagerechtes Wischen im Bildbereich wechselt das **Foto innerhalb des Schritts**, niemals den Schritt (US-006.4). Den Schritt wechseln nur der Thumbnail-Sprung (US-006.2) und ein vom Consumer eingehaengtes Vor/Zurueck (US-006.10).
 
-| Modus | Consumer | Thumbnail-Leiste + Vor/Zurueck | Karussell | Vollbild | Label am sichtbaren Foto | Label aenderbar | Aktion am Foto | Foto aufnehmen | Schritt-Aktionen |
-|---|---|---|---|---|---|---|---|---|---|
-| bearbeitbar | F-003 Demontage | Ja | Ja | Ja | sichtbar | **Ja** | Ja ("Wiederholen") | ja (Consumer) | ja (Consumer) |
-| lesend-mit-Aktionen | F-004 Montage | Ja | Ja | Ja | sichtbar | Nein | Nein | nein | ja ("Eingebaut", Consumer) |
-| nur-lesen | F-001 Archiv | Ja | Ja | Ja | sichtbar | Nein | Nein | nein | nein |
+### Betriebsarten
 
-Die Spalten "Foto aufnehmen" und "Schritt-Aktionen" beschreiben Consumer-Chrome ausserhalb des Browsers und stehen hier nur zur Einordnung. Der Browser selbst rendert diese Buttons nie.
+Im Code `BrowserBetriebsart`:
 
-**Label werden ausschliesslich in der Demontage gesetzt.** In den beiden lesenden Modi zeigt der Browser die gespeicherten Label an, nimmt aber keine Aenderung entgegen und meldet kein `onLabelGeaendert`.
+| Betriebsart | Consumer | Label des sichtbaren Fotos | Erledigt-Haken in der Leiste | Vor/Zurueck im Slot |
+|---|---|---|---|---|
+| `BEARBEITBAR` | F-003 Demontage | aenderbar (Chips) | nein | keins — der Thumbnail-Sprung ist der Weg |
+| `LESEND_MIT_AKTIONEN` | F-004 Montage | nur sichtbar (Plaketten) | ja | „ZURÜCK" |
+| `NUR_LESEN` | F-001 Archiv | nur sichtbar (Plaketten) | nein | „‹" und „›" |
+
+**Label werden ausschliesslich in der Demontage gesetzt.** In den beiden lesenden Modi zeigt der Browser die gespeicherten Label an, nimmt keine Aenderung entgegen und meldet nichts.
+
+Thumbnail-Leiste, Karussell und Vollbild sind in allen drei Betriebsarten identisch.
 
 ---
 
@@ -45,66 +58,89 @@ Die Spalten "Foto aufnehmen" und "Schritt-Aktionen" beschreiben Consumer-Chrome 
 ### US-006.1: Alle Schritte auf einen Blick sehen
 
 **Als** Mechaniker
-**moechte ich** alle Schritte eines Vorgangs als Bilderleiste sehen
+**moechte ich** die Schritte eines Vorgangs als Bilderleiste am Bildschirmrand sehen
 **damit** ich mich sofort orientieren kann, wo ich gerade bin und was vorher und nachher kam.
 
 #### Akzeptanzkriterien
 
-- **Given** ein Reparaturvorgang mit 15 Schritten ist geoeffnet
-  **When** der Schritt-Browser angezeigt wird
-  **Then** enthaelt die Thumbnail-Leiste 15 Thumbnails in der vom Consumer vorgegebenen Anzeige-Reihenfolge
+- **Given** ein Vorgang mit 15 Schritten ist geoeffnet
+  **When** der Browser angezeigt wird
+  **Then** zeigt die senkrechte Leiste am rechten Rand hoechstens **vier** Kacheln aus der Anzeige-Reihenfolge des Consumers
+
+- **Given** die Hoehe der Leiste reicht nur fuer zwei Kacheln
+  **When** die Leiste dargestellt wird
+  **Then** zeigt sie zwei Kacheln statt vier
+  **And** keine Kachel wird angeschnitten
+
+- **Given** 15 Schritte und der aktuelle steht an Position 7
+  **When** die Leiste dargestellt wird
+  **Then** liegt das Fenster so, dass die aktive Kachel moeglichst mittig steht
+  **And** am Anfang bzw. Ende der Liste rueckt das Fenster an den Rand, statt ueber die Liste hinauszulaufen
+
+- **Given** oberhalb des Fensters liegen 6 Schritte, unterhalb 2
+  **When** die Leiste dargestellt wird
+  **Then** steht ueber der obersten Kachel „+6 ↑" und unter der untersten „+2 ↓"
+
+- **Given** oberhalb des Fensters liegt kein Schritt
+  **When** die Leiste dargestellt wird
+  **Then** erscheint kein oberer Ueberlaufzaehler (unten entsprechend)
 
 - **Given** ein Schritt hat mehrere Fotos
   **When** sein Thumbnail dargestellt wird
-  **Then** zeigt das Thumbnail das **erste** Foto dieses Schritts (niedrigste Reihenfolge)
+  **Then** zeigt es das **erste** Foto (niedrigste `reihenfolge`)
+  **And** rechts unten steht die Gesamtzahl seiner Fotos
 
-- **Given** die Thumbnail-Leiste wird angezeigt
-  **When** ein Thumbnail dargestellt wird
-  **Then** wird die Schrittnummer auf dem Thumbnail mit mindestens 20sp angezeigt
+- **Given** ein Schritt hat genau ein Foto
+  **When** sein Thumbnail dargestellt wird
+  **Then** erscheint keine Anzahl-Plakette
 
-- **Given** Schritt 7 ist der aktuell angezeigte Schritt
+- **Given** Schritt 7 ist der aktuelle
   **When** die Leiste dargestellt wird
-  **Then** ist genau das Thumbnail von Schritt 7 hervorgehoben (groesser dargestellt und mit einem zusaetzlichen Selektionsring) und kein anderes
-  **And** seine Kategorie-Markierung aus US-006.3 bleibt daneben erkennbar
+  **Then** ist seine Kachel 66dp gross, jede andere 54dp
+  **And** um die aktive Kachel laeuft ein atmender oranger Rand (2,6 s je Durchlauf)
+  **And** keine andere Kachel ist hervorgehoben
 
-- **Given** 15 Thumbnails passen nicht gleichzeitig auf den Bildschirm
-  **When** der Mechaniker horizontal ueber die Leiste wischt
-  **Then** scrollt die Leiste, ohne dass der angezeigte Schritt wechselt
+- **Given** eine beliebige Kachel
+  **When** sie dargestellt wird
+  **Then** ist ihre Trefferflaeche mindestens 56dp hoch und breit — unabhaengig von der optischen Groesse (`governance.md`, Abschnitt „Optische Groesse vs. Trefferflaeche")
 
-- **Given** der aktuelle Schritt liegt ausserhalb des sichtbaren Bereichs der Leiste
-  **When** der aktuelle Schritt wechselt
-  **Then** scrollt die Leiste automatisch so, dass das hervorgehobene Thumbnail sichtbar ist
+- **Given** die Betriebsart ist `LESEND_MIT_AKTIONEN` und ein Schritt ist eingebaut
+  **When** sein Thumbnail dargestellt wird
+  **Then** traegt es oben links einen gruenen Haken
+
+- **Given** die Betriebsart ist `BEARBEITBAR` oder `NUR_LESEN`
+  **When** die Leiste dargestellt wird
+  **Then** traegt keine Kachel einen Haken
 
 ---
 
 ### US-006.2: Direkt zu einem beliebigen Schritt springen
 
 **Als** Mechaniker
-**moechte ich** durch Antippen eines Thumbnails direkt zu diesem Schritt springen
-**damit** ich schnell nachschauen kann, ohne mich Schritt fuer Schritt durchzuklicken oder eine Nummer eintippen zu muessen.
+**moechte ich** durch Antippen einer Kachel direkt zu diesem Schritt springen
+**damit** ich schnell nachschauen kann, ohne mich durchzublaettern oder eine Nummer eintippen zu muessen.
+
+Ein Sprung-Dialog mit Nummerneingabe existiert nicht.
 
 #### Akzeptanzkriterien
 
 - **Given** Schritt 3 wird angezeigt
-  **When** der Mechaniker das Thumbnail von Schritt 11 antippt
-  **Then** wird Schritt 11 zum aktuellen Schritt gemeldet
-  **And** das Karussell zeigt das erste Foto von Schritt 11
-  **And** der Browser meldet diesen Reset ueber `onFotoGewaehlt(0)` (bzw. `-1`, wenn Schritt 11 keine Fotos hat)
-  **And** der Consumer uebernimmt den gemeldeten Wert; er setzt das sichtbare Foto **nicht** selbst zurueck
-  **And** das Thumbnail von Schritt 11 ist hervorgehoben
+  **When** der Mechaniker die Kachel von Schritt 11 antippt
+  **Then** meldet der Browser den Index von Schritt 11 ueber `onSchrittGewaehlt`
+  **And** der Browser wechselt den Schritt nicht selbst
 
-- **Given** Schritt 11 wird angezeigt
-  **When** der Mechaniker das Thumbnail von Schritt 11 antippt
-  **Then** bleibt die Ansicht unveraendert (kein Zuruecksetzen des Karussells)
-  **And** es wird kein `onFotoGewaehlt` gemeldet (der Reset gehoert allein zum **Wechsel** des Schritts)
+- **Given** der Consumer hat den Index uebernommen
+  **When** die Ansicht aktualisiert wird
+  **Then** zeigt das Karussell das erste Foto des neuen Schritts
+  **And** die Kachel des neuen Schritts ist hervorgehoben und liegt im Fenster der Leiste
 
 - **Given** ein beliebiger Schritt wird angezeigt
   **When** der Mechaniker zu einem anderen Schritt springt
-  **Then** werden dabei keine Daten veraendert (kein Schritt wird abgeschlossen, abgehakt oder geloescht)
+  **Then** werden keine Daten veraendert (kein Schritt wird abgeschlossen, abgehakt oder geloescht)
 
-- **Given** der Browser laeuft in einem der beiden lesenden Modi
-  **When** der Mechaniker ein Thumbnail antippt
-  **Then** springt die Ansicht genauso zu diesem Schritt (der Sprung ist in allen drei Modi verfuegbar)
+- **Given** eine beliebige Betriebsart
+  **When** der Mechaniker eine Kachel antippt
+  **Then** springt die Ansicht genauso — der Sprung ist in allen drei Betriebsarten verfuegbar
 
 ---
 
@@ -114,49 +150,42 @@ Die Spalten "Foto aufnehmen" und "Schritt-Aktionen" beschreiben Consumer-Chrome 
 **moechte ich** in der Leiste farblich erkennen, welche Schritte ein Foto vom Ablageort haben
 **damit** ich beim Zusammenbau sofort sehe, fuer welche Teile ich einen Ablageplatz suchen muss und welche am Fahrzeug geblieben sind.
 
-#### Die vier Markierungen
+Die Kennzeichnung ist ein **Farbstreifen am unteren Rand der Kachel** — 5dp an der aktiven, 4dp an den uebrigen. Groesse und atmender Rand sind allein der Hervorhebung des aktuellen Schritts vorbehalten (US-006.1); beide Kennzeichnungen sind dadurch gleichzeitig sichtbar.
 
-Ein Thumbnail traegt genau eine Markierung. Sie besteht aus einem **umlaufenden Rahmen** in einer Farbe des Material3-Theme; unterschieden wird ueber Farb-Token und Rahmenstaerke. Andere Mittel (Fuellung, Deckkraft, Groesse) werden dafuer nicht verwendet: Groesse und ein zusaetzlicher, weiter aussen liegender **Selektionsring** sind allein der Hervorhebung des **aktuellen** Schritts vorbehalten (US-006.1). Beide Kennzeichnungen sind damit gleichzeitig sichtbar und koennen nicht verwechselt werden.
+| Kategorie | Bedingung | Streifenfarbe |
+|---|---|---|
+| Ablageort | mindestens ein Foto mit `istAblageort` | `BoltOrange` `#FF7A1A` |
+| Uebersicht | kein Ablageort, aber mindestens ein Foto mit `istUebersicht` | `BoltBlau` `#3B9DFF` |
+| Bauteil | weder Ablageort noch Uebersicht, aber mindestens ein Foto mit `istBauteil` | `BoltGruen` `#24C48A` |
+| ohne | kein Foto, oder an allen Fotos alle drei Label abgewaehlt | `BoltKategorieOhne` `#5A6167` |
 
-| Markierung | Bedingung | Rahmenfarbe (Theme-Token) | Rahmenstaerke |
-|---|---|---|---|
-| Ablageort-Markierung | mindestens ein Foto mit `istAblageort` | `colorScheme.tertiary` | 3dp |
-| Uebersichts-Markierung | kein Ablageort, aber mindestens ein Foto mit `istUebersicht` | `colorScheme.secondary` | 3dp |
-| Bauteil-Markierung | weder Ablageort noch Uebersicht, aber mindestens ein Foto mit `istBauteil` | `colorScheme.primary` | 3dp |
-| neutrale Markierung | kein Foto, oder an allen Fotos alle drei Label abgewaehlt | `colorScheme.outlineVariant` | 1dp |
-
-Die Reihenfolge der Tabelle ist zugleich die Auswerteregel: es gilt die **Prioritaet Ablageort > Uebersicht > Bauteil** (Governance). Die Ableitung ist als reine Funktion `kategorieVon(...)` unter "Technische Hinweise" beschrieben und als Unit-Test pruefbar.
+Die Reihenfolge der Tabelle ist die Auswerteregel: **Ablageort vor Uebersicht vor Bauteil** (Governance).
 
 #### Akzeptanzkriterien
 
-- **Given** ein Schritt hat mindestens ein Foto mit dem Label "Ablageort"
-  **When** sein Thumbnail in der Leiste dargestellt wird
-  **Then** traegt es die Ablageort-Markierung (3dp Rahmen in `colorScheme.tertiary`)
+- **Given** ein Schritt hat mindestens ein Foto mit „Ablageort"
+  **When** seine Kachel dargestellt wird
+  **Then** ist ihr Streifen orange
 
-- **Given** ein Schritt hat kein Foto mit "Ablageort", aber mindestens eines mit "Uebersicht"
-  **When** sein Thumbnail dargestellt wird
-  **Then** traegt es die Uebersichts-Markierung (3dp Rahmen in `colorScheme.secondary`)
+- **Given** ein Schritt hat kein Ablageort-Foto, aber mindestens ein Uebersichtsfoto
+  **When** seine Kachel dargestellt wird
+  **Then** ist ihr Streifen blau
 
-- **Given** ein Schritt hat nur Fotos mit dem Label "Bauteil"
-  **When** sein Thumbnail dargestellt wird
-  **Then** traegt es die Bauteil-Markierung (3dp Rahmen in `colorScheme.primary`)
+- **Given** ein Schritt hat nur Bauteilfotos
+  **When** seine Kachel dargestellt wird
+  **Then** ist ihr Streifen gruen
 
-- **Given** ein Schritt hat Fotos, bei denen alle drei Labels abgewaehlt sind
-  **When** sein Thumbnail dargestellt wird
-  **Then** traegt es die neutrale Markierung (1dp Rahmen in `colorScheme.outlineVariant`, keine Kategorie-Farbe)
+- **Given** ein Schritt hat kein Foto oder an allen Fotos sind alle drei Label abgewaehlt
+  **When** seine Kachel dargestellt wird
+  **Then** ist ihr Streifen grau
 
-- **Given** ein Foto traegt gleichzeitig "Bauteil" und "Ablageort"
-  **When** die Markierung des Thumbnails bestimmt wird
-  **Then** gilt die Ablageort-Markierung (Prioritaet Ablageort > Uebersicht > Bauteil)
+- **Given** ein Foto traegt gleichzeitig „Bauteil" und „Ablageort"
+  **When** die Kategorie des Schritts bestimmt wird
+  **Then** gilt Ablageort
 
-- **Given** der Mechaniker setzt im bearbeitbaren Modus am aktuell sichtbaren Foto das Label "Ablageort"
-  **When** die Aenderung uebernommen ist
-  **Then** wechselt die Markierung des zugehoerigen Thumbnails sofort, ohne dass der Screen neu geladen werden muss
-
-- **Given** ein Schritt ist der aktuell angezeigte Schritt und traegt die Ablageort-Markierung
-  **When** die Leiste dargestellt wird
-  **Then** ist sein Thumbnail zusaetzlich als aktueller Schritt hervorgehoben (US-006.1)
-  **And** die Ablageort-Markierung bleibt daran erkennbar
+- **Given** der Mechaniker setzt in `BEARBEITBAR` am sichtbaren Foto das Label „Ablageort"
+  **When** der Consumer die Aenderung uebernommen hat
+  **Then** wechselt der Streifen der zugehoerigen Kachel sofort, ohne dass der Screen neu geladen wird
 
 ---
 
@@ -166,39 +195,39 @@ Die Reihenfolge der Tabelle ist zugleich die Auswerteregel: es gilt die **Priori
 **moechte ich** die Fotos eines Schritts durch Wischen nacheinander ansehen
 **damit** ich mehrere Perspektiven auf dasselbe Bauteil pruefen kann (Detail, Uebersicht, Ablageort).
 
-**Verbindliche Gestenbelegung:** Die horizontale Wischgeste im Bildbereich ist ausschliesslich mit dem **Foto-Wechsel innerhalb des Schritts** belegt. Ein Schritt-Wechsel per Wischen findet nicht statt — weder am Rand des Karussells noch bei einem Schritt mit nur einem Foto. Consumer duerfen dieselbe Geste im Bildbereich nicht anderweitig belegen.
+**Verbindliche Gestenbelegung:** Die waagerechte Wischgeste im Bildbereich ist ausschliesslich mit dem Foto-Wechsel innerhalb des Schritts belegt — auch am Rand des Karussells und auch bei nur einem Foto. Consumer duerfen sie im Bildbereich nicht anders belegen.
 
 #### Akzeptanzkriterien
 
 - **Given** der aktuelle Schritt hat 4 Fotos
   **When** der Schritt angezeigt wird
-  **Then** zeigt das Karussell das erste Foto gross
-  **And** ein Indikator zeigt "1 von 4"
+  **Then** zeigt das Karussell das erste Foto formatfuellend (beschnitten)
+  **And** unter der Label-Spalte stehen vier Punkte, der erste breit und orange
+  **And** der Zaehler zeigt „FOTO 1/4"
 
 - **Given** das Karussell zeigt Foto 1 von 4
   **When** der Mechaniker nach links wischt
-  **Then** zeigt das Karussell Foto 2
-  **And** der Indikator zeigt "2 von 4"
-  **And** das gewechselte Foto wird als neues sichtbares Foto gemeldet
+  **Then** zeigt es Foto 2
+  **And** der Zaehler zeigt „FOTO 2/4"
+  **And** der Browser meldet den neuen Foto-Index ueber `onFotoGewaehlt`
 
 - **Given** das Karussell zeigt das letzte Foto des Schritts
   **When** der Mechaniker weiter in dieselbe Richtung wischt
-  **Then** bleibt das letzte Foto sichtbar
-  **And** es findet kein Wechsel zum naechsten Schritt statt
-
-- **Given** der aktuelle Schritt hat genau ein Foto
-  **When** der Mechaniker im Karussell wischt
-  **Then** bleibt dieses Foto sichtbar und es wird kein Foto-Wechsel gemeldet
+  **Then** bleibt dieses Foto sichtbar
   **And** der angezeigte Schritt bleibt derselbe
 
-- **Given** der aktuelle Schritt ist nicht der letzte der Anzeige-Reihenfolge und das Karussell zeigt sein letztes Foto
-  **When** der Mechaniker weiter in dieselbe Richtung wischt
-  **Then** wird weder `onSchrittGewaehlt` noch `onNaechsterSchritt` gemeldet (Wischen wechselt nie den Schritt)
+- **Given** der aktuelle Schritt hat mehr als ein Foto und es wurde noch nicht gewischt
+  **When** der Schritt angezeigt wird
+  **Then** steht neben dem Zaehler der pulsierende Hinweis „← WISCHEN"
 
-- **Given** der Schritt hat ein weiteres Foto erhalten und der Consumer gibt dieses als sichtbares Foto vor
-  **When** die Ansicht aktualisiert wird
-  **Then** zeigt das Karussell das neue Foto
-  **And** der Indikator zeigt die erhoehte Gesamtzahl
+- **Given** der Hinweis ist sichtbar
+  **When** der Mechaniker einmal gewischt oder den Schritt gewechselt hat
+  **Then** verschwindet er fuer den Rest der Sitzung
+
+- **Given** der aktuelle Schritt hat genau ein Foto
+  **When** die Ansicht dargestellt wird
+  **Then** erscheint kein Wisch-Hinweis
+  **And** ein Wisch wechselt weder Foto noch Schritt
 
 ---
 
@@ -211,21 +240,31 @@ Die Reihenfolge der Tabelle ist zugleich die Auswerteregel: es gilt die **Priori
 #### Akzeptanzkriterien
 
 - **Given** das Karussell zeigt ein Foto
-  **When** der Mechaniker das Foto antippt
-  **Then** wird das Foto formatfuellend als Vollbild ueber dem Screen angezeigt
+  **When** der Mechaniker es antippt
+  **Then** liegt das Foto **vollstaendig** (nicht beschnitten) ueber dem Screen
+  **And** die Kopfzeile zeigt „SCHRITT 07" und darunter die Label des Fotos als „Bauteil · Ablageort" bzw. „ohne Label"
 
-- **Given** die Vollbild-Anzeige ist geoeffnet
-  **When** der Mechaniker sie schliesst (Schliessen-Element oder Zurueck-Geste)
+- **Given** das Vollbild ist offen
+  **When** der Mechaniker das Schliesskreuz „✕" oben rechts antippt **oder** die Zurueck-Geste ausfuehrt
   **Then** kehrt er zur Schritt-Ansicht zurueck
   **And** dasselbe Foto ist im Karussell weiterhin sichtbar
 
-- **Given** die Vollbild-Anzeige ist geoeffnet
-  **When** sie dargestellt wird
-  **Then** verdecken weder Label-Anzeige, Foto-Aktion, Thumbnail-Leiste noch die Vor-/Zurueck-Bedienelemente das Foto
+- **Given** das Vollbild ist **nicht** offen
+  **When** der Mechaniker die Zurueck-Geste ausfuehrt
+  **Then** greift der Browser nicht ein — die Geste gehoert dem Consumer
 
-- **Given** der Browser laeuft in einem der beiden lesenden Modi
+- **Given** das Vollbild ist offen
+  **When** der Mechaniker waagerecht wischt
+  **Then** wechselt dasselbe Foto wie im Karussell darunter
+  **And** die Punktleiste am unteren Rand folgt
+
+- **Given** das Vollbild ist offen
+  **When** es dargestellt wird
+  **Then** verdecken weder Label-Spalte noch Thumbnail-Leiste noch die Slot-Inhalte des Consumers das Foto
+
+- **Given** eine beliebige Betriebsart
   **When** der Mechaniker ein Foto antippt
-  **Then** oeffnet sich die Vollbild-Anzeige genauso
+  **Then** oeffnet das Vollbild genauso
 
 ---
 
@@ -235,74 +274,60 @@ Die Reihenfolge der Tabelle ist zugleich die Auswerteregel: es gilt die **Priori
 **moechte ich** direkt am angezeigten Foto ankreuzen, was es zeigt
 **damit** ich beim Zusammenbau sofort erkenne, welches Bild mir den Ablageort verraet und welches das Bauteil.
 
-Diese Story gilt **ausschliesslich fuer den bearbeitbaren Modus** (F-003 Demontage). Label werden nur dort gesetzt. Wie die Label in den beiden lesenden Modi dargestellt werden, beschreibt US-006.7.
+Gilt **ausschliesslich** fuer `BEARBEITBAR` (F-003 Demontage).
 
 #### Akzeptanzkriterien
 
-- **Given** der Browser laeuft im bearbeitbaren Modus und das Karussell zeigt ein Foto
-  **When** die Schritt-Ansicht dargestellt wird
-  **Then** sind drei bedienbare Checkboxen sichtbar: "Bauteil", "Uebersicht", "Ablageort"
-  **And** sie zeigen den gespeicherten Zustand genau dieses Fotos
+- **Given** `BEARBEITBAR` und das Karussell zeigt ein Foto
+  **When** die Ansicht dargestellt wird
+  **Then** stehen links unten drei bedienbare Chips untereinander: „BAUTEIL", „ÜBERSICHT", „ABLAGEORT"
+  **And** jeder Chip zeigt den gespeicherten Zustand genau dieses Fotos (Haken und Farbe wenn gesetzt)
 
-- **Given** ein gerade aufgenommenes Foto wird angezeigt
-  **When** die Checkboxen dargestellt werden
-  **Then** ist "Bauteil" angehakt und "Uebersicht" und "Ablageort" sind nicht angehakt
+- **Given** am sichtbaren Foto ist nur „BAUTEIL" gesetzt
+  **When** der Mechaniker „ABLAGEORT" antippt
+  **Then** meldet der Browser `onLabelUmgeschaltet` mit diesem Foto und diesem Label
+  **And** „BAUTEIL" bleibt gesetzt (die drei Label sind frei kombinierbar)
 
-- **Given** am sichtbaren Foto ist nur "Bauteil" angehakt
-  **When** der Mechaniker "Ablageort" antippt
-  **Then** wird die Label-Aenderung sofort gemeldet (Foto, Label, neuer Wert)
-  **And** "Ablageort" erscheint angehakt
-  **And** "Bauteil" bleibt angehakt (Mehrfachauswahl ist erlaubt)
-
-- **Given** am sichtbaren Foto sind alle drei Labels angehakt
+- **Given** am sichtbaren Foto sind alle drei Label gesetzt
   **When** der Mechaniker alle drei abwaehlt
   **Then** wird jede Abwahl gemeldet
-  **And** es erscheint keine Fehlermeldung (kein Label ist ein gueltiger Zustand)
+  **And** es erscheint keine Fehlermeldung — kein Label ist ein gueltiger Zustand
 
 - **Given** der Mechaniker aendert ein Label
   **When** die Aenderung erfolgt ist
-  **Then** gibt es keine Sammel-Bestaetigung und keinen "Speichern"-Button (Sofort-Save, siehe Governance)
+  **Then** gibt es weder Sammel-Bestaetigung noch „Speichern"-Button (Sofort-Save, siehe `governance.md`)
 
-- **Given** das Karussell zeigt Foto 2 mit dem Label "Ablageort"
-  **When** der Mechaniker zu Foto 3 wischt, das nur "Bauteil" traegt
-  **Then** zeigen die Checkboxen den Zustand von Foto 3
+- **Given** das Karussell zeigt Foto 2 mit „ABLAGEORT"
+  **When** der Mechaniker zu Foto 3 wischt, das nur „BAUTEIL" traegt
+  **Then** zeigen die Chips den Zustand von Foto 3
 
 ---
 
 ### US-006.7: Sehen, was ein Foto zeigt, ohne es aendern zu koennen
 
 **Als** Mechaniker
-**moechte ich** beim Zusammenbauen und beim Nachschlagen am Foto ablesen koennen, ob es das Bauteil, eine Uebersicht oder den Ablageort zeigt, ohne dabei etwas veraendern zu koennen
+**moechte ich** beim Zusammenbauen und beim Nachschlagen am Foto ablesen koennen, ob es Bauteil, Uebersicht oder Ablageort zeigt
 **damit** ich den Ablageort sofort erkenne und die Dokumentation trotzdem nicht versehentlich verfaelsche.
 
 #### Akzeptanzkriterien
 
-- **Given** der Browser laeuft in einem der beiden lesenden Modi und das Karussell zeigt ein Foto
+- **Given** `LESEND_MIT_AKTIONEN` oder `NUR_LESEN` und das Karussell zeigt ein Foto
   **When** die Ansicht dargestellt wird
-  **Then** sind dieselben drei Label sichtbar wie im bearbeitbaren Modus und zeigen den gespeicherten Zustand genau dieses Fotos
-  **And** sie sind als nicht bedienbar erkennbar (deaktivierte Darstellung)
+  **Then** stehen dieselben drei Label als flache, schmale Plaketten mit farbigem Punkt dort, wo in `BEARBEITBAR` die Chips sitzen
+  **And** sie zeigen den gespeicherten Zustand genau dieses Fotos
 
-- **Given** der Browser laeuft in einem der beiden lesenden Modi und das sichtbare Foto traegt das Label "Ablageort"
+- **Given** eine lesende Betriebsart und das sichtbare Foto traegt „ABLAGEORT"
   **When** die Ansicht dargestellt wird
   **Then** ist am Foto erkennbar, dass es den Ablageort zeigt (F-004 US-004.1 stuetzt sich darauf)
 
-- **Given** der Browser laeuft in einem der beiden lesenden Modi
-  **When** der Mechaniker eines der drei Label antippt
+- **Given** eine lesende Betriebsart
+  **When** der Mechaniker eine Plakette antippt
   **Then** aendert sich nichts
-  **And** es wird kein `onLabelGeaendert` gemeldet
+  **And** es wird kein `onLabelUmgeschaltet` gemeldet
 
-- **Given** der Browser laeuft in einem der beiden lesenden Modi
-  **When** ein Schritt angezeigt wird
-  **Then** ist weder eine Aktion zur Foto-Aufnahme noch eine Aktion am sichtbaren Foto ("Wiederholen") im Browser sichtbar — auch dann nicht, wenn der Consumer eine Foto-Aktion uebergibt
-
-- **Given** der Browser laeuft in einem der beiden lesenden Modi
-  **When** der Mechaniker durch Schritte springt, vor- und zurueckblaettert, im Karussell wischt und ein Foto als Vollbild oeffnet
-  **Then** funktionieren alle vier Bedienungen unveraendert
-  **And** es wird kein Datensatz veraendert
-
-- **Given** der Browser laeuft im Modus nur-lesen
-  **When** der Mechaniker die Ansicht verlaesst und erneut oeffnet
-  **Then** sind Schritte, Fotos und Labels unveraendert
+- **Given** `NUR_LESEN`
+  **When** der Mechaniker springt, blaettert, wischt und ein Foto als Vollbild oeffnet und die Ansicht danach erneut oeffnet
+  **Then** sind Schritte, Fotos und Label unveraendert
 
 ---
 
@@ -316,19 +341,17 @@ Diese Story gilt **ausschliesslich fuer den bearbeitbaren Modus** (F-003 Demonta
 
 - **Given** ein Foto-Datensatz verweist auf eine nicht mehr vorhandene Datei
   **When** das Karussell dieses Foto anzeigt
-  **Then** erscheint das Platzhalter-Bild (App-Icon) und die App stuerzt nicht ab
+  **Then** stuerzt die App nicht ab
+
+- **Given** eine Datei fehlt und die Betriebsart ist `BEARBEITBAR`
+  **When** die Ansicht dargestellt wird
+  **Then** bleiben Label-Chips, Wischen und Vollbild uneingeschraenkt bedienbar — die Metadaten des Fotos existieren weiter
 
 - **Given** das erste Foto eines Schritts fehlt als Datei
-  **When** die Thumbnail-Leiste angezeigt wird
-  **Then** zeigt das Thumbnail das Platzhalter-Bild mit der Schrittnummer
+  **When** seine Kachel dargestellt wird
+  **Then** bleiben Schrittnummer, Farbstreifen und Trefferflaeche unveraendert erhalten
 
-- **Given** das Karussell zeigt einen Platzhalter fuer eine fehlende Datei
-  **When** der Mechaniker das Bild antippt
-  **Then** oeffnet sich die Vollbild-Anzeige mit dem Platzhalter, ohne Absturz
-
-- **Given** eine Foto-Datei fehlt und der Browser laeuft im bearbeitbaren Modus
-  **When** der Platzhalter angezeigt wird
-  **Then** sind die Label-Checkboxen weiterhin bedienbar (die Metadaten des Fotos existieren noch)
+> **[OFFEN]** Womit die fehlende Datei ersetzt wird, ist nicht entschieden. `governance.md`, Abschnitt „Fehlende Dateien", verlangt ein Platzhalter-Bild; der gebaute Stand setzt an `AsyncImage` weder `placeholder` noch `error` und zeigt eine leere Flaeche. Vor der Umsetzung festlegen: App-Icon, Stahltextur oder eigenes Symbol.
 
 ---
 
@@ -338,174 +361,132 @@ Diese Story gilt **ausschliesslich fuer den bearbeitbaren Modus** (F-003 Demonta
 **moechte ich** bei einem Schritt ohne Fotos eine klare Aussage sehen
 **damit** ich weiss, dass hier nichts dokumentiert wurde, und nicht an einen Fehler der App glaube.
 
-#### Definition: Leer-Zustand vs. Platzhalter-Bild
-
-Der Leer-Zustand des Karussells gehoert F-006 und wird nur hier definiert. Consumer verweisen darauf, statt ihn neu zu beschreiben. Es sind **zwei verschiedene Faelle**, die nicht vermischt werden duerfen:
-
-| Fall | Bedingung | Darstellung im Karussell |
-|---|---|---|
-| **Leer-Zustand** | Der Schritt hat **keinen einzigen** `SchrittFoto`-Datensatz | Flaeche mit dem Text "Keine Fotos zu diesem Schritt". **Kein** Bild, kein Platzhalter-Bild, kein Foto-Indikator, keine Label-Anzeige, keine Foto-Aktion |
-| **Platzhalter-Bild** | Es gibt einen Foto-Datensatz, aber die **Datei fehlt** | Das App-Icon anstelle des Fotos (US-006.8). Foto-Indikator, Label-Anzeige und Foto-Aktion bleiben normal vorhanden, weil die Metadaten existieren |
-
-Der Leer-Zustand ist damit ausschliesslich an "0 Foto-Datensaetze" gebunden und der Platzhalter ausschliesslich an "Datei nicht lesbar".
+Ein Schritt ohne Fotos ist waehrend der Arbeit ein gueltiger Zustand: der Schritt entsteht, bevor das erste Foto da ist.
 
 #### Akzeptanzkriterien
 
 - **Given** der aktuelle Schritt hat keine Fotos
-  **When** der Schritt angezeigt wird
-  **Then** zeigt der Karussell-Bereich den Leer-Zustand mit dem Hinweis "Keine Fotos zu diesem Schritt"
-  **And** es erscheint kein Foto-Indikator
-  **And** es erscheint kein Platzhalter-Bild (das ist der Fall "fehlende Datei", US-006.8)
+  **When** er angezeigt wird
+  **Then** zeigt der Bildbereich ein gestricheltes Quadrat mit der zweistelligen Schrittnummer und darunter den Text „Keine Fotos zu diesem Schritt"
+  **And** der Zaehler zeigt „KEIN FOTO"
+  **And** es erscheint kein Punkt-Indikator
 
 - **Given** der aktuelle Schritt hat keine Fotos
-  **When** der Consumer den State dafuer aufbaut
-  **Then** setzt er `sichtbaresFotoIndex = -1` ("kein sichtbares Foto"); `0` ist hier kein gueltiger Wert
-  **And** der Browser stellt den Leer-Zustand dar, ohne den bereitgestellten State zu korrigieren oder einen Callback zu melden (davon unberuehrt bleibt der Reset beim **Schrittwechsel**, der `onFotoGewaehlt(-1)` meldet — US-006.10)
+  **When** er in einer beliebigen Betriebsart angezeigt wird
+  **Then** ist keine Label-Spalte sichtbar — es gibt kein Foto zum Beschriften
 
-- **Given** ein Schritt hat keine Fotos
-  **When** die Thumbnail-Leiste angezeigt wird
-  **Then** zeigt sein Thumbnail das Platzhalter-Bild mit der Schrittnummer
-  **And** das Thumbnail traegt die neutrale Markierung
-
-- **Given** der aktuelle Schritt hat keine Fotos
-  **When** der Schritt in einem beliebigen der drei Modi angezeigt wird
-  **Then** ist keine Label-Anzeige sichtbar (es gibt kein Foto zum Beschriften)
-  **And** es ist keine Aktion am sichtbaren Foto sichtbar
-
-- **Given** der aktuelle Schritt hat keine Fotos
-  **When** der Schritt angezeigt wird
-  **Then** bleiben Thumbnail-Leiste und Vor-/Zurueck-Bedienelemente unveraendert nutzbar (deaktiviert sind sie nur an den Raendern der Anzeige-Reihenfolge, US-006.10)
+- **Given** ein Schritt ohne Fotos
+  **When** seine Kachel in der Leiste dargestellt wird
+  **Then** zeigt sie eine dunkle Flaeche mit der Schrittnummer und einem grauen Streifen
 
 - **Given** der Vorgang enthaelt ueberhaupt keine Schritte
   **When** der Browser angezeigt wird
-  **Then** bleibt die Thumbnail-Leiste leer und der Karussell-Bereich zeigt den Leer-Zustand
-  **And** beide Vor-/Zurueck-Bedienelemente sind deaktiviert
-  **And** der Browser meldet keinen Fehler (ein erklaerender Hinweistext auf Screen-Ebene ist Consumer-Sache)
+  **Then** erscheint keine Thumbnail-Leiste
+  **And** der Bildbereich zeigt den Leer-Zustand
+  **And** der Browser meldet keinen Fehler (ein erklaerender Hinweis auf Screen-Ebene ist Consumer-Sache)
 
-- **Given** der Vorgang enthaelt ueberhaupt keine Schritte
-  **When** der Consumer den State dafuer aufbaut
-  **Then** setzt er `aktuellerIndex = -1` und `sichtbaresFotoIndex = -1` (Definition siehe "Interface-Skizze")
-  **And** kein Thumbnail ist hervorgehoben
-
-- **Given** die Schrittliste ist leer und der Consumer uebergibt trotzdem `aktuellerIndex = 0` (oder einen anderen Index ausserhalb des gueltigen Bereichs)
+- **Given** der Consumer uebergibt einen Schritt- oder Foto-Index ausserhalb des gueltigen Bereichs
   **When** der Browser angezeigt wird
-  **Then** verhaelt er sich genau wie bei `-1`: Leer-Zustand, deaktiviertes Vor/Zurueck, kein Absturz
-  **And** er korrigiert den State nicht und meldet keinen Callback
+  **Then** klemmt er den Index fuer die Darstellung und stuerzt nicht ab
+  **And** er korrigiert den Zustand des Consumers nicht
 
 ---
 
-### US-006.10: Schrittweise vor- und zurueckblaettern
+### US-006.10: Schrittweise vor- und zurueckblaettern, wo der Flow es hergibt
 
 **Als** Mechaniker
-**moechte ich** mit einem Tap zum benachbarten Schritt wechseln
-**damit** ich mich der Reihe nach durch die Dokumentation arbeiten kann, ohne im Thumbnail das richtige Bild treffen zu muessen.
+**moechte ich** dort, wo es zum Ablauf passt, mit einem Tap zum benachbarten Schritt wechseln
+**damit** ich mich der Reihe nach durch die Dokumentation arbeiten kann, ohne die richtige Kachel treffen zu muessen.
 
-Die Schritt-Navigation gehoert **vollstaendig** F-006: Thumbnail-Sprung (US-006.2) und Vor/Zurueck (diese Story) sind die einzigen beiden Wege, den Schritt zu wechseln. F-001 (Blaettern im Archiv) und F-004 (Zurueck/Weiter in der Montage) bringen dafuer keine eigenen Bedienelemente mit, sondern verweisen auf diese Story. Wie in US-006.2 schreibt der Browser den Index nicht selbst fort — er meldet nur die Absicht.
-
-**Reset des sichtbaren Fotos:** Sobald der angezeigte Schritt gewechselt hat, setzt der Browser das Karussell auf das erste Foto des neuen Schritts und meldet das ueber `onFotoGewaehlt`. Das ist seine Pflicht, nicht die des Consumers: Der Consumer haelt `sichtbaresFotoIndex` zwar weiter (er braucht ihn fuer Label-Anzeige und Foto-Aktion), uebernimmt aber nur den gemeldeten Wert und setzt ihn nie selbst zurueck.
+Vor/Zurueck ist eine **Andockstelle**, kein fester Bestandteil des Browsers: der Consumer haengt die Bedienelemente in `bedienkreise` ein und entscheidet, welche es gibt (siehe Tabelle „Betriebsarten"). Der Browser stellt dafuer `istErster` und `istLetzter` bereit, damit die Grenzpruefung nicht dreimal neu entsteht. Den Index schreibt der Consumer fort.
 
 #### Akzeptanzkriterien
 
-- **Given** die Anzeige-Reihenfolge hat 15 Schritte und der aktuelle Schritt steht an Position 5
-  **When** der Mechaniker "Weiter" antippt
-  **Then** wird Position 6 als gewuenschter Schritt gemeldet
-
-- **Given** die Anzeige-Reihenfolge hat 15 Schritte und der aktuelle Schritt steht an Position 5
-  **When** der Mechaniker "Zurueck" antippt
-  **Then** wird Position 4 als gewuenschter Schritt gemeldet
-
-- **Given** der Consumer hat den Index fortgeschrieben
-  **When** die Ansicht aktualisiert wird
-  **Then** zeigt das Karussell das erste Foto des neuen Schritts
-  **And** der Browser meldet diesen Reset ueber `onFotoGewaehlt(0)` (bzw. `-1`, wenn der neue Schritt keine Fotos hat)
-  **And** der Consumer uebernimmt den gemeldeten Wert; er setzt das sichtbare Foto **nicht** selbst zurueck
-  **And** das Thumbnail des neuen Schritts ist hervorgehoben und in den sichtbaren Bereich der Leiste gescrollt
-
-- **Given** der aktuelle Schritt ist der **erste** der Anzeige-Reihenfolge
+- **Given** `BEARBEITBAR` (Demontage)
   **When** die Ansicht dargestellt wird
-  **Then** ist "Zurueck" sichtbar, aber deaktiviert
-  **And** ein Tap darauf meldet nichts
+  **Then** gibt es kein Vor/Zurueck — der Schrittwechsel laeuft ueber die Thumbnail-Leiste
 
-- **Given** der aktuelle Schritt ist der **letzte** der Anzeige-Reihenfolge
+- **Given** `LESEND_MIT_AKTIONEN` (Montage)
   **When** die Ansicht dargestellt wird
-  **Then** ist "Weiter" sichtbar, aber deaktiviert
-  **And** ein Tap darauf meldet nichts
-  **And** der Browser aendert weder Beschriftung noch Bedeutung des Elements (ein Abschluss- oder Archivieren-Verhalten am letzten Schritt gehoert dem Consumer, siehe F-004 US-004.5)
+  **Then** gibt es genau ein Blaetter-Element „ZURÜCK"; vorwaerts kommt der Mechaniker ueber die Schritt-Aktion oder eine Kachel (F-004)
 
-- **Given** der Vorgang hat genau einen Schritt
+- **Given** `NUR_LESEN` (Archiv)
   **When** die Ansicht dargestellt wird
-  **Then** sind "Zurueck" und "Weiter" beide deaktiviert
+  **Then** gibt es beide Elemente, „‹" und „›"
+
+- **Given** der aktuelle Schritt ist der erste der Anzeige-Reihenfolge
+  **When** die Ansicht dargestellt wird
+  **Then** ist „Zurueck" sichtbar, aber **sichtbar deaktiviert** (abgesenkt dargestellt)
+  **And** ein Tap darauf loest nichts aus
+  **And** das Layout verschiebt sich nicht
+
+- **Given** der aktuelle Schritt ist der letzte der Anzeige-Reihenfolge
+  **When** die Ansicht dargestellt wird
+  **Then** ist „Weiter" sichtbar deaktiviert und ohne Wirkung
+  **And** weder Beschriftung noch Bedeutung des Elements aendern sich (ein Abschluss- oder Archivieren-Verhalten am letzten Schritt gehoert dem Consumer, siehe `F-004-montage/montage.md`)
+
+- **Given** der Vorgang hat genau einen Schritt oder gar keinen
+  **When** die Ansicht dargestellt wird
+  **Then** sind beide Elemente deaktiviert
 
 - **Given** ein beliebiger Schritt wird angezeigt
-  **When** der Mechaniker vor- oder zurueckblaettert
-  **Then** werden dabei keine Daten veraendert (kein Schritt wird abgeschlossen, abgehakt oder geloescht)
-
-- **Given** der Browser laeuft in einem der beiden lesenden Modi
-  **When** der Mechaniker vor- oder zurueckblaettert
-  **Then** funktioniert das Blaettern unveraendert (Vor/Zurueck ist in allen drei Modi verfuegbar)
+  **When** der Mechaniker blaettert
+  **Then** werden keine Daten veraendert
+  **And** das Karussell zeigt danach das erste Foto des neuen Schritts
 
 ---
 
-### US-006.11: Eine Aktion am gerade sichtbaren Foto ausloesen
+### US-006.11: Die Aktionen des Flows immer an derselben Stelle finden
 
 **Als** Mechaniker
-**moechte ich** eine Aktion direkt an dem Foto ausloesen koennen, das ich gerade sehe
-**damit** ich zum Beispiel ein misslungenes Foto wiederholen kann, ohne vorher zu ueberlegen, welches Foto ich damit treffe.
+**moechte ich** die Bedienelemente meines Ablaufs in jedem Modus an derselben Stelle finden
+**damit** ich mit Handschuhen blind danach greifen kann, egal ob ich demontiere, montiere oder nachschlage.
 
-Der Browser fuehrt die Aktion nicht aus und kennt ihre Bedeutung nicht. Er stellt nur die Andockstelle bereit, weil er als Einziger weiss, welches Foto sichtbar ist. F-003 haengt hier "Wiederholen" ein; F-004 und F-001 nutzen die Andockstelle nicht.
+Der Browser fuehrt keine dieser Aktionen aus und kennt ihre Bedeutung nicht. Er haelt die vier Slots frei; welches Foto sichtbar ist, weiss der Consumer aus dem Zustand, den er selbst liefert.
 
 #### Akzeptanzkriterien
 
-- **Given** der Browser laeuft im bearbeitbaren Modus und der Consumer hat eine Foto-Aktion mit der Bezeichnung "Wiederholen" uebergeben
-  **When** ein Foto im Karussell sichtbar ist
-  **Then** ist neben dem Karussell ein Bedienelement mit dieser Bezeichnung sichtbar
+- **Given** ein Consumer haengt Aktionskreise in `bedienkreise`
+  **When** der Browser dargestellt wird
+  **Then** liegen sie unten rechts nebeneinander, von klein nach gross zur Ecke hin, vor der dekorativen Kugel
 
-- **Given** das Bedienelement ist sichtbar und das Karussell zeigt Foto 2 von 4
-  **When** der Mechaniker es antippt
-  **Then** wird die Aktion fuer genau dieses Foto gemeldet
-  **And** der Browser aendert von sich aus nichts an Foto, Schritt oder Labeln
+- **Given** ein Consumer befuellt einen Slot nicht
+  **When** der Browser dargestellt wird
+  **Then** bleibt der Bereich leer und belegt keinen Platz
 
-- **Given** der Consumer hat keine Foto-Aktion uebergeben
-  **When** der Schritt angezeigt wird
-  **Then** ist kein solches Bedienelement sichtbar und der Platz wird nicht freigehalten
+- **Given** der Mechaniker tippt ein Element in einem Slot an
+  **When** die Aktion ausgefuehrt wird
+  **Then** aendert der Browser von sich aus weder Foto noch Schritt noch Label
 
-- **Given** der Browser laeuft in einem der beiden lesenden Modi und der Consumer uebergibt trotzdem eine Foto-Aktion
-  **When** der Schritt angezeigt wird
-  **Then** ist kein Bedienelement sichtbar (Aktionen am Foto gibt es nur im bearbeitbaren Modus)
-
-- **Given** der aktuelle Schritt hat keine Fotos
-  **When** der Schritt im bearbeitbaren Modus angezeigt wird
-  **Then** ist kein Bedienelement sichtbar (es gibt kein Foto, auf das sich die Aktion beziehen koennte)
-
-- **Given** das Karussell zeigt einen Platzhalter, weil die Datei fehlt
-  **When** der Mechaniker die Foto-Aktion antippt
-  **Then** wird sie fuer diesen Foto-Datensatz gemeldet (die Metadaten existieren)
+- **Given** F-003 haengt „Wiederholen" (↺) ein und der aktuelle Schritt hat kein Foto
+  **When** die Ansicht dargestellt wird
+  **Then** entscheidet der Consumer ueber die Sichtbarkeit — der Browser blendet nichts aus und nichts ein
 
 ---
 
 ## Nicht-funktionale Anforderungen
 
-**Performance (Quality Goal #3):**
-
-- Thumbnails werden auf die Kachelgroesse skaliert geladen, niemals in Originalaufloesung
-- Das Karussell-Foto wird auf Bildschirmgroesse skaliert geladen; nur die Vollbild-Anzeige darf die hoehere Aufloesung anfordern
-- Eine Leiste mit 50 Schritten scrollt ruckelfrei; nur sichtbare Thumbnails werden geladen
-- Der Wechsel zwischen Schritten erfolgt ohne spuerbare Verzoegerung
-
 **Bedienbarkeit (Quality Goal #1):**
 
-- Thumbnails, Vor-/Zurueck-Bedienelemente, Label-Checkboxen und die Foto-Aktion halten die verbindlichen Touch-Target-Mindestmasse aus [../governance.md](../governance.md) ein (Mindesthoehe und Mindestabstand stehen dort; F-006 nennt keine eigenen Zahlen)
-- Die Wisch-Geste im Karussell reagiert sofort und folgt dem Finger
-- 300ms Debounce auf Thumbnail-Taps, Vor/Zurueck, Checkboxen und die Foto-Aktion (Governance)
-- Schrittnummer auf dem Thumbnail mit mindestens 20sp, damit sie mit Armlaenge Abstand lesbar ist
+- Jede Trefferflaeche haelt die Mindestmasse aus `governance.md`, Abschnitt „Touch-Targets" ein; die Ausnahme fuer die inaktiven Kacheln steht dort im Unterabschnitt „Optische Groesse vs. Trefferflaeche"
+- 300ms Debounce auf jedem Tap — kommt aus `boltKlick`, nicht aus eigenem Code der Komponente
+- Deaktivierte Bedienelemente sind sichtbar abgesenkt, nicht still klemmend
+- Die Wischgeste folgt dem Finger und rastet auf ganze Fotos ein
 - Ein Tap genuegt fuer Sprung, Blaettern, Vollbild und Label-Wechsel
+
+**Performance (Quality Goal #3):**
+
+- Nur die Fotos des aktuellen Schritts liegen im Karussell; es gibt keinen schrittuebergreifenden Pager
+- Kacheln laden beschnitten (Crop), Karussell und Vollbild vollstaendig (Fit)
+- Eine Leiste ueber 50 Schritte zeichnet nur das Fenster von hoechstens vier Kacheln
+- Der Schrittwechsel laeuft ohne spuerbare Verzoegerung
 
 **Zuverlaessigkeit (Quality Goal #2):**
 
-- Fehlende Foto-Dateien fuehren nie zu einem Absturz, sondern zum Platzhalter-Bild (Governance)
-- Der Browser haelt keinen eigenen persistenten Zustand; es gibt nichts, was verloren gehen kann
-- Label-Aenderungen werden sofort an den Consumer gemeldet, damit dieser sofort persistieren kann (Sofort-Save)
-- In den beiden lesenden Modi kann der Browser keine Datenaenderung ausloesen: er meldet dort weder Label-Aenderungen noch Foto-Aktionen
+- Der Browser haelt keinen persistenten Zustand; es gibt nichts, was verloren gehen kann
+- Label-Aenderungen werden sofort gemeldet, damit der Consumer sofort speichern kann (Sofort-Save)
+- In den lesenden Betriebsarten kann der Browser keine Datenaenderung ausloesen
+- Ein Index ausserhalb des Bereichs fuehrt zum Leer-Zustand, nie zum Absturz
 
 ---
 
@@ -513,124 +494,140 @@ Der Browser fuehrt die Aktion nicht aus und kennt ihre Bedeutung nicht. Er stell
 
 ### Zustandslosigkeit
 
-Der Browser ist ein stateless Composable mit State Hoisting. Kein eigenes ViewModel, kein Repository- oder DAO-Zugriff, keine Coroutine, die Daten schreibt. Einzige komponenteninterne Zustaende sind reine Darstellungszustaende (Scroll-Position der Leiste, geoeffnete Vollbild-Anzeige).
+Stateless Composable mit State Hoisting: kein ViewModel, kein Repository- oder DAO-Zugriff, keine schreibende Coroutine. Einziger komponenteninterner Zustand ist die Pager-Position; auch das Vollbild-Flag liegt beim Consumer.
 
-### Interface-Skizze
+### Interface
 
 ```kotlin
-enum class BrowserModus {
-    BEARBEITBAR,          // F-003 Demontage: Label aenderbar, Foto-Aktion sichtbar
-    LESEND_MIT_AKTIONEN,  // F-004 Montage: Label nur sichtbar, Schritt-Aktionen beim Consumer
-    NUR_LESEN             // F-001 Archiv: Label nur sichtbar, keine Aktionen
+enum class BrowserBetriebsart { BEARBEITBAR, LESEND_MIT_AKTIONEN, NUR_LESEN }
+
+enum class LabelArt { BAUTEIL, UEBERSICHT, ABLAGEORT }
+
+@Immutable
+data class SchrittBrowserZustand(
+    val schritte: List<SchrittMitFotos> = emptyList(), // Anzeige-Reihenfolge: Consumer
+    val aktiverIndex: Int = 0,
+    val aktivesFoto: Int = 0,
+    val betriebsart: BrowserBetriebsart = BrowserBetriebsart.NUR_LESEN,
+    val vollbild: Boolean = false,
+    val zeigeWischHinweis: Boolean = false,
+    val zeigeErledigt: Boolean = false   // Haken in der Leiste, nur Montage
+) {
+    val aktiverSchritt: SchrittMitFotos?
+    val fotos: List<SchrittFoto>
+    val fotoIndex: Int          // auf die tatsaechliche Fotozahl geklemmt
+    val sichtbaresFoto: SchrittFoto?
+    val hatFotos: Boolean
+    val istErster: Boolean
+    val istLetzter: Boolean
 }
 
-enum class FotoLabel { BAUTEIL, UEBERSICHT, ABLAGEORT }
-
-/** Optionale Consumer-Aktion am gerade sichtbaren Foto (F-003: "Wiederholen"). */
-data class FotoAktion(
-    val bezeichnung: String,
-    val onAusgeloest: (fotoId: Long) -> Unit
-)
-
-data class SchrittBrowserState(
-    val schritte: List<SchrittMitFotos>, // Anzeige-Reihenfolge bestimmt der Consumer
-    val aktuellerIndex: Int,             // Position in schritte; -1 = kein aktueller Schritt (leere Liste)
-    val sichtbaresFotoIndex: Int,        // Position in den Fotos des aktuellen Schritts; -1 = kein Foto
-    val modus: BrowserModus
+@Immutable
+data class SchrittBrowserAktionen(
+    val onSchrittGewaehlt: (index: Int) -> Unit = {},
+    val onFotoGewaehlt: (index: Int) -> Unit = {},
+    val onVollbildOeffnen: () -> Unit = {},
+    val onVollbildSchliessen: () -> Unit = {},
+    val onLabelUmgeschaltet: (foto: SchrittFoto, art: LabelArt) -> Unit = { _, _ -> }
 )
 
 @Composable
 fun SchrittBrowser(
-    state: SchrittBrowserState,
-    onSchrittGewaehlt: (index: Int) -> Unit,
-    onVorherigerSchritt: () -> Unit,
-    onNaechsterSchritt: () -> Unit,
-    onFotoGewaehlt: (fotoIndex: Int) -> Unit, // Wischen (US-006.4) UND Reset beim Schrittwechsel
-    onLabelGeaendert: (fotoId: Long, label: FotoLabel, aktiv: Boolean) -> Unit,
-    fotoAktion: FotoAktion? = null,
-    modifier: Modifier = Modifier
+    zustand: SchrittBrowserZustand,
+    aktionen: SchrittBrowserAktionen,
+    modifier: Modifier = Modifier,
+    kopfzeile: @Composable BoxScope.() -> Unit = {},
+    ueberLabels: @Composable ColumnScope.() -> Unit = {},
+    unterLabels: @Composable ColumnScope.() -> Unit = {},
+    bedienkreise: @Composable BoxScope.() -> Unit = {}
 )
 ```
 
-`SchrittMitFotos` ist eine Room-`@Relation` aus `Schritt` und `List<SchrittFoto>` und gehoert der Data-Layer (Datenmodell siehe F-003). Der Browser liest daraus nur `SchrittFoto.id`, `schrittNummer`, `pfad`, `reihenfolge` und die drei Label-Flags. Die `id` braucht er, weil er sie in `onLabelGeaendert(fotoId, ...)` und `fotoAktion.onAusgeloest(fotoId)` zurueckmeldet — sie ist damit ein **Pflichtfeld** der Eingabe, auch wenn der Browser sie nicht anzeigt. `Schritt.id`, `reparaturvorgangId`, `abgeschlossenAm` und `eingebautBeiMontage` liest er nicht.
+`SchrittMitFotos` ist eine Room-`@Relation` aus `Schritt` und `List<SchrittFoto>` und gehoert der Data-Layer (Datenmodell siehe `F-003-demontage/README.md`). Der Browser liest daraus `schrittNummer`, `eingebautBeiMontage` (nur fuer den Haken) sowie je Foto `id`, `pfad`, `reihenfolge` und die drei Label-Flags. Die `id` ist Pflichtfeld: sie geht in `onLabelUmgeschaltet` zurueck.
 
-**Leere Liste und Schritt ohne Fotos (Index-Grenzfaelle):**
+**Index-Grenzfaelle** — der Browser klemmt fuer die Darstellung und korrigiert den Zustand des Consumers nie:
 
-| Situation | `aktuellerIndex` | `sichtbaresFotoIndex` | Darstellung |
-|---|---|---|---|
-| Vorgang ohne Schritte (`schritte` leer) | `-1` | `-1` | Leere Thumbnail-Leiste, Leer-Zustand im Karussell, "Zurueck" und "Weiter" beide deaktiviert (US-006.9) |
-| Aktueller Schritt ohne Fotos | `0..lastIndex` | `-1` | Leer-Zustand im Karussell, keine Label-Zeile, keine Foto-Aktion; Leiste und Vor/Zurueck normal nutzbar (US-006.9) |
-| Normalfall | `0..lastIndex` | `0..fotos.lastIndex` | Karussell mit Indikator "n von m" |
+| Situation | Darstellung |
+|---|---|
+| `schritte` leer | keine Leiste, Leer-Zustand im Bildbereich, `istErster` und `istLetzter` beide `true` |
+| Schritt ohne Fotos | Leer-Zustand, keine Label-Spalte, Zaehler „KEIN FOTO"; Leiste unveraendert nutzbar |
+| Index ausserhalb des Bereichs | wie der jeweilige Leer-Zustand, kein Absturz, keine Rueckmeldung |
 
-`-1` ist damit der einzige gueltige Wert fuer "es gibt kein aktuelles Element" — nicht `0`, weil `0` bei einer leeren Liste ein gueltig aussehender, aber unerfuellbarer Index waere. Uebergibt ein Consumer trotzdem einen Wert ausserhalb des gueltigen Bereichs, behandelt der Browser ihn wie den jeweiligen Leer-Zustand und stuerzt nicht ab (defensive Grenzpruefung, siehe US-006.9). Der Browser korrigiert den State dabei nicht und meldet auch nichts zurueck — er haelt keinen eigenen Index.
-
-**Modus-Abhaengigkeit der Callbacks:**
-
-| Callback | BEARBEITBAR | LESEND_MIT_AKTIONEN | NUR_LESEN |
-|---|---|---|---|
-| `onSchrittGewaehlt`, `onVorherigerSchritt`, `onNaechsterSchritt`, `onFotoGewaehlt` | wird gemeldet | wird gemeldet | wird gemeldet |
-| `onLabelGeaendert` | wird gemeldet | wird **nie** gemeldet | wird **nie** gemeldet |
-| `fotoAktion.onAusgeloest` | wird gemeldet | Bedienelement wird nicht komponiert | Bedienelement wird nicht komponiert |
-
-`onVorherigerSchritt` und `onNaechsterSchritt` werden nur ausgeloest, wenn das jeweilige Bedienelement aktiv ist — die Grenzpruefung (`aktuellerIndex == 0` bzw. `== schritte.lastIndex`) macht der Browser, nicht der Consumer. Der Consumer setzt daraufhin `aktuellerIndex` neu; der Browser haelt ihn nicht selbst.
-
-**`onFotoGewaehlt` hat zwei Ausloeser:** den Foto-Wechsel im Karussell (US-006.4) und den **Reset beim Schrittwechsel**. Sobald sich `aktuellerIndex` geaendert hat, setzt der Browser das Karussell auf das erste Foto des neuen Schritts und meldet `onFotoGewaehlt(0)` — bzw. `onFotoGewaehlt(-1)`, wenn der neue Schritt keine Fotos hat (Leer-Zustand, US-006.9). Das gilt in allen drei Modi und fuer beide Navigationswege (Thumbnail-Sprung und Vor/Zurueck). Tippt der Nutzer das Thumbnail des bereits aktuellen Schritts an, wechselt der Schritt nicht und es wird nichts gemeldet (US-006.2).
-
-Die Aufgabenteilung dabei: Der **Browser** entscheidet, dass zurueckgesetzt wird, und meldet den neuen Wert. Der **Consumer** haelt `sichtbaresFotoIndex` weiterhin in seinem State — er braucht ihn fuer die Label-Anzeige und `fotoAktion` —, uebernimmt aber ausschliesslich den gemeldeten Wert. Er darf ihn beim Schrittwechsel **nicht** selbst auf `0` setzen; sonst gaebe es zwei Schreiber fuer denselben Wert.
+**Reset des sichtbaren Fotos:** Beim Schrittwechsel setzt der **Consumer** den Foto-Index auf `0` (`onSchrittGewaehlt` → `aktivesFoto = 0`). Der Pager springt auf diese Seite und meldet die eingerastete Seite ueber `onFotoGewaehlt` zurueck. Es gibt damit genau einen Schreiber pro Wechsel.
 
 ### Kategorie-Ableitung fuer die Einfaerbung
 
-Reine Funktion ohne Compose-Bezug, damit sie als Unit-Test pruefbar ist:
+Reine Funktion an `SchrittMitFotos`, ohne Compose-Bezug und als Unit-Test pruefbar:
 
 ```kotlin
-fun kategorieVon(fotos: List<SchrittFoto>): FotoLabel? = when {
-    fotos.any { it.istAblageort } -> FotoLabel.ABLAGEORT
-    fotos.any { it.istUebersicht } -> FotoLabel.UEBERSICHT
-    fotos.any { it.istBauteil } -> FotoLabel.BAUTEIL
-    else -> null // neutrale Markierung, auch bei leerer Liste
+val kategorie: FotoKategorie get() = when {
+    fotos.any { it.istAblageort } -> FotoKategorie.ABLAGEORT
+    fotos.any { it.istUebersicht } -> FotoKategorie.UEBERSICHT
+    fotos.any { it.istBauteil } -> FotoKategorie.BAUTEIL
+    else -> FotoKategorie.OHNE
 }
 ```
 
-Zuordnung des Ergebnisses auf die Markierung (siehe Tabelle in US-006.3):
-
-| `kategorieVon(...)` | Rahmenfarbe | Rahmenstaerke |
-|---|---|---|
-| `ABLAGEORT` | `MaterialTheme.colorScheme.tertiary` | 3dp |
-| `UEBERSICHT` | `MaterialTheme.colorScheme.secondary` | 3dp |
-| `BAUTEIL` | `MaterialTheme.colorScheme.primary` | 3dp |
-| `null` | `MaterialTheme.colorScheme.outlineVariant` | 1dp |
-
-Die Hervorhebung des aktuellen Schritts (US-006.1) ist davon unabhaengig und wird ueber Groesse und einen zusaetzlichen Selektionsring geloest, damit sie die Kategorie-Farbe nicht ueberschreibt.
+Die Zuordnung `FotoKategorie` → Streifenfarbe steht in US-006.3 und im Code als `FotoKategorie.farbe`.
 
 ### Compose-Bausteine
 
-- **Thumbnail-Leiste:** `LazyRow` mit `rememberLazyListState()`. Auto-Scroll zum aktuellen Schritt per `LaunchedEffect(aktuellerIndex) { state.animateScrollToItem(...) }`.
-- **Vor/Zurueck:** zwei Buttons, `enabled = aktuellerIndex > 0` bzw. `enabled = aktuellerIndex in 0 until schritte.lastIndex` (die zweite Form haelt "Weiter" auch bei leerer Liste und bei `aktuellerIndex = -1` deaktiviert). Sichtbar bleiben sie in jedem Fall (deaktiviert, nicht ausgeblendet), damit sich das Layout beim Blaettern nicht verschiebt. Sie sind Teil von `SchrittBrowser.kt` und werden in allen drei Modi komponiert.
-- **Karussell:** `HorizontalPager`. Der `PagerState` wird mit `sichtbaresFotoIndex` synchronisiert; Seitenwechsel loest `onFotoGewaehlt` aus, Aenderungen von aussen loesen `scrollToPage` aus. `beyondViewportPageCount` klein halten, um Speicher zu sparen. Der Pager umfasst ausschliesslich die Fotos des aktuellen Schritts — es gibt keinen schrittuebergreifenden Pager, damit Wischen nie den Schritt wechselt.
-- **Vollbild:** `Dialog` bzw. Overlay innerhalb der Komponente, keine eigene Navigations-Route — sonst entsteht Kopplung an den NavHost des Consumers.
-- **Label-Zeile:** Row mit drei `Checkbox` plus Label-Text; der gesamte Bereich ist tappbar (Touch-Target). In den Modi `LESEND_MIT_AKTIONEN` und `NUR_LESEN` wird derselbe Block mit `enabled = false` komponiert und `onCheckedChange = null` gesetzt — die Label bleiben ablesbar, sind aber weder tappbar noch fokussierbar. Hat der Schritt keine Fotos, wird der Block in allen Modi gar nicht komponiert.
-- **Foto-Aktion:** wird nur komponiert, wenn `modus == BEARBEITBAR`, `fotoAktion != null` und der aktuelle Schritt mindestens ein Foto hat. Sie erhaelt beim Tap die `id` des Fotos an `sichtbaresFotoIndex`.
+- **Thumbnail-Leiste:** `BoxWithConstraints` + `Column`. Aus der verfuegbaren Hoehe geteilt durch Kachel plus Abstand ergibt sich, wie viele Kacheln passen; das Fenster ist das Minimum aus `THUMB_FENSTER` (4), dieser Zahl und der Schrittzahl. Kein `LazyRow`, kein Scrollen — das Fenster wandert mit dem aktiven Schritt.
+- **Karussell:** `HorizontalPager` ueber die Fotos **eines** Schritts. Der Pager wird von aussen ueber `aktivesFoto` gesetzt und meldet seine eingerastete Seite zurueck.
+- **Vollbild:** Overlay innerhalb derselben Komponente, keine eigene Navigations-Route — sonst entstuende Kopplung an den NavHost des Consumers. Der `BackHandler` ist **nur** im Vollbild aktiv; eine unbedingte Sperre wuerde das Vollbild unschliessbar machen.
+- **Label:** `LabelZeile` rendert je nach `betriebsart.labelAenderbar` Chips (56dp, Kaestchen mit Haken) oder Plaketten (34dp, Punkt). Ohne Foto wird der Block gar nicht komponiert.
+- **Masse und Glas:** ausschliesslich aus `ui/theme/Dimensions.kt` und `ui/theme/GlasRezepte.kt`, keine Magic Numbers im Komponenten-Code.
 
 ### Bildladen
 
-- Coil `AsyncImage` mit expliziter Groessenbegrenzung: fuer Thumbnails `ImageRequest.size(...)` auf die Kachelgroesse, fuer das Karussell auf Bildschirmbreite. Kein Laden in Originalaufloesung.
-- `placeholder` und `error` auf das App-Icon setzen — damit ist die Anforderung "Platzhalter statt Crash" ohne eigene Datei-Existenzpruefung erfuellt.
-- `contentScale` so waehlen, dass Thumbnails beschnitten (Crop) und Karussell-/Vollbild-Fotos vollstaendig (Fit) dargestellt werden.
+Coil `AsyncImage` auf `File(pfad)`; Kacheln `ContentScale.Crop`, Karussell `Crop`, Vollbild `Fit`. Kein Laden in Originalaufloesung ausserhalb des Vollbilds.
 
-### Package und Strings
+### Package und Dateien
 
-- Package: `com.boltmind.app.ui.schrittbrowser/` mit `SchrittBrowser.kt`, `SchrittBrowserState.kt`, `SchrittThumbnailLeiste.kt`, `SchrittFotoKarussell.kt`. Die Vor-/Zurueck-Bedienelemente und die Andockstelle fuer die Foto-Aktion liegen in `SchrittBrowser.kt`, weil sie den Rahmen um Leiste und Karussell bilden. Kein `*ViewModel.kt` und kein `*UiState.kt`, weil die Komponente zustandslos ist und keinem Feature-Package gehoert.
-- Alle Texte ("Keine Fotos zu diesem Schritt", "Bauteil", "Uebersicht", "Ablageort", "Zurueck", "Weiter", "%1$d von %2$d") in `res/values/strings.xml`. Die Bezeichnung der Foto-Aktion liefert der Consumer.
-- `@Preview` fuer alle drei Modi sowie fuer die Sonderfaelle "fehlende Datei", "Schritt ohne Fotos" und "erster bzw. letzter Schritt" (deaktiviertes Vor/Zurueck).
+`com.boltmind.app.ui.schrittbrowser/` mit `SchrittBrowser.kt` (Rahmen, Slots, Vollbild), `FotoKarussell.kt` (Pager, Leer-Zustand, Punkte/Zaehler/Hinweis), `ThumbnailLeiste.kt`, `LabelZeile.kt` und `SchrittBrowserZustand.kt`. Kein `*ViewModel.kt` und kein `*UiState.kt`.
+
+### Woertliche UI-Texte
+
+Verbindlich fuer UI-Tests. Alle in `res/values/strings_browser.xml`:
+
+| Text | Ressource | Ort |
+|---|---|---|
+| `Keine Fotos zu diesem Schritt` | `browser_keine_fotos` | Leer-Zustand |
+| `KEIN FOTO` | `browser_kein_foto` | Zaehler ohne Fotos |
+| `FOTO %1$d/%2$d` | `browser_foto_zaehler` | Zaehler |
+| `← WISCHEN` | `browser_wisch_hinweis` | Wisch-Hinweis |
+| `+%d ↑` / `+%d ↓` | `browser_ueberlauf_oben` / `_unten` | Ueberlaufzaehler der Leiste |
+| `BAUTEIL` / `ÜBERSICHT` / `ABLAGEORT` | `label_bauteil` / `_uebersicht` / `_ablageort` | Label-Chips und -Plaketten |
+| `SCHRITT %d` | `vollbild_schritt` | Kopfzeile im Vollbild |
+| `Bauteil` / `Übersicht` / `Ablageort` / `ohne Label` | `label_*_lang` / `label_ohne` | Labelzeile im Vollbild (Schreibweise weicht bewusst von den Chips ab) |
+| `✓` / `✕` | `zeichen_haken` / `zeichen_kreuz` | Erledigt-Haken, Schliesser |
+
+Die Beschriftungen der Slot-Inhalte („ZURÜCK", „‹", „›", „RAUS", …) gehoeren dem jeweiligen Consumer und stehen in `strings_browser_aktionen.xml`.
 
 ### Tests
 
-- Die Kategorie-Ableitung und die Index-Grenzfaelle (erster/letzter Schritt, leere Liste mit `aktuellerIndex = -1`, Schritt ohne Fotos mit `sichtbaresFotoIndex = -1`, Index ausserhalb des gueltigen Bereichs) sind reine Unit-Tests (keine DB, kein Emulator noetig).
-- Die User Stories werden je als `@Nested inner class` abgebildet (siehe `docs/CODING_RULES.md`); UI-Verhalten (Sprung, Blaettern inkl. deaktivierter Raender, Wischen, Vollbild, Checkbox-Zustand je Modus, Sichtbarkeit der Foto-Aktion) als Compose-UI-Test.
-- Je Modus ein UI-Test, der belegt, dass in den lesenden Modi kein `onLabelGeaendert` und kein `fotoAktion.onAusgeloest` ausgeloest werden kann.
+- Kategorie-Ableitung, Fensterberechnung der Leiste und die Index-Grenzfaelle sind reine Unit-Tests (keine DB, kein Emulator)
+- Je User Story eine `@Nested inner class` (siehe `docs/CODING_RULES.md`)
+- UI-Verhalten (Sprung, Wischen, Vollbild oeffnen und ueber die Zurueck-Geste schliessen, Chip vs. Plakette je Betriebsart, deaktiviertes Blaettern an den Raendern) als Compose-UI-Test
+- Je lesender Betriebsart ein Test, der belegt, dass kein `onLabelUmgeschaltet` ausgeloest werden kann
 
 ---
 
 ## Offene Fragen
 
-Siehe [README.md](README.md#offene-fragen).
+- **[OFFEN]** Ersatzdarstellung fuer eine fehlende Foto-Datei — siehe US-006.8.
+- **[OFFEN]** `README.md` dieses Ordners beschreibt Schnittstelle und Schritt-Navigation noch ohne den Entwurf (waagerechte Leiste, `FotoAktion`-Parameter, `-1` als Leer-Index). Bis er nachgezogen ist, gilt diese Datei.
+- Die drei MVP-gebundenen Fragen (Symbol zusaetzlich zur Farbe, Pinch-Zoom im Vollbild, Filter bei sehr vielen Schritten) stehen unveraendert in [README.md](README.md#offene-fragen).
+
+---
+
+## Aenderungshistorie
+
+| Datum | Aenderung |
+|---|---|
+| 2026-07-27 | Vor/Zurueck ist eine Andockstelle im Slot `bedienkreise`, je Betriebsart verschieden besetzt und an den Raendern sichtbar deaktiviert (K-05, US-006.10). |
+| 2026-07-27 | Thumbnail-Leiste senkrecht mit Fenster von hoechstens vier Kacheln, berechneter Kachelzahl, Ueberlaufzaehlern, 66dp/54dp und atmendem Rand (US-006.1). |
+| 2026-07-27 | Kategorie-Kennzeichnung als Farbstreifen unter der Kachel statt als Rahmen; Farben aus dem Design-System (US-006.3). |
+| 2026-07-27 | Karussell mit Punkt-Indikatoren, Zaehler „FOTO n/m" und Wisch-Hinweis; Vollbild mit Kopfzeile, Punktleiste und `BackHandler` nur im Vollbild (US-006.4, US-006.5). |
+| 2026-07-27 | Interface auf den gebauten Stand gezogen: `SchrittBrowserZustand` / `SchrittBrowserAktionen`, vier Consumer-Slots, geklemmte Indizes statt `-1`-Protokoll. |
+| 2026-07-27 | US-006.11 beschreibt die Consumer-Slots statt eines `FotoAktion`-Parameters. |

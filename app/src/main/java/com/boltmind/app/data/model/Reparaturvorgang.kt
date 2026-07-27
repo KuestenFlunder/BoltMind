@@ -12,6 +12,17 @@ data class Reparaturvorgang(
     val auftragsnummer: String,
     val beschreibung: String? = null,
     val status: VorgangStatus = VorgangStatus.OFFEN,
-    val erstelltAm: Instant = Instant.now(),
-    val aktualisiertAm: Instant = Instant.now()
+    /**
+     * Beide Zeitstempel setzt das Repository aus seiner injizierten Uhr.
+     * Ein Default `Instant.now()` waere eine zweite, nicht stellbare Zeitquelle
+     * fuer dieselbe Zeile -- in Tests nicht deterministisch, und `erstelltAm`
+     * koennte je nach Aufrufer minimal nach `aktualisiertAm` liegen.
+     *
+     * Der Default ist deshalb bewusst [Instant.EPOCH] und kein `now()`: er ist
+     * erkennbar ein Platzhalter. Wer einen Vorgang ueber das Repository anlegt,
+     * bekommt beide Werte gesetzt; taucht in der Datenbank je eine EPOCH-Zeile
+     * auf, ist jemand am Repository vorbeigegangen.
+     */
+    val erstelltAm: Instant = Instant.EPOCH,
+    val aktualisiertAm: Instant = Instant.EPOCH
 )

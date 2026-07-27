@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- Die System-Kamera schreibt direkt in die Zieldatei. Ein photos/temp/
+         gibt es nicht mehr (governance.md, Abschnitt "Speicherort"). -->
     <files-path name="photos" path="photos/" />
-    <files-path name="photos_temp" path="photos/temp/" />
 </paths>

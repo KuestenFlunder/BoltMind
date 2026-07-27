@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Texte der Uebersicht (F-001).
+
+  Woertlich aus dem Design-Prototyp "BoltMind App.dc.html", Zeilen 60-116 und
+  576-579. Eigene Datei, damit sich die parallel entstehenden Screens nicht in
+  strings.xml in die Quere kommen.
+
+  Nicht hier: die Datumsformate ("Gerade eben", "Heute, hh:mm", ...). Die
+  Formatierung liegt im ViewModel und muss ohne Android testbar sein – ihre
+  Wortlaute stehen deshalb in DatumFormat.kt.
+-->
+<resources>
+
+    <!-- Kopfzeile, Prototyp Z. 68-69 -->
+    <string name="uebersicht_logo">B</string>
+    <string name="uebersicht_wortmarke">BOLTMIND</string>
+
+    <!-- Tabs, Prototyp Z. 74-79 -->
+    <string name="uebersicht_tab_offen">OFFEN</string>
+    <string name="uebersicht_tab_archiv">ARCHIV</string>
+
+    <!-- Vorgangskarte, Prototyp Z. 85-95 -->
+    <string name="uebersicht_auftragsnummer">#%1$s</string>
+    <string name="uebersicht_ohne_beschreibung">Ohne Beschreibung</string>
+    <string name="uebersicht_chevron">›</string>
+    <string name="uebersicht_fahrzeugfoto">Fahrzeugfoto</string>
+    <!-- Der Prototyp kennt keinen fehlenden Bildpfad; ohne Datei darf die Karte nicht abstuerzen. -->
+    <string name="uebersicht_kein_foto">KEIN FOTO</string>
+
+    <!-- Leerzustand, Prototyp Z. 99-103 -->
+    <string name="uebersicht_leer_symbol">0</string>
+    <string name="uebersicht_leer_titel_offen">NICHTS OFFEN</string>
+    <string name="uebersicht_leer_text_offen">Tipp auf NEUER AUFTRAG und leg los.</string>
+    <string name="uebersicht_leer_titel_archiv">ARCHIV IST LEER</string>
+    <string name="uebersicht_leer_text_archiv">Fertige Vorgänge landen hier.</string>
+
+    <!-- FAB und Motivationszeile, Prototyp Z. 108-114 -->
+    <string name="uebersicht_fab_plus">+</string>
+    <string name="uebersicht_fab">NEUER AUFTRAG</string>
+    <string name="uebersicht_motivation">You\ncan\ndo it.</string>
+
+    <!-- Auswahl-Sheet, Prototyp Z. 576-579. Wortlaut verbindlich. -->
+    <string name="uebersicht_weiter_demontieren">WEITER DEMONTIEREN</string>
+    <string name="uebersicht_montage_starten">MONTAGE STARTEN</string>
+
+    <!-- Loesch-Sheet (US-001.4). Der Prototyp kennt die Wischgeste nicht; -->
+    <!-- Aufbau und Stil folgen dem Haekchen-Dialog Z. 672-675 (Gefahr-Aktion unten). -->
+    <string name="uebersicht_loeschen">LÖSCHEN</string>
+    <string name="uebersicht_loeschen_abbrechen">ABBRECHEN</string>
+    <string name="uebersicht_loeschen_frage">Vorgang und alle Fotos unwiderruflich löschen?</string>
+    <string name="uebersicht_wischen_beschreibung">Nach links wischen zum Löschen</string>
+
+    <string name="uebersicht_loeschen_titel">WIRKLICH WEG?</string>
+    <!-- Ein Schritt ist "1 TEIL", nicht "1 TEILE". Der Prototyp zeigt nur
+         Vorgaenge mit mehreren Schritten und trifft den Fall deshalb nie. -->
+    <plurals name="uebersicht_teile">
+        <item quantity="one">%1$d TEIL</item>
+        <item quantity="other">%1$d TEILE</item>
+    </plurals>
+</resources>

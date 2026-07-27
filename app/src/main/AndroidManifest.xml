@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Camera & Photos -->
+    <!--
+      Kamera & Fotos.
+
+      Keine CAMERA-Berechtigung: die App fotografiert ausschliesslich ueber die
+      System-Kamera (ACTION_IMAGE_CAPTURE), die ihre Berechtigung selbst verwaltet
+      (governance.md, Abschnitt "Kamera"). Steht die Berechtigung im Manifest, ohne
+      erteilt zu sein, verweigert das System ACTION_IMAGE_CAPTURE mit einer
+      SecurityException. Die Deklaration wuerde die Aufnahme also aktiv kaputt
+      machen.
+    -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <!-- Fallback for API < 33 -->
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
 
     <application
         android:name=".BoltMindApplication"

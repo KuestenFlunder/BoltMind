@@ -12,7 +12,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Single test: `./gradlew test --tests "com.boltmind.app.ClassName"`
 
-Build target: compileSdk 36, minSdk 26, targetSdk 36, Java 17, Gradle 8.14, AGP 8.10.1, Kotlin 2.1.10.
+Build target: compileSdk 36, **minSdk 31**, targetSdk 36, Java 17, Gradle 8.14, AGP 8.10.1, Kotlin 2.1.10.
+
+minSdk ist bewusst 31, nicht 26: das Design-System setzt durchgehend auf echten Hintergrund-Blur, und `RenderEffect` gibt es erst ab Android 12. Android 8 bis 11 werden nicht unterstuetzt. Siehe `docs/specs/design-system.md`, Abschnitt „Glas".
 
 ### Wichtig: Toolchain-Realität (Stand 2026-07-26)
 
@@ -20,8 +22,8 @@ Build target: compileSdk 36, minSdk 26, targetSdk 36, Java 17, Gradle 8.14, AGP 
 |---|---|
 | `./gradlew ktlintCheck` / `ktlintFormat` | **Existiert nicht.** Kein ktlint-Plugin in `build.gradle.kts` oder `libs.versions.toml`. |
 | `./gradlew detekt` | **Existiert nicht.** Kein detekt-Plugin, kein `config/detekt/detekt.yml`. |
-| `./gradlew connectedAndroidTest` | Läuft ins Leere — `app/src/androidTest/` enthält **keine** Quellen. |
-| Android SDK | Auf dieser Maschine **nicht installiert**. `./gradlew test` bricht mit `SDK location not found` ab. Vor dem ersten Build: SDK installieren und `local.properties` mit `sdk.dir=...` anlegen (oder `ANDROID_HOME` setzen). |
+| `./gradlew connectedDebugAndroidTest` | **Läuft.** `app/src/androidTest/` enthält die Migrationstests. Braucht ein Gerät oder den Emulator (siehe unten). |
+| Android SDK | **Installiert** unter `/opt/homebrew/share/android-commandlinetools`, `local.properties` ist gesetzt. Kein Android Studio nötig — Gradle-Wrapper genügt. |
 
 Diese Punkte sind in `docs/CODING_RULES.md` als Soll beschrieben, aber noch nicht umgesetzt. Nicht so tun, als liefen die Checks — entweder Plugins einrichten oder den Schritt explizit als übersprungen melden.
 
@@ -59,7 +61,7 @@ service/zeiterfassung/  ⬜ F-005 — nichts implementiert (kein ZeitMessung-Ent
 ui/navigation/          ✅ BoltMindNavHost + BoltMindRoutes
 ui/schrittbrowser/      ⬜ F-006 — SchrittBrowser, SchrittBrowserState,
                            SchrittThumbnailLeiste, SchrittFotoKarussell
-ui/theme/               ✅ Color, Dimensions, Shape, Theme, Type (Dark-only "Titanium Forge")
+ui/theme/               ✅ Color, Dimensions, Shape, Theme, Type, Glas, GlasRezepte (Dark-only)
 ui/components/          ✅ BoltMindButton/Card/Dialog/TopBar, DebounceClick, FotoPreview,
                            PremiumEffects, SchrittNummer, StatusBadge
 ```
@@ -169,22 +171,34 @@ Diese Punkte wurden nach mehreren Spec-Überarbeitungen entschieden. Wenn ein ä
 3. `docs/specs/F-XXX-name/README.md` — Feature-Intention und Abhängigkeiten
 4. `docs/specs/F-XXX-name/*.md` — Detail-Specs (User Stories, Workflow, Views)
 
-## Implementierungsstand (Stand 2026-07-26, main @ d982b63)
+## Implementierungsstand (Stand 2026-07-27, Branch `feature/design-umsetzung`, PR #98)
+
+Der Design-Prototyp ist umgesetzt. Alle sechs Features sind gebaut; die Reife
+unterscheidet sich noch.
 
 | Feature | Stand | Details |
 |---|---|---|
-| **F-001** Übersicht | ✅ weitgehend | Offen-/Archiv-Tabs, Vorgangsliste mit Foto+Schrittzahl+Datum, Auswahl-Dialog (0 Schritte → direkt Demontage), SwipeToDismiss + Bestätigungsdialog, FAB. **Lücke:** US-001.5 letztes AK — die Nur-Lese-Detailansicht für archivierte Vorgänge fehlt (braucht F-006). **Abweichung:** `UebersichtViewModel.formatiereGesamtdauer(schritte)` rechnet die Gesamtdauer aus `Schritt.gestartetAm`/`abgeschlossenAm`. Das sind Workflow-Timestamps, keine Zeitmessung (Governance: keine Dual-Purpose-Felder). Quelle ist `zeit_messung` aus F-005; solange F-005 fehlt, gibt es keine belastbare Dauer. |
-| **F-002** Vorgang anlegen | ⚠️ läuft, weicht ab | Foto-first, Formular mit Pflicht-Auftragsnummer, Bild wiederholen, Back verwirft das Foto. **Aber:** die Kamera läuft über CameraX mit `CAMERA`-Permission, nicht über die System-Kamera — siehe „Kamera & Fotos". Umstellung ist beschlossen, aber nicht umgesetzt. |
-| **F-003** Demontage | ⚠️ läuft, aber altes Modell | Implementiert ist die alte State Machine `PREVIEW_BAUTEIL → ARBEITSPHASE → DIALOG → PREVIEW_ABLAGEORT` mit `PreviewView`/`ArbeitsphaseView`/`DemontageDialog`, Kamera-Autostart per `LaunchedEffect`, Sofort-Save je Transition, Unterbrechungs-Fortsetzung über `findUnabgeschlossenenSchritt`, `BackHandler`-Blockade (US-003.6). **Die Spec beschreibt inzwischen eine andere Lösung:** eine einzige Schritt-Ansicht, N Fotos je Schritt (`schritt_foto`), Foto-Label statt `SchrittTyp`, keine app-eigene Foto-Bestätigung. `SchrittTyp`, `bauteilFotoPfad`, `ablageortFotoPfad` und DB-Version 2 bestehen im Code weiter; `SchrittFoto`, `SchrittFotoDao` und `MIGRATION_2_3` fehlen. **Lücke:** keine Timer-Anbindung (F-005). |
-| **F-004** Montage | ⬜ nicht implementiert | Route `montage/{vorgangId}` zeigt Platzhaltertext. `Schritt.eingebautBeiMontage` und `SchrittDao.beobachteSchritteAbsteigend` existieren bereits. Issues #83–#85 in R3. Braucht F-006. |
-| **F-005** Zeiterfassung | ⬜ nicht implementiert | Kein `ZeitMessung`-Entity, kein `ZeitMessungDao`, kein `ZeiterfassungService`. Spec (Interface + Entity + Lifecycle) ist fertig. **Keine Issues angelegt.** |
-| **F-006** Schritt-Browser | ⬜ nicht implementiert | Kein `ui/schrittbrowser/`-Package. Spec (Interface, Modi, User Stories) ist fertig. Blockiert die Nur-Lese-Detailansicht in F-001, den kompletten F-004-Flow und die neue Schritt-Ansicht in F-003. **Keine Issues angelegt.** |
+| **F-001** Übersicht | ✅ | Tabs, Vorgangsliste mit Dauer im Archiv, Leerzustände, FAB, Auswahl- und Lösch-Sheet. Vier-Stufen-Datumsregel. Archiv-Detailansicht ist der Browser im Modus ARCHIV. |
+| **F-002** Anlage | ✅ | System-Kamera, Pflicht-Auftragsnummer, Beschreibungsfeld, Direktstart in die Demontage. CameraX und `CAMERA`-Permission sind raus. |
+| **F-003** Demontage | ✅ | Browser im Modus DEMONTAGE. Am Emulator durchgeklickt. |
+| **F-004** Montage | ⚠️ gebaut, nicht durchgespielt | Modus MONTAGE plus Abschluss-Screen. Kompiliert und verdrahtet, aber noch nicht mit echten Daten geprüft. |
+| **F-005** Zeiterfassung | ✅ | `ZeitMessung`, DAO, Service, Timer-Chip. Pausierbar — siehe unten. |
+| **F-006** Schritt-Browser | ✅ | `ui/schrittbrowser/`, zustandslos, drei Betriebsarten. |
 
-**Tests:** 7 Unit-Test-Klassen, ~2500 LOC, alle mit `@Nested inner class` je User Story (US-001.1–.5, US-002.1–.3, US-003.1–.5) plus `ReparaturRepositoryTest`, `FotoManagerTest`, `DebounceClickTest`, `FotoPreviewLogicTest`. Instrumented Tests: keine.
+**Zwei Produktentscheidungen warten auf Bestätigung** (`docs/specs/design-system.md`, K-03/K-04):
+Der Timer ist von Hand pausierbar, und die Montage misst ebenfalls. Beides kippt eine
+zuvor bindende MVP-Antwort in `F-005/service.md`.
 
-**Issue-Historie:** Sprint 1–5 (#1–#20) = F-001/F-002 + Infrastruktur. #34–#51 = F-003 im alten Schichtenschnitt. #53–#61 = Design-System („Titanium Forge"). #64–#75 = F-004, geschlossen und durch Vertical Slices ersetzt. Ab #76 = Vertical Slices in den Wellen R1–R4.
+**Tests:** 161 JVM-Tests (`./gradlew test`) plus vier Migrationstests in `androidTest`
+(`./gradlew connectedDebugAndroidTest`). Keine Compose-UI-Tests.
 
-**Nächste sinnvolle Schritte:** (1) F-006 Schritt-Browser bauen — er blockiert F-001-Archivansicht, F-003-Neubau und F-004 komplett. (2) F-003 auf das neue Datenmodell ziehen (`SchrittFoto`, `SchrittFotoDao`, `MIGRATION_2_3` + `3.json`, Migrations-Test). (3) F-004-Issues gegen die heutige `montage.md` nachziehen. (4) F-005 implementieren — blockiert die Dauer-Anzeige im F-001-Archiv, Spec ist sauber, aber es gibt noch keine Issues.
+**Emulator:** AVD `boltmind36` (Android 16, arm64). Starten mit
+`emulator -avd boltmind36 -gpu host`, danach `./gradlew installDebug`. Für ein echtes
+Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neuer.
+
+**Offen:** Splash-Video und Original-Stahltextur ließen sich nicht exportieren und sind
+prozedural ersetzt (als TODO markiert). Die Issues #76–#96 sind noch nicht gegen den
+gebauten Stand nachgezogen.
 
 ### Veraltete Doku
 
@@ -229,7 +243,11 @@ Diese Punkte wurden nach mehreren Spec-Überarbeitungen entschieden. Wenn ein ä
 
 ### UI-Theme
 
-Dark-only Design-System („Titanium Forge", Orange `#FF741F` auf Schwarz). Eigene Komponenten in `ui/components/` statt roher Material3-Widgets verwenden — insbesondere `BoltMindButton` (enthält die 300ms-Debounce aus der Governance) und `SchrittNummer`. Abstände/Touch-Targets kommen aus `ui/theme/Dimensions.kt`, nicht als Magic Numbers.
+Dark-only, **Orange `#FF7A1A` auf `#0B0C0D`**, Glasflächen über einem Mesh-Verlauf. Verbindliche Quelle ist `docs/specs/design-system.md` — dort stehen alle Farb-, Schrift- und Maßtoken sowie der Glas-Rezeptkatalog.
+
+Das frühere Schema war Cyan `#00E5FF` auf Navy; die hier lange behauptete Farbe `#FF741F` war zu keinem Zeitpunkt im Code. Beides ist hinfällig.
+
+Eigene Bausteine aus `ui/components/` statt roher Material3-Widgets verwenden — insbesondere `Modifier.boltKlick` (enthält die 300ms-Sperre aus der Governance), `GlasFlaeche`, `Rundbutton` und `BoltSheet`. Abstände und Touch-Targets kommen aus `ui/theme/Dimensions.kt`, nicht als Magic Numbers.
 
 ## TDD Workflow (verbindlich)
 
@@ -242,7 +260,7 @@ TDD ist keine Empfehlung, sondern Pflicht bei JEDER Code-Änderung (Feature, Bug
 3. REFACTOR: Aufräumen               → ./gradlew test (grün bleiben)
 ```
 
-Der Zyklus nennt bewusst nur real existierende Gradle-Tasks. `ktlintCheck`, `detekt` und `connectedAndroidTest` sind in `docs/CODING_RULES.md` als offene Werkzeug-Lücke dokumentiert, nicht als Pflichtschritt. Nie behaupten, sie seien gelaufen.
+`ktlintCheck` und `detekt` existieren weiterhin nicht — nie behaupten, sie seien gelaufen. `./gradlew test` und `./gradlew connectedDebugAndroidTest` laufen dagegen beide und sind zu benutzen.
 
 **Verboten:** Code ohne vorherigen Test schreiben. Tests deaktivieren/löschen um Build grün zu bekommen.
 
@@ -260,7 +278,8 @@ CI: `.github/workflows/claude.yml` (@claude-Mentions) und `claude-code-review.ym
 
 - `docs/architecture.md` — Arc42-light Architektur-Übersicht (Vision, Domäne, Quality Goals, MVP-Abgrenzung)
 - `docs/CODING_RULES.md` — Vollständige Coding-Konventionen und Test-Struktur
-- `docs/specs/governance.md` — Projektweite Regeln (Sofort-Save, Debounce, Foto-Handling, DDD, Service-Architektur)
+- `docs/specs/governance.md` — Projektweite Regeln (Sofort-Save, Debounce, Foto-Handling, DDD, Service-Architektur, Plattform-Randbedingungen)
+- `docs/specs/design-system.md` — **verbindlich für alles Visuelle**: Farben, Typografie, Glas-Rezepte, Maße, und die zehn dokumentierten Abweichungen vom Design-Prototyp
 - `docs/SpecBestPractices.md` — Spec-Schreibregeln, INVEST, Ordner-Struktur (liegt unter `docs/`, **nicht** in `docs/specs/`)
 - `docs/specs/F-XXX-name/` — Feature-Spezifikationen als Ordner (F-001 bis F-006)
 - `docs/specs/F-006-schritt-browser/` — gemeinsames UI-Modul (Thumbnail-Leiste, Foto-Karussell, Vollbild, Label-Checkboxen, Schritt-Navigation), genutzt von F-001, F-003 und F-004. Kein Service, kein eigenes ViewModel.

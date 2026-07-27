@@ -2,169 +2,145 @@ package com.boltmind.app.feature.uebersicht
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.boltmind.app.data.model.Schritt
+import com.boltmind.app.data.model.ReparaturvorgangMitAnzahl
+import com.boltmind.app.data.model.VorgangStatus
 import com.boltmind.app.data.repository.ReparaturRepository
+import com.boltmind.app.ui.navigation.BrowserModus
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
+/**
+ * F-001 Uebersicht: zwei Tabs, zwei Listen, zwei Sheets, ein Navigationsziel.
+ *
+ * Sortierung und Schrittzahl liefert bereits das Repository
+ * (`ORDER BY aktualisiertAm DESC`); hier wird nur noch formatiert.
+ */
 class UebersichtViewModel(
     private val repository: ReparaturRepository,
+    private val uhr: () -> Instant = Instant::now,
+    private val zone: ZoneId = ZoneId.systemDefault()
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(UebersichtUiState())
-    val uiState: StateFlow<UebersichtUiState> = _uiState.asStateFlow()
+    private val tabAuswahl = MutableStateFlow(UebersichtTab.OFFEN)
+    private val sheetZustand = MutableStateFlow<UebersichtSheet?>(null)
+    private val navigationsZiel = MutableStateFlow<UebersichtZiel?>(null)
 
-    init {
-        ladeOffeneVorgaenge()
-        ladeArchivierteVorgaenge()
+    val uiState: StateFlow<UebersichtUiState> = combine(
+        repository.beobachteOffeneVorgaengeMitAnzahl(),
+        repository.beobachteArchivierteVorgaengeMitAnzahl(),
+        tabAuswahl,
+        sheetZustand,
+        navigationsZiel
+    ) { offene, archivierte, tab, sheet, ziel ->
+        UebersichtUiState(
+            tab = tab,
+            offene = offene.map { karte(it, archiviert = false) },
+            archivierte = archivierte.map { karte(it, archiviert = true) },
+            sheet = sheet,
+            ziel = ziel
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_VERZOEGERUNG_MS), UebersichtUiState())
+
+    // ------------------------------------------------------------------
+    // Tab
+    // ------------------------------------------------------------------
+
+    fun onTabGewaehlt(tab: UebersichtTab) {
+        tabAuswahl.value = tab
     }
 
-    private fun ladeOffeneVorgaenge() {
+    // ------------------------------------------------------------------
+    // Karte antippen (US-001.2, US-001.5)
+    // ------------------------------------------------------------------
+
+    /**
+     * Archiviert -> direkt in den Lesemodus. Offen ohne Schritt -> direkt in die
+     * Demontage; "Montage starten" fuehrt dort garantiert in eine Sackgasse
+     * (uebersicht.md US-001.2, Delta-Analyse K-10). Sonst das Auswahl-Sheet.
+     */
+    fun onVorgangGeoeffnet(karte: VorgangKarte) {
         viewModelScope.launch {
-            repository.beobachteOffeneVorgaengeMitAnzahl().collect { vorgaengeMitAnzahl ->
-                val items = vorgaengeMitAnzahl.map { item ->
-                    VorgangUiItem(
-                        id = item.vorgang.id,
-                        fahrzeugFotoPfad = item.vorgang.fahrzeugFotoPfad,
-                        auftragsnummer = item.vorgang.auftragsnummer,
-                        anzahlSchritte = item.schrittAnzahl,
-                        erstelltAm = formatiereDatum(item.vorgang.erstelltAm),
-                    )
-                }
-                _uiState.update { it.copy(vorgaenge = items, isLoading = false) }
+            val vorgang = repository.findVorgangById(karte.id) ?: return@launch
+            when {
+                vorgang.status == VorgangStatus.ARCHIVIERT ->
+                    navigiere(karte.id, BrowserModus.ARCHIV)
+
+                repository.zaehleSchritte(karte.id) == 0 ->
+                    navigiere(karte.id, BrowserModus.DEMONTAGE)
+
+                else -> sheetZustand.value = UebersichtSheet.Auswahl(karte)
             }
         }
     }
 
-    private fun ladeArchivierteVorgaenge() {
-        viewModelScope.launch {
-            repository.beobachteArchivierteVorgaengeMitAnzahl().collect { vorgaengeMitAnzahl ->
-                val archivItems = vorgaengeMitAnzahl.map { item ->
-                    val schritte = repository.holeSchritte(item.vorgang.id)
-                    ArchivVorgangUiItem(
-                        id = item.vorgang.id,
-                        fahrzeugFotoPfad = item.vorgang.fahrzeugFotoPfad,
-                        auftragsnummer = item.vorgang.auftragsnummer,
-                        anzahlSchritte = item.schrittAnzahl,
-                        gesamtdauer = formatiereGesamtdauer(schritte),
-                        abschlussDatum = formatiereDatum(item.vorgang.aktualisiertAm),
-                    )
-                }
-                _uiState.update { it.copy(archivierteVorgaenge = archivItems) }
+    fun onWeiterDemontieren(vorgangId: Long) = navigiere(vorgangId, BrowserModus.DEMONTAGE)
+
+    fun onMontageStarten(vorgangId: Long) = navigiere(vorgangId, BrowserModus.MONTAGE)
+
+    // ------------------------------------------------------------------
+    // Neuanlage (US-001.3) und Loeschen (US-001.4)
+    // ------------------------------------------------------------------
+
+    fun onNeuerVorgang() {
+        sheetZustand.value = null
+        navigationsZiel.value = UebersichtZiel.NeuerVorgang
+    }
+
+    fun onLoeschenAngefragt(karte: VorgangKarte) {
+        sheetZustand.value = UebersichtSheet.Loeschen(karte)
+    }
+
+    /** Kaskadiert ueber die Fremdschluessel auf Schritte und Fotos. */
+    fun onLoeschenBestaetigt(vorgangId: Long) {
+        sheetZustand.value = null
+        viewModelScope.launch { repository.loescheVorgang(vorgangId) }
+    }
+
+    fun onSheetGeschlossen() {
+        sheetZustand.value = null
+    }
+
+    fun onZielVerbraucht() {
+        navigationsZiel.value = null
+    }
+
+    // ------------------------------------------------------------------
+
+    private fun navigiere(vorgangId: Long, modus: BrowserModus) {
+        sheetZustand.value = null
+        navigationsZiel.value = UebersichtZiel.Browser(vorgangId, modus)
+    }
+
+    /**
+     * Offen zeigt `erstelltAm` (der Auftrag ist daran wiedererkennbar), Archiv
+     * zeigt `aktualisiertAm` -- den Zeitpunkt des Archivierens -- plus Dauer.
+     * Sortiert wird in beiden Faellen nach `aktualisiertAm` (uebersicht.md,
+     * "Bewusste Abweichung (Anzeige vs. Sortierung)").
+     */
+    private fun karte(eintrag: ReparaturvorgangMitAnzahl, archiviert: Boolean): VorgangKarte {
+        val vorgang = eintrag.vorgang
+        val jetzt = uhr()
+        return VorgangKarte(
+            id = vorgang.id,
+            auftragsnummer = vorgang.auftragsnummer,
+            beschreibung = vorgang.beschreibung?.takeIf { it.isNotBlank() },
+            fahrzeugFotoPfad = vorgang.fahrzeugFotoPfad,
+            schrittAnzahl = eintrag.schrittAnzahl,
+            datumText = if (archiviert) {
+                DatumFormat.datumMitDauer(vorgang.aktualisiertAm, jetzt, zone, eintrag.dauerMillis)
+            } else {
+                DatumFormat.datum(vorgang.erstelltAm, jetzt, zone)
             }
-        }
+        )
     }
 
-    fun onTabGewaehlt(tabIndex: Int) {
-        _uiState.update { it.copy(selectedTab = tabIndex) }
-    }
-
-    fun onVorgangGetippt(vorgangId: Long) {
-        val vorgangUiItem = _uiState.value.vorgaenge.find { it.id == vorgangId } ?: return
-        if (vorgangUiItem.anzahlSchritte == 0) {
-            _uiState.update {
-                it.copy(navigationsZiel = NavigationsZiel.Demontage(vorgangId))
-            }
-        } else {
-            viewModelScope.launch {
-                val vorgang = repository.findVorgangById(vorgangId)
-                if (vorgang != null) {
-                    _uiState.update {
-                        it.copy(
-                            auswahlDialog = AuswahlDialogState(
-                                vorgangId = vorgang.id,
-                                auftragsnummer = vorgang.auftragsnummer,
-                                fahrzeugFotoPfad = vorgang.fahrzeugFotoPfad,
-                            ),
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    fun onWeiterDemontierenGewaehlt() {
-        val dialog = _uiState.value.auswahlDialog ?: return
-        _uiState.update {
-            it.copy(
-                navigationsZiel = NavigationsZiel.Demontage(dialog.vorgangId),
-                auswahlDialog = null,
-            )
-        }
-    }
-
-    fun onMontageStartenGewaehlt() {
-        val dialog = _uiState.value.auswahlDialog ?: return
-        _uiState.update {
-            it.copy(
-                navigationsZiel = NavigationsZiel.Montage(dialog.vorgangId),
-                auswahlDialog = null,
-            )
-        }
-    }
-
-    fun onNavigationAbgeschlossen() {
-        _uiState.update { it.copy(navigationsZiel = null) }
-    }
-
-    fun onDialogVerworfen() {
-        _uiState.update { it.copy(auswahlDialog = null) }
-    }
-
-    fun onLoeschenAngefragt(vorgangId: Long) {
-        val vorgangUiItem = _uiState.value.vorgaenge.find { it.id == vorgangId } ?: return
-        _uiState.update {
-            it.copy(
-                loeschenDialog = LoeschenDialogState(
-                    vorgangId = vorgangUiItem.id,
-                    auftragsnummer = vorgangUiItem.auftragsnummer,
-                ),
-            )
-        }
-    }
-
-    fun onLoeschenBestaetigt() {
-        val dialog = _uiState.value.loeschenDialog ?: return
-        viewModelScope.launch {
-            repository.loescheVorgang(dialog.vorgangId)
-            _uiState.update { it.copy(loeschenDialog = null) }
-        }
-    }
-
-    fun onLoeschenAbgebrochen() {
-        _uiState.update { it.copy(loeschenDialog = null) }
-    }
-
-    internal fun formatiereDatum(instant: Instant): DatumAnzeige {
-        val datum = instant.atZone(ZoneId.systemDefault()).toLocalDate()
-        val heute = LocalDate.now()
-        return when {
-            datum == heute -> DatumAnzeige.Heute
-            datum == heute.minusDays(1) -> DatumAnzeige.Gestern
-            else -> DatumAnzeige.Formatiert(datum.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
-        }
-    }
-
-    internal fun formatiereGesamtdauer(schritte: List<Schritt>): DauerAnzeige {
-        val gesamtSekunden = schritte.sumOf { schritt ->
-            val ende = schritt.abgeschlossenAm ?: return@sumOf 0L
-            Duration.between(schritt.gestartetAm, ende).seconds
-        }
-        val minuten = (gesamtSekunden / 60).toInt()
-        val stunden = minuten / 60
-        val restMinuten = minuten % 60
-        return when {
-            minuten < 1 -> DauerAnzeige.WenigerAlsEineMinute
-            stunden < 1 -> DauerAnzeige.Minuten(minuten)
-            else -> DauerAnzeige.StundenMinuten(stunden, restMinuten)
-        }
+    private companion object {
+        const val STOP_VERZOEGERUNG_MS = 5_000L
     }
 }

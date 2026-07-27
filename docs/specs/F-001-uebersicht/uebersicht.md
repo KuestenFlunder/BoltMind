@@ -2,9 +2,11 @@
 
 ## Kontext
 
-Die Vorgangs-Übersicht ist der Startscreen der App. Der Mechaniker hat typischerweise 1-3 offene Reparaturvorgänge gleichzeitig. Sein primäres Ziel beim Öffnen der App ist ein schneller Überblick: Was ist offen, wo mache ich weiter?
+Die Vorgangs-Übersicht ist der erste Arbeitsbildschirm der App — sie erscheint direkt nach dem Splash. Der Mechaniker hat typischerweise 1-3 offene Reparaturvorgänge gleichzeitig. Sein primäres Ziel beim Öffnen der App ist ein schneller Überblick: Was ist offen, wo mache ich weiter?
 
-Das Archiv ist strategisch wichtig: Die erfassten Zeitdaten (F-005) sollen langfristig genutzt werden, um Arbeitsdauern zu analysieren und Angebote besser kalkulieren zu können.
+Das Archiv ist strategisch wichtig: Die erfassten Zeitdaten (F-005) werden langfristig genutzt, um Arbeitsdauern zu analysieren und Angebote besser kalkulieren zu können. Deshalb trägt jede Archivkarte die gemessene Dauer.
+
+Wörtliche UI-Texte sind in diesem Dokument als `` `key` `` = "Text" notiert; die vollständige Liste steht unter [Wörtliche UI-Texte](#wörtliche-ui-texte). Ein UI-Test darf gegen genau diese Texte prüfen.
 
 ## User Stories
 
@@ -16,33 +18,51 @@ Das Archiv ist strategisch wichtig: Die erfassten Zeitdaten (F-005) sollen langf
 
 #### Akzeptanzkriterien
 
-- **Given** die App wird geöffnet und es existieren offene Vorgänge
-  **When** der Startscreen geladen ist
-  **Then** werden alle offenen Vorgänge als Liste angezeigt, sortiert nach letzter Bearbeitung (neueste oben)
+- **Given** die App ist geöffnet und es existieren offene Vorgänge
+  **When** der Tab `uebersicht_tab_offen` = "OFFEN" aktiv ist
+  **Then** werden alle offenen Vorgänge als Liste angezeigt, sortiert nach letzter Bearbeitung (neueste oben, Quelle `aktualisiertAm`)
 
-- **Given** ein offener Vorgang existiert
-  **When** der Vorgang in der Liste angezeigt wird
-  **Then** sind folgende Informationen sichtbar: Fahrzeugfoto (Thumbnail), Auftragsnummer, Anzahl Schritte, Erstellungsdatum (Quelle: `erstelltAm`)
+- **Given** ein offener Vorgang wird in der Liste angezeigt
+  **When** seine Karte gezeichnet wird
+  **Then** sind sichtbar: Fahrzeugfoto (Thumbnail), Auftragsnummer mit vorangestelltem `#`, die Beschreibung des Auftrags, ein Chip `uebersicht_teile` = "%1$d TEILE" mit der Anzahl der Schritte und das Datum (Quelle `erstelltAm`)
 
-- **Given** ein Vorgang wurde am heutigen Tag angelegt
-  **When** seine Karte angezeigt wird
-  **Then** steht als Datum genau der Text "Heute"
+- **Given** ein offener Vorgang hat keine Beschreibung
+  **When** seine Karte gezeichnet wird
+  **Then** steht an ihrer Stelle genau der Text `uebersicht_ohne_beschreibung` = "Ohne Beschreibung"
 
-- **Given** ein Vorgang wurde am Vortag angelegt
-  **When** seine Karte angezeigt wird
-  **Then** steht als Datum genau der Text "Gestern"
+- **Given** ein Vorgang wurde vor weniger als 60 Sekunden zuletzt angefasst
+  **When** sein Datum dargestellt wird
+  **Then** steht dort genau der Text "Gerade eben" — auch dann, wenn der Zeitpunkt kalendarisch schon auf gestern fällt
 
-- **Given** ein Vorgang wurde vor mehr als einem Tag angelegt (z.B. am 01.05.2024)
-  **When** seine Karte angezeigt wird
-  **Then** steht als Datum das Kalenderdatum im Format `TT.MM.JJJJ` (im Beispiel "01.05.2024") und **kein** relativer Text
-  > Dieses Datumsformat ("Heute" / "Gestern" / `TT.MM.JJJJ`) gilt für **jedes** Datum in F-001 — auch für das Abschlussdatum im Archiv (US-001.5).
+- **Given** ein Vorgang stammt vom heutigen Kalendertag und ist älter als 60 Sekunden
+  **When** sein Datum dargestellt wird
+  **Then** steht dort "Heute, hh:mm" mit zweistelliger Stunde und Minute (Beispiel: "Heute, 08:12")
 
-- **Given** die App wird geöffnet und es existieren keine offenen Vorgänge
-  **When** der Startscreen geladen ist
-  **Then** wird ein Hinweis angezeigt, dass keine Vorgänge vorhanden sind (z.B. "Noch keine Vorgänge. Tippe auf + um zu starten.")
+- **Given** ein Vorgang stammt vom Vortag
+  **When** sein Datum dargestellt wird
+  **Then** steht dort "Gestern, hh:mm" (Beispiel: "Gestern, 15:40")
+
+- **Given** ein Vorgang ist älter als der Vortag (z.B. 01.05.2024)
+  **When** sein Datum dargestellt wird
+  **Then** steht dort das Kalenderdatum im Format `TT.MM.JJJJ` (im Beispiel "01.05.2024"), **ohne** Uhrzeit und **ohne** Monatsnamen
+  > Die Uhrzeit auf den beiden Wortstufen trennt mehrere Aufträge desselben Tages ("Heute, 08:12" gegen "Heute, 14:40"). Ein Monatsname ohne Jahr ("12. Juli") wäre im Langzeitarchiv mehrdeutig und ist deshalb ausgeschlossen (design-system.md, Abschnitt "Bewusste Abweichungen vom Prototyp", K-09).
+
+- **Given** verglichen werden zwei Zeitpunkte
+  **When** die Stufe "Heute" oder "Gestern" bestimmt wird
+  **Then** entscheidet der **Kalendertag in der lokalen Zeitzone**, nicht ein 24-Stunden-Abstand
+
+- **Given** die Tableiste ist sichtbar
+  **When** sie gezeichnet wird
+  **Then** trägt jeder Tab die Anzahl der Vorgänge in seiner Liste, und der aktive Tab ist orange hervorgehoben
+
+- **Given** es existieren keine offenen Vorgänge
+  **When** der Tab "OFFEN" aktiv ist
+  **Then** erscheint der Leerzustand mit `uebersicht_leer_titel_offen` = "NICHTS OFFEN" und `uebersicht_leer_text_offen` = "Tipp auf NEUER AUFTRAG und leg los."
 
 #### UI-Verhalten
-- Vorgangskarte: Thumbnail links, Auftragsnummer + Metadaten rechts
+
+- Vorgangskarte: Fahrzeugfoto (96dp) links, Auftragsnummer, Beschreibung, Chip und Datum rechts, Löschen-Knopf am rechten Rand (US-001.4)
+- Glaskarte über dem Mesh-Hintergrund (design-system.md, Abschnitt "Glas", Rezept GD)
 - Liste lädt sofort ohne Spinner (Quality Goal #3)
 - Karten sind groß genug für Bedienung mit Handschuhen/öligen Händen (Quality Goal #1)
 
@@ -51,79 +71,89 @@ Das Archiv ist strategisch wichtig: Die erfassten Zeitdaten (F-005) sollen langf
 ### US-001.2: Vorgang für Weiterarbeit öffnen
 
 **Als** Mechaniker
-**möchte ich** einen Vorgang antippen und wählen ob ich demontieren oder montieren will
+**möchte ich** einen Vorgang antippen und wählen, ob ich demontieren oder montieren will
 **damit** ich direkt im richtigen Modus weiterarbeiten kann.
 
 #### Akzeptanzkriterien
 
-- **Given** ein offener Vorgang mit 0 Schritten existiert (frisch angelegt)
+- **Given** ein offener Vorgang **ohne** Schritte existiert
   **When** der Mechaniker den Vorgang antippt
-  **Then** öffnet sich direkt der Demontage-Flow (F-003)
+  **Then** öffnet sich **ohne** Auswahl-Sheet direkt der Demontage-Flow (F-003)
+  > "Montage starten" führt bei null Schritten garantiert in eine Sackgasse — es gibt nichts einzubauen. Eine Auswahl mit nur einer sinnvollen Antwort ist keine Auswahl (design-system.md, Abschnitt "Bewusste Abweichungen vom Prototyp", K-10). Der Fall ist ein Sicherheitsnetz: F-002 legt zusammen mit dem Vorgang immer Schritt 1 an (F-002 anlegen.md), und Schritte lassen sich nicht löschen.
 
-- **Given** ein offener Vorgang mit mindestens 1 Schritt existiert
+- **Given** ein offener Vorgang mit mindestens einem Schritt existiert
   **When** der Mechaniker den Vorgang antippt
-  **Then** erscheint ein Auswahl-Dialog mit "Weiter demontieren" und "Montage starten"
+  **Then** erscheint ein Auswahl-Sheet mit Fahrzeugfoto, "#Auftragsnummer" als Titel, der Beschreibung als Text und den beiden Aktionen `uebersicht_weiter_demontieren` = "WEITER DEMONTIEREN" (primär) und `uebersicht_montage_starten` = "MONTAGE STARTEN"
 
-- **Given** der Auswahl-Dialog ist sichtbar
-  **When** der Mechaniker "Weiter demontieren" wählt
+- **Given** das Auswahl-Sheet ist sichtbar
+  **When** der Mechaniker "WEITER DEMONTIEREN" wählt
   **Then** öffnet sich der Demontage-Flow (F-003) für diesen Vorgang
 
-- **Given** der Auswahl-Dialog ist sichtbar
-  **When** der Mechaniker "Montage starten" wählt
+- **Given** das Auswahl-Sheet ist sichtbar
+  **When** der Mechaniker "MONTAGE STARTEN" wählt
   **Then** öffnet sich der Montage-Flow (F-004) für diesen Vorgang
 
+- **Given** das Auswahl-Sheet ist sichtbar
+  **When** der Mechaniker neben das Sheet tippt
+  **Then** schließt das Sheet, ohne zu navigieren
+
 #### UI-Verhalten
-- Auswahl-Dialog: BottomSheet oder Dialog mit zwei großen Buttons
-- Fahrzeugfoto und Auftragsnummer im Dialog-Header zur Bestätigung
-- **Verbindlicher Wortlaut:** Die beiden Buttons heißen exakt "Weiter demontieren" und "Montage starten" — unabhängig davon, ob der Vorgang 1 oder 40 Schritte hat. Der Dialog gehört F-001; andere Specs (F-003, F-004) verweisen darauf, statt eigene Bezeichnungen wie "Demontage starten" oder "Demontage fortsetzen" einzuführen. Ein Compose-UI-Test darf gegen genau diese beiden Texte prüfen (`weiter_demontieren`, `montage_starten` in `strings.xml`)
+
+- Bottom-Sheet mit zwei großformatigen Aktionen (design-system.md, Rezept GS)
+- **Verbindlicher Wortlaut:** Die beiden Aktionen heißen "Weiter demontieren" und "Montage starten" — unabhängig davon, ob der Vorgang 1 oder 40 Schritte hat. Der Dialog gehört F-001; andere Specs (F-003, F-004) verweisen darauf, statt eigene Bezeichnungen wie "Demontage starten" oder "Demontage fortsetzen" einzuführen
+- **Großschreibung ist Darstellung, nicht Wortlaut.** Die Ressourcen halten sie versal ("WEITER DEMONTIEREN"), weil der Entwurf sie versal setzt. Ein UI-Test darf **case-insensitiv** gegen "weiter demontieren" bzw. "montage starten" prüfen; eine spätere Änderung der Schreibweise darf ihn nicht brechen
 
 ---
 
 ### US-001.3: Neuen Vorgang starten
 
 **Als** Mechaniker
-**möchte ich** über einen gut sichtbaren Button einen neuen Reparaturvorgang anlegen können
+**möchte ich** über einen gut sichtbaren Knopf einen neuen Reparaturvorgang anlegen können
 **damit** ich schnell mit einem neuen Auftrag beginnen kann.
 
 #### Akzeptanzkriterien
 
-- **Given** der Mechaniker ist auf dem Startscreen
-  **When** er auf den "+"-Button tippt
+- **Given** der Mechaniker ist im Tab "OFFEN"
+  **When** er den Knopf `uebersicht_fab_plus` = "+" / `uebersicht_fab` = "NEUER AUFTRAG" antippt
   **Then** wird der Anlage-Flow (F-002) gestartet
 
+- **Given** der Mechaniker ist im Tab "ARCHIV"
+  **When** der Screen gezeichnet wird
+  **Then** ist der Knopf "NEUER AUFTRAG" **nicht** sichtbar — im Archiv wird nichts angelegt
+
 #### UI-Verhalten
-- FAB (Floating Action Button) oder prominenter "+"-Button
-- Immer sichtbar, auch wenn die Liste scrollbar ist
+
+- Orange abgesetzter Knopf unten rechts (design-system.md, Rezept GO-F), 74dp hoch, über der Liste schwebend und beim Scrollen sichtbar bleibend
+- Ein abdunkelnder Verlauf am unteren Listenrand hält die Karten optisch vom Knopf frei
 
 ---
 
 ### US-001.4: Vorgang löschen
 
 **Als** Mechaniker
-**möchte ich** einen Vorgang per Wischgeste löschen können
+**möchte ich** einen Vorgang löschen können
 **damit** ich fehlerhafte oder nicht mehr benötigte Vorgänge entfernen kann.
 
 #### Akzeptanzkriterien
 
 - **Given** ein Vorgang wird in der Liste angezeigt (offen oder archiviert)
-  **When** der Mechaniker die Karte nach links wischt
-  **Then** wird ein Löschen-Button sichtbar
+  **When** der Mechaniker den Löschen-Knopf am rechten Rand seiner Karte antippt
+  **Then** erscheint ein Bestätigungs-Sheet mit `uebersicht_loeschen_titel` = "WIRKLICH WEG?" und `uebersicht_loeschen_frage` = "Vorgang und alle Fotos unwiderruflich löschen?"
 
-- **Given** der Löschen-Button ist sichtbar
-  **When** der Mechaniker auf "Löschen" tippt
-  **Then** erscheint ein Bestätigungsdialog ("Vorgang und alle Fotos unwiderruflich löschen?")
+- **Given** das Bestätigungs-Sheet ist sichtbar
+  **When** der Mechaniker `uebersicht_loeschen` = "LÖSCHEN" wählt
+  **Then** verschwindet der Vorgang aus der Liste, und mit ihm werden alle zugehörigen Schritte und `schritt_foto`-Einträge kaskadierend gelöscht
+  **And** die zugehörigen Fotodateien werden beim nächsten App-Start entfernt, weil auf sie keine Datenbankzeile mehr verweist ([../governance.md](../governance.md), Cleanup-Regel)
 
-- **Given** der Bestätigungsdialog ist sichtbar
-  **When** der Mechaniker "Löschen" bestätigt
-  **Then** werden der Vorgang, alle zugehörigen Schritte und alle Fotos gelöscht
-
-- **Given** der Bestätigungsdialog ist sichtbar
-  **When** der Mechaniker "Abbrechen" wählt
-  **Then** bleibt der Vorgang erhalten und die Swipe-Aktion wird zurückgesetzt
+- **Given** das Bestätigungs-Sheet ist sichtbar
+  **When** der Mechaniker `uebersicht_loeschen_abbrechen` = "ABBRECHEN" wählt oder neben das Sheet tippt
+  **Then** bleibt der Vorgang unverändert erhalten
 
 #### UI-Verhalten
-- Swipe-to-Delete (Material-Pattern)
-- Bestätigungsdialog mit rotem "Löschen"-Button (versehentliches Löschen verhindern)
+
+- Bestätigungs-Sheet in derselben Optik wie das Auswahl-Sheet, die Lösch-Aktion in der Gefahr-Variante (rot)
+- Der Löschen-Knopf ist ein eigenes Bedienelement von 56dp Kantenlänge auf der Karte; ein Tap darauf öffnet **nicht** den Vorgang
+- **[OFFEN]** Der Knopf trägt derzeit die Glyphe "›", die im Entwurf "öffnen" bedeutet und auf der Karte für den Vorgangs-Tap steht. Zwei gegenläufige Bedeutungen für dasselbe Zeichen sind mit Handschuhen ein Fehlgriffrisiko. Zu entscheiden: eigenes Löschen-Zeichen, oder das Löschen zurück auf eine Wischgeste legen
 
 ---
 
@@ -133,63 +163,60 @@ Das Archiv ist strategisch wichtig: Die erfassten Zeitdaten (F-005) sollen langf
 **möchte ich** abgeschlossene Reparaturvorgänge im Archiv einsehen können
 **damit** ich bei Reklamationen nachschauen und Arbeitsdauern für die Kalkulation analysieren kann.
 
-#### Akzeptanzkriterien
+#### Die Archivliste
 
-- **Given** der Mechaniker ist auf dem Startscreen im Tab "Offen"
-  **When** er auf den Tab "Archiv" wechselt
-  **Then** werden alle archivierten Vorgänge angezeigt, sortiert nach letzter Bearbeitung (neueste oben) — dieselbe Sortierung wie im Tab "Offen"
-
-- **Given** archivierte Vorgänge existieren
-  **When** ein archivierter Vorgang in der Liste angezeigt wird
-  **Then** sind folgende Informationen sichtbar: Fahrzeugfoto (Thumbnail), Auftragsnummer, Anzahl Schritte, Abschlussdatum (Quelle: `aktualisiertAm`, siehe Technische Hinweise)
+- **Given** der Mechaniker ist im Tab "OFFEN"
+  **When** er auf den Tab `uebersicht_tab_archiv` = "ARCHIV" wechselt
+  **Then** werden alle archivierten Vorgänge angezeigt, sortiert nach letzter Bearbeitung (neueste oben) — dieselbe Sortierung wie im Tab "OFFEN"
 
 - **Given** ein archivierter Vorgang wird in der Liste angezeigt
-  **When** sein Abschlussdatum dargestellt wird
-  **Then** gilt dasselbe Datumsformat wie im Tab "Offen": "Heute", "Gestern" oder `TT.MM.JJJJ` (US-001.1)
+  **When** seine Karte gezeichnet wird
+  **Then** sind dieselben Angaben sichtbar wie bei einem offenen Vorgang, nur zeigt das Datum das **Abschlussdatum** (Quelle `aktualisiertAm`, siehe Technische Hinweise)
 
-- **[F-005-abhängig]** **Given** archivierte Vorgänge existieren
-  **When** ein archivierter Vorgang in der Liste angezeigt wird
-  **Then** wird zusätzlich die Gesamtdauer des Vorgangs angezeigt
-  > Setzt F-005 (Zeiterfassung) voraus. F-005 ist nicht implementiert; solange die Tabelle `zeit_messung` keine Daten liefert, entfällt die Dauer-Anzeige ersatzlos. Es wird **keine** Ersatzquelle aus Schritt-Zeitstempeln verwendet (siehe Technische Hinweise).
+- **Given** ein archivierter Vorgang hat gemessene Zeit
+  **When** seine Karte gezeichnet wird
+  **Then** hängt hinter dem Abschlussdatum, getrennt durch " · ", die gemessene Gesamtdauer des Vorgangs (Beispiel: "12.05.2026 · 1 h 26 min")
 
-- **Given** keine archivierten Vorgänge existieren
-  **When** der Mechaniker den Archiv-Tab öffnet
-  **Then** wird ein Hinweis angezeigt (z.B. "Noch keine abgeschlossenen Vorgänge.")
+- **Given** die gemessene Gesamtdauer wird dargestellt
+  **When** sie unter einer Stunde liegt
+  **Then** erscheint sie auf volle Minuten gerundet als "43 min", mindestens aber als "1 min"
+  **And** ab einer Stunde als "1 h 26 min" mit zweistelliger Minutenzahl
+
+- **Given** zu einem archivierten Vorgang liegt keine Messung vor
+  **When** seine Karte gezeichnet wird
+  **Then** steht dort nur das Abschlussdatum — kein Trenner, kein "0 min"
+
+- **Given** es existieren keine archivierten Vorgänge
+  **When** der Tab "ARCHIV" aktiv ist
+  **Then** erscheint der Leerzustand mit `uebersicht_leer_titel_archiv` = "ARCHIV IST LEER" und `uebersicht_leer_text_archiv` = "Fertige Vorgänge landen hier."
+
+#### Die Archiv-Detailansicht
+
+Die Detailansicht ist der Schritt-Browser (F-006) im Modus **ARCHIV**, der auf die F-006-Betriebsart **nur-lesen** abbildet (F-006 README, Abschnitt "Modi"). F-001 liefert Daten und Chrome, F-006 die Navigation und die Foto-Anzeige.
 
 - **Given** ein archivierter Vorgang wird angezeigt
   **When** der Mechaniker den Vorgang antippt
-  **Then** öffnet sich die Archiv-Detailansicht mit dem Schritt-Browser (F-006) im Modus **nur-lesen**, beginnend beim ersten Schritt — hat der Vorgang keine Schritte, gilt stattdessen das Kriterium weiter unten
+  **Then** öffnet sich **ohne** Zwischen-Sheet die Archiv-Detailansicht, beginnend beim Schritt mit der niedrigsten `schrittNummer`
 
 - **Given** die Archiv-Detailansicht wird geöffnet
-  **When** F-001 die Schrittliste an den Schritt-Browser (F-006) übergibt
+  **When** F-001 die Schrittliste an F-006 übergibt
   **Then** sind die Schritte **aufsteigend nach `schrittNummer`** sortiert (Demontage-Reihenfolge)
-  **And** "beginnend beim ersten Schritt" bedeutet damit: beim Schritt mit der niedrigsten `schrittNummer`
-  > F-006 sortiert nicht selbst, sondern verlangt vom Consumer eine bereits sortierte Liste und übernimmt deren Reihenfolge unverändert (F-006 browser.md, Interface). F-001 wählt **aufsteigend**, weil im Archiv nachvollzogen werden soll, *wie zerlegt wurde* — die Demontage-Reihenfolge ist die Erzählreihenfolge der Dokumentation. F-003 übergibt aus demselben Grund aufsteigend; nur F-004 dreht die Reihenfolge um, weil montiert rückwärts wird.
+  > F-006 sortiert nicht selbst, sondern übernimmt die Reihenfolge des Consumers unverändert (F-006 README, Abschnitt "Schnittstelle im Ueberblick"). F-001 wählt aufsteigend, weil im Archiv nachvollzogen werden soll, *wie zerlegt wurde* — die Demontage-Reihenfolge ist die Erzählreihenfolge der Dokumentation. F-003 übergibt aus demselben Grund aufsteigend; nur F-004 dreht die Reihenfolge um, weil rückwärts montiert wird.
 
 - **Given** die Archiv-Detailansicht ist geöffnet
-  **When** sie geladen ist
-  **Then** sind Auftragsnummer und Fahrzeugfoto des Vorgangs sichtbar
+  **When** sie gezeichnet wird
+  **Then** zeigt die Kopfzeile die **Schrittnummer** des betrachteten Schritts groß, darunter `browser_modus_archiv` = "ARCHIV", die Auftragsnummer mit `#` und eine Zeitzeile aus der Dauer dieses Schritts und der Gesamtdauer des Vorgangs, verbunden mit " · Σ " (Beispiel: "04:12 · Σ 1 h 26 min")
 
-- **Given** ein archivierter Vorgang enthält überhaupt keine Schritte
-  **When** der Mechaniker ihn antippt und die Archiv-Detailansicht geladen ist
-  **Then** erscheint oberhalb des Schritt-Browsers der Hinweistext "Keine Demontage-Schritte dokumentiert."
-  **And** die Thumbnail-Leiste bleibt leer, der Karussell-Bereich zeigt den Leer-Zustand und beide Vor-/Zurück-Bedienelemente sind deaktiviert (F-006 US-006.9)
-  > Der Hinweistext liegt bewusst auf Screen-Ebene: F-006 überlässt ihn ausdrücklich dem Consumer (F-006 README, Abgrenzung). Der Text nennt keine Handlungsaufforderung wie "Zuerst demontieren" — der Vorgang ist archiviert und wird nicht mehr bearbeitet.
-
-- **[F-005-abhängig]** **Given** die Archiv-Detailansicht ist geöffnet
-  **When** sie geladen ist
-  **Then** wird zusätzlich die Gesamtdauer des Vorgangs angezeigt
-  > Setzt F-005 voraus. Ohne F-005 entfällt die Dauer-Anzeige.
+- **Given** die Archiv-Detailansicht ist geöffnet
+  **When** sie gezeichnet wird
+  **Then** ist die Plakette `archiv_nur_lesen` = "ARCHIV · NUR LESEN" sichtbar
+  **And** es gibt **keine** Timer-Kapsel — im Archiv wird nichts mehr gemessen
 
 - **Given** die Archiv-Detailansicht zeigt einen Schritt
-  **When** der Mechaniker die Vor-/Zurück-Bedienung des Schritt-Browsers (F-006) nutzt
+  **When** der Mechaniker die Vor-/Zurück-Bedienung des Schritt-Browsers nutzt
   **Then** wird der vorherige bzw. nächste Schritt mit Schrittnummer und seinen Fotos angezeigt
-  > Die Schritt-Navigation (vor/zurück und Thumbnail-Sprung) gehört vollständig zu F-006. F-001 stellt dafür keine eigene Bedienung bereit.
-
-- **[F-005-abhängig]** **Given** die Archiv-Detailansicht zeigt einen Schritt
-  **When** der Schritt angezeigt wird
-  **Then** wird die Dauer dieses Schritts oberhalb des Schritt-Browsers angezeigt (Consumer-Chrome, nicht Teil von F-006)
-  > Setzt F-005 voraus. Quelle ist ausschließlich die Tabelle `zeit_messung`; ohne F-005 entfällt die Dauer-Anzeige.
+  **And** am ersten Schritt ist "Zurück", am letzten "Weiter" **sichtbar deaktiviert** statt still wirkungslos (design-system.md, K-05)
+  > Die Schritt-Navigation gehört vollständig F-006 (F-006 browser.md, US-006.10). F-001 stellt dafür keine eigene Bedienung bereit.
 
 - **Given** die Archiv-Detailansicht zeigt einen Schritt
   **When** der Mechaniker in der Thumbnail-Leiste das Thumbnail eines anderen Schritts antippt
@@ -197,106 +224,161 @@ Das Archiv ist strategisch wichtig: Die erfassten Zeitdaten (F-005) sollen langf
 
 - **Given** ein Schritt mit mehreren Fotos wird angezeigt
   **When** der Mechaniker im Bildkarussell horizontal wischt
-  **Then** werden die Fotos dieses Schritts der Reihe nach angezeigt
+  **Then** werden die Fotos **dieses** Schritts der Reihe nach angezeigt — der Schritt wechselt dabei nie
 
 - **Given** ein Foto wird im Bildkarussell angezeigt
   **When** der Mechaniker das Foto antippt
-  **Then** wird es im Vollbild angezeigt
+  **Then** wird es im Vollbild angezeigt, und die Android-Zurück-Geste schließt das Vollbild, ohne die Detailansicht zu verlassen
 
 - **Given** die Archiv-Detailansicht ist geöffnet
   **When** ein Schritt mit seinen Fotos angezeigt wird
-  **Then** wird keine bearbeitende Aktion angeboten (kein Foto aufnehmen, keine Label-Änderung, kein Anlegen oder Löschen von Schritten) und auch keine Flow-Aktion (kein "Eingebaut", kein "Beenden") — das entspricht dem F-006-Modus **nur-lesen**; die gesetzten Label sind sichtbar, aber nicht änderbar
+  **Then** wird keine bearbeitende Aktion angeboten (kein Foto aufnehmen, kein Wiederholen, keine Label-Änderung, kein Anlegen oder Abschließen von Schritten) und auch keine Flow-Aktion (kein "Eingebaut", kein "Feierabend") — die gesetzten Foto-Label sind sichtbar, aber nicht änderbar
 
 - **Given** die Archiv-Detailansicht ist geöffnet
-  **When** der Mechaniker die Android-Zurück-Geste ausführt
-  **Then** wird zur Übersicht in den Tab "Archiv" zurückgekehrt, ohne dass Daten verändert wurden
+  **When** der Mechaniker das Schließen-Kreuz "✕" oben rechts antippt oder die Android-Zurück-Geste ausführt
+  **Then** wird zur Übersicht in den Tab "ARCHIV" zurückgekehrt, ohne dass Daten verändert wurden
 
-- **Given** die Archiv-Detailansicht ist geöffnet
-  **When** der Mechaniker den Zurück-Pfeil in der TopBar antippt
-  **Then** wird zur Übersicht in den Tab "Archiv" zurückgekehrt, ohne dass Daten verändert wurden
-  > **Namensabgrenzung (wie in F-004 entschieden):** Die Beschriftungen "Zurück" und "Weiter" gehören ausschließlich der Schritt-Navigation aus F-006 im Inhaltsbereich. Der Ausstieg aus der Archiv-Detailansicht läuft ausschließlich über die Android-Zurück-Geste und den Zurück-Pfeil in der TopBar; einen Button mit der Beschriftung "Zurück", der die Ansicht verlässt, gibt es nicht. Ein Tap auf "Zurück" im Inhaltsbereich wechselt immer nur den betrachteten Schritt.
+#### UI-Verhalten
+
+- **Namensabgrenzung:** Die Beschriftungen "Zurück" und "Weiter" gehören ausschließlich der Schritt-Navigation aus F-006 im Inhaltsbereich. Der Ausstieg aus der Detailansicht läuft über das Schließen-Kreuz und die Android-Zurück-Geste; einen Knopf mit der Beschriftung "Zurück", der die Ansicht verlässt, gibt es nicht
+- Das Schließen-Kreuz ist der **einzige** sichtbare Ausstieg — anders als in der Montage gibt es daneben keinen "RAUS"-Knopf (design-system.md, K-06)
+
+---
 
 ## Nicht-funktionale Anforderungen
 
-- **Bedienbarkeit** (Quality Goal #1): Große Karten, gut treffbar mit Handschuhen/öligen Händen — die verbindlichen Mindestmaße für Touch-Targets und Abstände stehen in [../governance.md](../governance.md), Abschnitt "Touch-Targets". Swipe-Geste großzügig tolerant.
-- **Performance** (Quality Goal #3): Liste lädt sofort beim App-Start, kein Spinner.
-- **Zuverlässigkeit** (Quality Goal #2): Löschung ist kaskadierend und vollständig (keine verwaisten Fotos).
+- **Bedienbarkeit** (Quality Goal #1): Große Karten und Knöpfe; die verbindlichen Mindestmaße für Touch-Targets und Abstände stehen in [../governance.md](../governance.md), Abschnitt "Touch-Targets". Tabs, Löschen-Knopf und alle Sheet-Aktionen halten mindestens 56dp
+- **Performance** (Quality Goal #3): Liste lädt sofort beim Öffnen, kein Spinner. Schrittzahl und Gesamtdauer kommen in **einer** Abfrage mit der Vorgangsliste, nicht in einer Abfrage je Karte
+- **Zuverlässigkeit** (Quality Goal #2): Löschung ist kaskadierend. Die Dateien räumt die Cleanup-Regel beim App-Start ab; sie löscht ausschließlich Dateien ohne Datenbankverweis und **gar nichts**, wenn der Datenbestand nicht lesbar ist — ein einzelner Lesefehler darf nie den Fotobestand abräumen
 
 ## Technische Hinweise
 
-- Room-Datenbank: `Reparaturvorgang` Entity mit Status-Feld (`OFFEN`, `ARCHIVIERT`)
-- Compose: `LazyColumn` für die Liste, `SwipeToDismiss` für Löschen
-- Navigation: Compose Navigation zu F-002, F-003, F-004 sowie zur Archiv-Detailansicht
-- Auswahl-Dialog: `ModalBottomSheet` oder `AlertDialog` mit zwei Buttons
-- Thumbnail-Loading: Foto aus Filesystem laden, skaliert auf Karten-Größe (kein Full-Size laden)
-- Sortierung: `ORDER BY aktualisiertAm DESC` — für offene **und** archivierte Vorgänge. Die Entity `Reparaturvorgang` hat die Zeitstempel `erstelltAm` und `aktualisiertAm` (deutsche Feldnamen, Governance/DDD). Beide Listen führen die Sortierung als Akzeptanzkriterium (US-001.1 bzw. US-001.5). Dass `aktualisiertAm` tatsächlich "zuletzt angefasst" abbildet, garantiert die projektweite Invariante in [../governance.md](../governance.md), Abschnitt "Sofort-Save Strategie / Invariante `aktualisiertAm`": jede erzeugende, ändernde oder löschende Aktion an einem Vorgang oder seinen Schritten und Fotos schreibt das Feld in derselben Operation mit — einschließlich des Archivierens (F-004)
-- Datumsformat (beide Listen und die Archiv-Detailansicht, ein einziger Formatierer): heutiger Kalendertag → "Heute", Vortag → "Gestern", älter → `TT.MM.JJJJ` (`DateTimeFormatter.ofPattern("dd.MM.yyyy")`). Verglichen werden **Kalendertage in der lokalen Zeitzone**, nicht 24-Stunden-Abstände. "Heute" und "Gestern" liegen als Strings in `strings.xml`, damit UI-Tests gegen feste Texte prüfen können
-- **Bewusste Abweichung (Anzeige vs. Sortierung):** Die Karte im Tab "Offen" zeigt `erstelltAm`, sortiert wird aber nach `aktualisiertAm`. Nach dem sichtbaren Datum kann die Liste dadurch unsortiert wirken. Das ist so gewollt: Das Anlagedatum identifiziert den Auftrag wiedererkennbar ("der Wagen von gestern"), während die Reihenfolge abbilden soll, woran zuletzt gearbeitet wurde. Bei den typischen 1-3 offenen Vorgängen ist der Effekt vernachlässigbar. Im Tab "Archiv" tritt er nicht auf, weil Anzeige und Sortierung dort dieselbe Quelle (`aktualisiertAm`) nutzen
-- Auswahl-Dialog Beschriftungen (verbindlich, US-001.2): `weiter_demontieren` = "Weiter demontieren", `montage_starten` = "Montage starten"
-- **Einschränkung (Abschlussdatum):** Ein eigener Archivierungs-Zeitstempel (`archiviertAm` o.ä.) existiert **nicht**. Das im Archiv angezeigte Abschlussdatum ist `aktualisiertAm` **zum Zeitpunkt des Archivierens** — F-004 schreibt das Feld beim Archivieren mit (governance.md, Invariante `aktualisiertAm`). Danach ändert sich der Wert nicht mehr, weil archivierte Vorgänge ausschließlich **lesend** geöffnet werden (Modus nur-lesen, US-001.5): es existiert keine Aktion, die `aktualisiertAm` erneut setzen könnte. Ein dediziertes Feld ist deshalb nicht erforderlich
-- Gesamtdauer (Archiv-Karten und Archiv-Detailansicht): Summe der `ZeitMessung`-Einträge der Schritte des Vorgangs aus der Tabelle `zeit_messung` (F-005). **Nicht** aus `Schritt.gestartetAm`/`abgeschlossenAm` — das sind Workflow-Timestamps und ausdrücklich keine Zeitmessung (F-003 workflow.md; Governance: keine Dual-Purpose-Felder). F-005 ist nicht implementiert: solange keine `zeit_messung`-Daten vorliegen, wird **keine** Dauer angezeigt (weder Gesamtdauer noch Dauer je Schritt)
-- Archiv-Detailansicht bei einem Vorgang ohne Schritte: Der Hinweistext "Keine Demontage-Schritte dokumentiert." wird vom Screen gerendert, nicht vom Browser (F-006 überlässt ihn dem Consumer). Der Browser wird trotzdem eingebunden — mit leerer Schrittliste und `aktuellerIndex = -1` / `sichtbaresFotoIndex = -1` (F-006 browser.md, Interface-Skizze) — und zeigt seinen Leer-Zustand. Der Hinweistext liegt in `strings.xml`
-- Archiv-Detailansicht: Bindet den Schritt-Browser aus F-006 im Modus **nur-lesen** ein (Thumbnail-Leiste, Bildkarussell, Vollbild, Vor/Zurück zwischen Schritten). Die Schritt-Navigation und die Karussell-Logik gehören vollständig F-006; F-001 implementiert beides nicht selbst, sondern reagiert nur auf die Callbacks des Browsers
-- Anzeige-Reihenfolge der Schritte (Eingabe an F-006): Query `ORDER BY schrittNummer ASC` — die Archiv-Detailansicht zeigt die Schritte in Demontage-Reihenfolge (US-001.5). F-006 übernimmt die Reihenfolge unverändert; "Weiter" führt damit zur nächsthöheren Schrittnummer, der Startindex 0 ist der Schritt mit der niedrigsten `schrittNummer`. Unterschied zu F-004, das dieselbe Liste für die Montage absteigend übergibt
-- Verlassen der Archiv-Detailansicht: Android-Zurück-Geste und Zurück-Pfeil in der TopBar (Navigation-Icon der `TopAppBar`). Die Wörter "Zurück"/"Weiter" als Button-Beschriftung sind für die F-006-Schritt-Navigation im Inhaltsbereich reserviert und dürfen im Screen-Chrome nicht vergeben werden
-- Modus nur-lesen: Der Schritt-Browser wird ohne bearbeitende Callbacks eingebunden. Label sind sichtbar, aber nicht änderbar (Label werden ausschließlich in der Demontage gesetzt); die Daten werden ausschließlich lesend geladen
+- Room: `Reparaturvorgang` mit Status-Feld (`OFFEN`, `ARCHIVIERT`); Liste als `LazyColumn`
+- Navigation: zu F-002 sowie zum Schritt-Browser in den Modi `DEMONTAGE`, `MONTAGE` und `ARCHIV`. Die Archiv-Detailansicht ist kein eigener Screen, sondern derselbe Browser-Screen im Modus `ARCHIV`
+- Thumbnail-Loading: Foto aus dem Filesystem laden, skaliert auf Kartengröße (kein Full-Size)
+- **Sortierung:** `ORDER BY aktualisiertAm DESC` für offene **und** archivierte Vorgänge. Dass `aktualisiertAm` tatsächlich "zuletzt angefasst" abbildet, garantiert die projektweite Invariante in [../governance.md](../governance.md), Abschnitt "Sofort-Save Strategie / Invariante `aktualisiertAm`": jede erzeugende, ändernde oder löschende Aktion an einem Vorgang oder seinen Schritten und Fotos schreibt das Feld in derselben Operation mit — einschließlich des Archivierens (F-004)
+- **Datumsformat**, ein einziger Formatierer für beide Listen, vier Stufen:
+
+  | Bedingung | Ausgabe |
+  |---|---|
+  | jünger als 60 Sekunden | "Gerade eben" |
+  | heutiger Kalendertag | "Heute, HH:mm" |
+  | Vortag | "Gestern, HH:mm" |
+  | älter | "dd.MM.yyyy" |
+
+  Die Frische-Stufe gewinnt gegen die Tagesgrenze: 40 Sekunden vor Mitternacht angelegt heißt kurz nach Mitternacht "Gerade eben", nicht "Gestern, 23:59". Ein Zeitpunkt in der Zukunft (zurückgestellte Uhr) fällt ebenfalls auf "Gerade eben" — auf keiner Karte steht ein Datum aus der Zukunft
+- **Wortlaute des Datums:** Alle vier Formen sind verbindlich und gehören nach `strings.xml`, damit UI-Tests dagegen prüfen können.
+  **[OFFEN]** Der gebaute Formatierer hält sie stattdessen als Konstanten in `feature/uebersicht/DatumFormat.kt`, damit er ohne Android auf der JVM testbar bleibt. Zu entscheiden: Ressourcen ins ViewModel injizieren, oder die Konstanten als Prüfquelle festschreiben und den UI-Test gegen `DatumFormat` statt gegen `R.string` binden
+- **Bewusste Abweichung (Anzeige vs. Sortierung):** Die Karte im Tab "OFFEN" zeigt `erstelltAm`, sortiert wird nach `aktualisiertAm`. Nach dem sichtbaren Datum kann die Liste dadurch unsortiert wirken. Das ist gewollt: Das Anlagedatum identifiziert den Auftrag wiedererkennbar ("der Wagen von gestern"), während die Reihenfolge abbilden soll, woran zuletzt gearbeitet wurde. Bei den typischen 1-3 offenen Vorgängen ist der Effekt vernachlässigbar. Im Tab "ARCHIV" tritt er nicht auf, weil Anzeige und Sortierung dort dieselbe Quelle nutzen
+- **Einschränkung (Abschlussdatum):** Ein eigener Archivierungs-Zeitstempel (`archiviertAm` o.ä.) existiert **nicht**. Das im Archiv angezeigte Abschlussdatum ist `aktualisiertAm` **zum Zeitpunkt des Archivierens** — F-004 schreibt das Feld beim Archivieren mit. Danach ändert sich der Wert nicht mehr, weil archivierte Vorgänge ausschließlich lesend geöffnet werden: es existiert keine Aktion, die `aktualisiertAm` erneut setzen könnte
+- **Gesamtdauer:** Summe über die `zeit_messung`-Einträge aller Schritte des Vorgangs, beide Referenztypen (`DEMONTAGE_SCHRITT` und `MONTAGE_SCHRITT`, F-005 service.md). **Nicht** aus `Schritt.gestartetAm`/`abgeschlossenAm` — das sind Workflow-Timestamps und ausdrücklich keine Zeitmessung (Governance: keine Dual-Purpose-Felder). Die Richtung ist erlaubt: der Consumer F-001 kennt die Service-Tabelle, nicht umgekehrt
+- Die Dauer eines archivierten Vorgangs ist stabil: beim Verlassen des Montage-Flows und beim Archivieren werden alle offenen Messungen gestoppt (F-005). Eine noch laufende Messung würde bis "jetzt" gerechnet — das kann im Archiv nicht mehr auftreten
+- **Duplikat beachten:** Die Kurzform der Dauer ("1 h 26 min" / "43 min") wird an zwei Stellen gebraucht — auf der Archivkarte und in der Zeitzeile der Detailansicht. Beide Implementierungen müssen für dieselbe Eingabe dasselbe liefern; ein Test hält das fest
+- **[OFFEN]** Ein archivierter Vorgang **ohne** Schritte ist derzeit nicht darstellbar: es gibt keinen Hinweistext für diesen Fall (F-006 überlässt ihn ausdrücklich dem Consumer, F-006 README, Abschnitt "Abgrenzung"). Der Fall ist momentan unerreichbar, weil F-002 immer Schritt 1 anlegt und Schritte nicht löschbar sind. Zu entscheiden: Hinweistext nachziehen, oder die Unerreichbarkeit als Invariante festschreiben und den Fall streichen
+
+### Wörtliche UI-Texte
+
+Alle Texte liegen in `res/values/strings_uebersicht.xml`, soweit nicht anders vermerkt. Die versale Schreibweise ist Darstellung; UI-Tests dürfen case-insensitiv prüfen.
+
+| Key | Text |
+|---|---|
+| `uebersicht_logo` / `uebersicht_wortmarke` | "B" / "BOLTMIND" |
+| `uebersicht_tab_offen` / `uebersicht_tab_archiv` | "OFFEN" / "ARCHIV" |
+| `uebersicht_teile` | "%1$d TEILE" |
+| `uebersicht_ohne_beschreibung` | "Ohne Beschreibung" |
+| `uebersicht_leer_titel_offen` | "NICHTS OFFEN" |
+| `uebersicht_leer_text_offen` | "Tipp auf NEUER AUFTRAG und leg los." |
+| `uebersicht_leer_titel_archiv` | "ARCHIV IST LEER" |
+| `uebersicht_leer_text_archiv` | "Fertige Vorgänge landen hier." |
+| `uebersicht_fab_plus` / `uebersicht_fab` | "+" / "NEUER AUFTRAG" |
+| `uebersicht_weiter_demontieren` | "WEITER DEMONTIEREN" |
+| `uebersicht_montage_starten` | "MONTAGE STARTEN" |
+| `uebersicht_loeschen_titel` | "WIRKLICH WEG?" |
+| `uebersicht_loeschen_frage` | "Vorgang und alle Fotos unwiderruflich löschen?" |
+| `uebersicht_loeschen_abbrechen` / `uebersicht_loeschen` | "ABBRECHEN" / "LÖSCHEN" |
+| `uebersicht_motivation` | "You\ncan\ndo it." (Dekoration, nicht bedienbar) |
+| `browser_modus_archiv` | "ARCHIV" (Detailansicht, `strings_browser_aktionen.xml`) |
+| `archiv_nur_lesen` | "ARCHIV · NUR LESEN" (Detailansicht, `strings_browser_aktionen.xml`) |
 
 ## UI-Skizze
 
-### Startscreen (Offene Vorgänge)
+### Übersicht (Tab OFFEN)
 ```
 ┌─────────────────────────────┐
-│  BoltMind                   │
-├──────────┬──────────────────┤
-│  Offen   │   Archiv         │
-├──────────┴──────────────────┤
-│                             │
-│  ┌──────┬──────────────┐    │
-│  │[Foto]│ #2024-0815    │    │
-│  │      │ 12 Schritte   │    │
-│  │      │ Heute         │    │
-│  └──────┴──────────────┘    │
-│                             │
-│  ┌──────┬──────────────┐    │
-│  │[Foto]│ #2024-0712    │    │
-│  │      │ 8 Schritte    │    │
-│  │      │ Gestern       │    │
-│  └──────┴──────────────┘    │
-│                             │
-│                        [+]  │
+│  [B] BOLTMIND               │
+├──────────────┬──────────────┤
+│  OFFEN    2  │  ARCHIV   1  │   ← aktiver Tab orange
+├──────────────┴──────────────┤
+│ ┌─────────────────────────┐ │
+│ │[Foto] #2026-0815        │ │
+│ │       Bremsen vorne …   │ │
+│ │       [12 TEILE] Heute, │ │
+│ │                  08:12  │ │
+│ └─────────────────────────┘ │
+│ ┌─────────────────────────┐ │
+│ │[Foto] #2026-0793        │ │
+│ │       Kupplung raus     │ │
+│ │       [8 TEILE] Gestern,│ │
+│ │                  15:40  │ │
+│ └─────────────────────────┘ │
+│ You                         │
+│ can        [ + NEUER      ] │
+│ do it.     [   AUFTRAG    ] │
 └─────────────────────────────┘
 ```
 
-### Auswahl-Dialog
+### Archivkarte
 ```
 ┌─────────────────────────────┐
-│                             │
-│  [Foto] · #2024-0815        │
-│                             │
-│  ┌─────────────────────┐    │
-│  │  Weiter demontieren  │    │
-│  └─────────────────────┘    │
-│  ┌─────────────────────┐    │
-│  │  Montage starten     │    │
-│  └─────────────────────┘    │
-│                             │
+│[Foto] #2026-0651            │
+│       Zahnriemen erneuert   │
+│       [9 TEILE]             │
+│       12.05.2026 · 1 h 26 min│
 └─────────────────────────────┘
 ```
 
-### Leerer Zustand
+### Auswahl-Sheet
 ```
 ┌─────────────────────────────┐
-│  BoltMind                   │
-├──────────┬──────────────────┤
-│  Offen   │   Archiv         │
-├──────────┴──────────────────┤
-│                             │
-│                             │
-│     Noch keine Vorgänge.    │
-│     Tippe auf + um zu       │
-│     starten.                │
-│                             │
-│                             │
-│                        [+]  │
+│            ▬▬▬              │
+│  [Foto]  #2026-0815         │
+│          Bremsen vorne …    │
+│  ┌───────────────────────┐  │
+│  │  WEITER DEMONTIEREN   │  │  ← primär
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  MONTAGE STARTEN      │  │
+│  └───────────────────────┘  │
 └─────────────────────────────┘
 ```
+
+### Leerzustand
+```
+┌─────────────────────────────┐
+│  [B] BOLTMIND               │
+├──────────────┬──────────────┤
+│  OFFEN    0  │  ARCHIV   0  │
+├──────────────┴──────────────┤
+│                             │
+│           ┌───┐             │
+│           │ 0 │             │
+│           └───┘             │
+│        NICHTS OFFEN         │
+│  Tipp auf NEUER AUFTRAG     │
+│       und leg los.          │
+└─────────────────────────────┘
+```
+
+## Änderungshistorie
+
+| Datum | Änderung |
+|---|---|
+| 2026-07-27 | Datumsformat auf vier Stufen erweitert ("Gerade eben", Uhrzeit auf den Wortstufen, Monatsname gestrichen) — design-system.md K-09 |
+| 2026-07-27 | Gemessene Gesamtdauer auf der Archivkarte, angehängt mit " · "; Quelle `zeit_messung` (F-005) |
+| 2026-07-27 | Offener Vorgang ohne Schritte öffnet ohne Auswahl-Sheet direkt die Demontage — design-system.md K-10 |
+| 2026-07-27 | Archiv-Detailansicht als Schritt-Browser im Modus ARCHIV beschrieben: Kopfzeile, Plakette, deaktivierte Ränder, Ausstieg über "✕" statt TopBar-Pfeil |
+| 2026-07-27 | Sheet-Wortlaute als case-insensitiv prüfbar festgehalten; wörtliche UI-Texte in einer Tabelle gebündelt |
+| 2026-07-27 | Löschen über einen Knopf auf der Karte statt über eine Wischgeste; Bestätigung als Bottom-Sheet |
+| 2026-07-27 | Tab-Zähler, Beschreibungszeile auf der Karte, neue Leerzustands-Texte und "NEUER AUFTRAG" nur im Tab OFFEN aufgenommen |
+</content>
+</invoke>

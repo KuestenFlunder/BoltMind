@@ -1,0 +1,273 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "f2da6867914867369667be5b603db1cf",
+    "entities": [
+      {
+        "tableName": "reparaturvorgang",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fahrzeugFotoPfad` TEXT, `auftragsnummer` TEXT NOT NULL, `beschreibung` TEXT, `status` TEXT NOT NULL, `erstelltAm` INTEGER NOT NULL, `aktualisiertAm` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fahrzeugFotoPfad",
+            "columnName": "fahrzeugFotoPfad",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "auftragsnummer",
+            "columnName": "auftragsnummer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "beschreibung",
+            "columnName": "beschreibung",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "erstelltAm",
+            "columnName": "erstelltAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aktualisiertAm",
+            "columnName": "aktualisiertAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "schritt",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `reparaturvorgangId` INTEGER NOT NULL, `schrittNummer` INTEGER NOT NULL, `eingebautBeiMontage` INTEGER NOT NULL, `gestartetAm` INTEGER NOT NULL, `abgeschlossenAm` INTEGER, FOREIGN KEY(`reparaturvorgangId`) REFERENCES `reparaturvorgang`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reparaturvorgangId",
+            "columnName": "reparaturvorgangId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schrittNummer",
+            "columnName": "schrittNummer",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eingebautBeiMontage",
+            "columnName": "eingebautBeiMontage",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gestartetAm",
+            "columnName": "gestartetAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abgeschlossenAm",
+            "columnName": "abgeschlossenAm",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_schritt_reparaturvorgangId",
+            "unique": false,
+            "columnNames": [
+              "reparaturvorgangId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_schritt_reparaturvorgangId` ON `${TABLE_NAME}` (`reparaturvorgangId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "reparaturvorgang",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "reparaturvorgangId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "schritt_foto",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `schrittId` INTEGER NOT NULL, `pfad` TEXT NOT NULL, `reihenfolge` INTEGER NOT NULL, `istBauteil` INTEGER NOT NULL, `istUebersicht` INTEGER NOT NULL, `istAblageort` INTEGER NOT NULL, `aufgenommenAm` INTEGER NOT NULL, FOREIGN KEY(`schrittId`) REFERENCES `schritt`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schrittId",
+            "columnName": "schrittId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pfad",
+            "columnName": "pfad",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reihenfolge",
+            "columnName": "reihenfolge",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "istBauteil",
+            "columnName": "istBauteil",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "istUebersicht",
+            "columnName": "istUebersicht",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "istAblageort",
+            "columnName": "istAblageort",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aufgenommenAm",
+            "columnName": "aufgenommenAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_schritt_foto_schrittId",
+            "unique": false,
+            "columnNames": [
+              "schrittId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_schritt_foto_schrittId` ON `${TABLE_NAME}` (`schrittId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "schritt",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "schrittId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "zeit_messung",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `referenzId` INTEGER NOT NULL, `referenzTyp` TEXT NOT NULL, `gestartetAm` INTEGER NOT NULL, `gestopptAm` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenzId",
+            "columnName": "referenzId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "referenzTyp",
+            "columnName": "referenzTyp",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gestartetAm",
+            "columnName": "gestartetAm",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gestopptAm",
+            "columnName": "gestopptAm",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_zeit_messung_referenzTyp_referenzId",
+            "unique": false,
+            "columnNames": [
+              "referenzTyp",
+              "referenzId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_zeit_messung_referenzTyp_referenzId` ON `${TABLE_NAME}` (`referenzTyp`, `referenzId`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f2da6867914867369667be5b603db1cf')"
+    ]
+  }
+}

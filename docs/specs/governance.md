@@ -2,6 +2,19 @@
 
 Regeln und Invarianten, die fuer ALLE Feature-Specs gelten. Jede Feature-Spec erbt diese Regeln implizit. Aenderungen hier wirken sich auf alle Features aus.
 
+Fuer alles Visuelle — Farbe, Typografie, Glasflaechen, Hintergruende, Groessen und Abstaende — ist `design-system.md` die verbindliche Quelle. Diese Datei regelt, was darueber hinaus projektweit gilt. Wo beide dieselbe Groesse nennen, gewinnt der hier verankerte Mindestwert (siehe "Touch-Targets").
+
+## Plattform-Randbedingungen
+
+| Aspekt | Wert |
+|---|---|
+| `minSdk` | **31** (Android 12) |
+| `targetSdk` / `compileSdk` | 36 |
+
+**Grund fuer minSdk 31:** Das Design-System setzt Glasflaechen mit echtem Hintergrund-Blur ein — es ist die tragende Eigenschaft des Erscheinungsbilds, nicht Dekoration. Compose erreicht das nur ueber `RenderEffect`, und der existiert erst ab API 31. Die Alternative waere eine zweite, blurfreie Darstellung fuer aeltere Geraete gewesen; sie wurde verworfen (siehe `design-system.md`, Abschnitt "Glas").
+
+**Folge:** Android 8, 9, 10 und 11 (API 26–30) werden nicht unterstuetzt. Kein Feature spezifiziert oder implementiert einen Fallback fuer diese Versionen.
+
 ## Sofort-Save Strategie
 
 Jede Nutzeraktion, die Daten erzeugt oder veraendert, wird **sofort** in die DB geschrieben. Kein Batch-Save, kein "Speichern"-Button. Grund: Werkstatt-Umgebung — Unterbrechungen (Anrufe, Kollegen, Akku leer) sind der Normalfall, nicht die Ausnahme.
@@ -35,7 +48,21 @@ Alle primaeren Aktions-Buttons muessen mit Handschuhen bedienbar sein. **Verbind
 | Hoehe eines primaeren Aktions-Buttons | **56dp** |
 | Abstand zwischen benachbarten Touch-Targets | **8dp** |
 
-Diese Werte sind projektweit verbindlich und pruefbar. Feature-Specs nennen in ihren NFR-Abschnitten **keine eigenen Zahlen**, sondern verweisen auf diesen Abschnitt.
+Diese Werte sind projektweit verbindlich und pruefbar. Feature-Specs nennen in ihren NFR-Abschnitten **keine eigenen Zahlen**, sondern verweisen auf diesen Abschnitt. Sie gelten auch gegenueber `design-system.md`: wo der Entwurf darunter liegt, wird angehoben.
+
+#### Optische Groesse vs. Trefferflaeche
+
+Die 56dp gelten fuer die **antippbare Flaeche**, nicht zwingend fuer das gezeichnete Element. Ein Element darf kleiner aussehen, als es sich antippen laesst — vorausgesetzt, seine optische Groesse traegt Bedeutung, die Trefferflaeche erreicht 56dp und der 8dp-Abstand zum Nachbarn bleibt gewahrt.
+
+Die Ausnahme ist eng: sie greift nur, wenn die Groesse eine Information transportiert, die sonst verloren ginge. Reine Aesthetik oder Platzmangel reichen nicht.
+
+**Einziger heutiger Anwendungsfall:** die inaktiven Thumbnails der Schritt-Leiste. `browser.md` (F-006) verlangt in US-006.1, dass der aktive Schritt groesser dargestellt wird als die inaktiven; zieht man beide auf dieselbe Groesse, ist die Hervorhebung weg. Die Trefferflaechen liegen weiterhin 8dp auseinander — die kleinere Kachel sitzt zentriert in der groesseren Trefferflaeche, der Abstand schrumpft dadurch nicht.
+
+| Element | Optische Groesse | Trefferflaeche |
+|---|---|---|
+| Inaktives Thumbnail der Schritt-Leiste | 54dp | 56dp |
+
+Jede weitere Anwendung dieser Ausnahme wird in dieser Tabelle eingetragen und begruendet. Steht ein Element nicht darin, muss es auch optisch 56dp erreichen. Entscheidung und Begruendung siehe `design-system.md`, Abschnitt "Bewusste Abweichungen vom Prototyp", Zeile K-01.
 
 ## Foto-Handling
 
@@ -86,6 +113,10 @@ Fotos werden im **app-internen Speicher** abgelegt (`context.filesDir/photos/`).
 
 **Cleanup-Regel (projektweit):** Beim App-Start werden alle Dateien in `photos/` geloescht, auf die keine DB-Zeile verweist — geprueft gegen `SchrittFoto.pfad` **und** `Reparaturvorgang.fahrzeugFotoPfad`. Das raeumt verwaiste Zieldateien aus abgebrochenen Kamera-Starts und verworfenen Anlage-Flows auf. Die Regel gilt fuer alle Features; Feature-Specs verweisen darauf, statt sie zu wiederholen.
 
+**Sicherheitsregel:** Laesst sich die Datenbank nicht lesen, wird **nichts** geloescht. Ein fehlgeschlagener Lesevorgang darf nie als "keine Datei ist referenziert" gedeutet werden — sonst raeumt ein einzelner Fehler den kompletten Fotobestand ab, und der Verlust faellt erst Wochen spaeter im Archiv auf. Im Fehlerfall bleibt `photos/` unangetastet und der Cleanup wird beim naechsten Start erneut versucht.
+
+Der Cleanup laeuft nebenlaeufig zum Start; er blockiert den ersten Screen nicht.
+
 ### Qualitaet
 
 **Erwartungswert:** mittlere Kompression, ca. 2-3 MB pro Foto. Balance zwischen Qualitaet (Schrauben-Positionen muessen erkennbar sein) und Speicherplatz.
@@ -113,14 +144,24 @@ Die App muss jederzeit unterbrechbar sein, ohne Datenverlust. Beim naechsten Sta
 
 Domain-Begriffe auf **Deutsch**, technische Begriffe auf **Englisch**. Funktionsnamen fuer Domain-Events ebenfalls Deutsch.
 
-| Domain (DE) | Bedeutung |
-|---|---|
-| Reparaturvorgang | Ein Reparaturauftrag an einem Fahrzeug |
-| Schritt | Ein einzelner Demontage-/Montage-Schritt, haelt N Fotos |
-| SchrittFoto | Ein einzelnes Foto eines Schritts, mit Reihenfolge und Labeln |
-| Foto-Label | Bauteil / Uebersicht / Ablageort — kombinierbar, Default Bauteil |
-| Ablageort | Physischer Ort, an dem ein ausgebautes Teil abgelegt wird — dokumentiert als Foto-Label, nicht als eigener Schritt |
-| ZeitMessung | Eine Timer-Messung mit Start/Stopp (Service F-005) |
+Diese Regel bindet **Code und Spec, nicht die Oberflaeche.** Die App spricht Werkstatt-Sprache: kurz, gross, aus dem Mund eines Mechanikers. Wo der sichtbare Text vom Glossar-Begriff abweicht, steht er in der Spalte "UI-Text" und ist dort **woertlich verbindlich**. Ohne diese Spalte faende ein Reviewer den Text auf dem Bildschirm in keiner Spec wieder.
+
+Die UI-Texte liegen als Ressourcen in `res/values/strings*.xml` und sind dort gegen die Spec pruefbar.
+
+| Domain (DE) | Bedeutung | UI-Text (woertlich) |
+|---|---|---|
+| Reparaturvorgang | Ein Reparaturauftrag an einem Fahrzeug | "Auftrag" — `NEUER AUFTRAG`, `AUFTRAGSNUMMER`. Das Wort "Reparaturvorgang" erscheint nirgends auf dem Bildschirm |
+| Schritt | Ein einzelner Demontage-/Montage-Schritt, haelt N Fotos | "Schritt" beim einzelnen (`SCHRITT`, `SCHRITT 12`), "Teil" beim Zaehlen (`7 TEILE`, `TEILE`) und im Claim `JEDES TEIL FINDET HEIM`. Die Weiter-Aktion heisst `NÄCHSTES` ohne Substantiv |
+| SchrittFoto | Ein einzelnes Foto eines Schritts, mit Reihenfolge und Labeln | "Foto" — `FOTO 2/5`, `KEIN FOTO`, `NOCH'N FOTO` |
+| Foto-Label | Bauteil / Uebersicht / Ablageort — kombinierbar, Default Bauteil | `BAUTEIL`, `ÜBERSICHT`, `ABLAGEORT`; im Vollbild in gemischter Schreibweise `Bauteil · Übersicht`, ohne Label `ohne Label` |
+| Ablageort | Physischer Ort, an dem ein ausgebautes Teil abgelegt wird — dokumentiert als Foto-Label, nicht als eigener Schritt | `ABLAGEORT`. Fehlt das Label ganz, zeigt die Montage `AM FAHRZEUG GEBLIEBEN` |
+| ZeitMessung | Eine Timer-Messung mit Start/Stopp (Service F-005) | `LÄUFT` / `STEHT` am Timer-Schalter |
+| eingebautBeiMontage | Der Schritt ist bei der Montage wieder verbaut | `DRIN` fuer den Zustand, `SITZT!` fuer die Aktion, die ihn setzt, `%d VON %d DRIN` fuer den Fortschritt |
+| Beenden | Den Vorgang verlassen, ohne ihn abzuschliessen | `FEIERABEND` in der Demontage, `RAUS` in der Montage |
+
+Entscheidung und Begruendung siehe `design-system.md`, Abschnitt "Bewusste Abweichungen vom Prototyp", Zeile K-08.
+
+- [ ] **OFFEN:** Glossar-Begriff fuer das Beenden festlegen. Der Code nennt das Domain-Event `onVerlassen`, die Tabelle oben "Beenden". Eines von beiden ist zu waehlen und das andere anzugleichen; bis dahin ist nur der UI-Text (`FEIERABEND` / `RAUS`) verbindlich.
 
 ## Service-Architektur
 
@@ -130,3 +171,13 @@ Features, die als eigenstaendige Services implementiert werden (z.B. Zeiterfassu
 2. **Keine Feature-Kenntnis:** Der Service weiß nicht, welches Feature ihn aufruft. Er arbeitet mit generischen Referenzen (`referenzId`, `referenzTyp`).
 3. **Consumer beschreibt Nutzung:** Die Integration wird in der Feature-Spec beschrieben, nicht in der Service-Spec.
 4. **Klare Schnittstelle:** Der Service definiert sein Interface (start/stop/query). Consumer rufen dieses Interface auf.
+
+## Aenderungshistorie
+
+| Datum | Aenderung |
+|---|---|
+| 2026-07-27 | `design-system.md` als verbindliche Quelle fuer alles Visuelle verankert |
+| 2026-07-27 | Abschnitt "Plattform-Randbedingungen": minSdk 31, Android 8–11 nicht mehr unterstuetzt |
+| 2026-07-27 | Touch-Targets: Unterscheidung "optische Groesse vs. Trefferflaeche" mit Ausnahmetabelle (K-01) |
+| 2026-07-27 | DDD-Glossar um die Spalte "UI-Text" und die Eintraege `eingebautBeiMontage` und `Beenden` erweitert (K-08); Begriffswahl "Beenden" vs. `Verlassen` offen |
+| 2026-07-27 | Cleanup verwaister Foto-Dateien: Sicherheitsregel bei nicht lesbarer Datenbank |

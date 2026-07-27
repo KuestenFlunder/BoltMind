@@ -11,7 +11,9 @@ android {
 
     defaultConfig {
         applicationId = "com.boltmind.app"
-        minSdk = 26
+        // minSdk 31: Das Design-System setzt durchgehend auf echten Hintergrund-Blur
+        // (RenderEffect). Der ist erst ab Android 12 verfuegbar. Siehe docs/specs/design-system.md.
+        minSdk = 31
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
@@ -53,6 +55,11 @@ android {
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
+
+    // MigrationTestHelper sucht die exportierten Schema-JSONs in den androidTest-Assets.
+    // Ohne diese Zeile findet er sie nicht und jeder Migrationstest scheitert mit
+    // "Cannot find the schema file in the assets folder".
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
 }
 
 dependencies {
@@ -83,14 +90,7 @@ dependencies {
     // ExifInterface
     implementation(libs.androidx.exifinterface)
 
-    // CameraX
-    implementation(libs.androidx.camera.core)
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle)
-    implementation(libs.androidx.camera.view)
 
-    // Squircle Shape
-    implementation(libs.squircle.shape)
 
     // Image Loading
     implementation(libs.coil.compose)
@@ -101,6 +101,7 @@ dependencies {
 
     // Testing - JUnit 5
     testImplementation(libs.junit5.api)
+    testImplementation(libs.junit5.params)
     testRuntimeOnly(libs.junit5.engine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
