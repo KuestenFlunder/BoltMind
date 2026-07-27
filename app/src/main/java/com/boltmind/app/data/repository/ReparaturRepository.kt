@@ -59,10 +59,10 @@ class ReparaturRepository(
         vorgangDao.beobachteNachStatus(VorgangStatus.ARCHIVIERT)
 
     fun beobachteOffeneVorgaengeMitAnzahl(): Flow<List<ReparaturvorgangMitAnzahl>> =
-        vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.OFFEN, uhr().toEpochMilli())
+        vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.OFFEN)
 
     fun beobachteArchivierteVorgaengeMitAnzahl(): Flow<List<ReparaturvorgangMitAnzahl>> =
-        vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.ARCHIVIERT, uhr().toEpochMilli())
+        vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.ARCHIVIERT)
 
     suspend fun findVorgangById(id: Long): Reparaturvorgang? = vorgangDao.findById(id)
 

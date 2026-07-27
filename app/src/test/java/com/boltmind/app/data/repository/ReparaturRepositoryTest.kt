@@ -505,21 +505,15 @@ class ReparaturRepositoryTest {
         }
 
         @Test
-        fun `Listen mit Anzahl reichen Status und Jetzt-Zeitpunkt an die Abfrage durch`() =
+        fun `Listen mit Anzahl fragen jeweils ihren eigenen Status ab`() =
             runTest {
-                // Given: die Projektion summiert laufende Zeitmessungen gegen "jetzt"
-                whenever(
-                    vorgangDao.beobachteNachStatusMitAnzahl(
-                        VorgangStatus.OFFEN,
-                        JETZT.toEpochMilli()
-                    )
-                ).thenReturn(flowOf(listOf(mitAnzahl("OFFEN-1", VorgangStatus.OFFEN, 3))))
-                whenever(
-                    vorgangDao.beobachteNachStatusMitAnzahl(
-                        VorgangStatus.ARCHIVIERT,
-                        JETZT.toEpochMilli()
-                    )
-                ).thenReturn(flowOf(listOf(mitAnzahl("ARCHIV-1", VorgangStatus.ARCHIVIERT, 9))))
+                // Given: die Projektion summiert nur abgeschlossene Zeitmessungen.
+                // Einen Jetzt-Parameter gibt es bewusst nicht mehr -- er wurde beim
+                // Erzeugen des Flows einmal ausgewertet und fror die Dauer ein.
+                whenever(vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.OFFEN))
+                    .thenReturn(flowOf(listOf(mitAnzahl("OFFEN-1", VorgangStatus.OFFEN, 3))))
+                whenever(vorgangDao.beobachteNachStatusMitAnzahl(VorgangStatus.ARCHIVIERT))
+                    .thenReturn(flowOf(listOf(mitAnzahl("ARCHIV-1", VorgangStatus.ARCHIVIERT, 9))))
 
                 // When / Then: beide Listen kommen mit ihrer eigenen Schrittzahl
                 repository.beobachteOffeneVorgaengeMitAnzahl().test {

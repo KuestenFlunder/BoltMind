@@ -25,25 +25,29 @@ interface ReparaturvorgangDao {
      *
      * Die Richtung ist erlaubt: der Consumer (F-001) kennt die Service-Tabelle,
      * nicht umgekehrt.
+     *
+     * Gezaehlt werden nur **abgeschlossene** Messungen. Eine laufende haette in
+     * einer Liste keine sinnvolle Dauer: sie waechst, waehrend man hinschaut.
+     * Frueher stand hier ein Zeitpunkt-Parameter -- der wurde beim Erzeugen des
+     * Flows einmal ausgewertet und blieb dann eingefroren, sodass die Dauer nie
+     * wuchs und nach einer langen Sitzung systematisch zu klein war.
      */
     @Query(
         """
         SELECT r.*,
                COUNT(DISTINCT s.id) AS schrittAnzahl,
-               COALESCE(SUM(COALESCE(z.gestopptAm, :jetztMillis) - z.gestartetAm), 0) AS dauerMillis
+               COALESCE(SUM(z.gestopptAm - z.gestartetAm), 0) AS dauerMillis
         FROM reparaturvorgang r
         LEFT JOIN schritt s ON r.id = s.reparaturvorgangId
         LEFT JOIN zeit_messung z ON z.referenzId = s.id
              AND z.referenzTyp IN ('DEMONTAGE_SCHRITT', 'MONTAGE_SCHRITT')
+             AND z.gestopptAm IS NOT NULL
         WHERE r.status = :status
         GROUP BY r.id
         ORDER BY r.aktualisiertAm DESC
         """
     )
-    fun beobachteNachStatusMitAnzahl(
-        status: VorgangStatus,
-        jetztMillis: Long
-    ): Flow<List<ReparaturvorgangMitAnzahl>>
+    fun beobachteNachStatusMitAnzahl(status: VorgangStatus): Flow<List<ReparaturvorgangMitAnzahl>>
 
     @Query("SELECT * FROM reparaturvorgang WHERE id = :id")
     suspend fun findById(id: Long): Reparaturvorgang?
