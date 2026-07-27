@@ -303,7 +303,15 @@ Die Kennzahl "GEMESSEN" ist die Summe aller Zeitmessungen des Vorgangs über bei
 
 Ohne diesen Button wäre die Rückkehr vom Abschluss-Screen eine Sackgasse: Es gibt dann keinen offenen Schritt mehr, dessen Abhaken den Abschluss-Screen erneut auslösen könnte. Der Button navigiert nur — archiviert wird weiterhin ausschließlich auf dem Abschluss-Screen.
 
-**[OFFEN]** Beschriftung und Platz des Buttons "Zum Abschluss". Der Prototyp kennt den Fall nicht (dort ist der Fertig-Screen eine Sackgasse ohne Rückweg), das Design-System entscheidet ihn nicht, und wörtlich gebaut ist er nicht. Die Regel "Abschluss nur über den Abschluss-Screen" verlangt ihn trotzdem.
+**Beschriftung und Platz** (entschieden am 2026-07-27, vorher `[OFFEN]`): ein mittlerer, orange gefüllter Rundkreis mit der Beschriftung **„ABSCHLUSS"**, rechts neben „ZURÜCK" und links vom großen Kreis. Der Prototyp kennt den Fall nicht — dort ist der Fertig-Screen eine Sackgasse ohne Rückweg.
+
+Drei Festlegungen dazu:
+
+- **Orange, nicht grün.** Orange ist im Entwurf durchgehend die Aktion, die nach vorne führt („NÄCHSTES", „LOS GEHT'S", „AB INS ARCHIV"). Grün gehört dem Einbau-Zustand.
+- **Zusätzlich statt anstelle.** Der große Kreis bleibt „DRIN", denn er trägt das Zurücknehmen des Häkchens. Würde er zum Abschluss-Knopf, wäre die Korrektur genau in dem Zustand unerreichbar, in dem sie am ehesten gebraucht wird.
+- **Nur in der Montage.** Demontage und Archiv kennen den Knopf nicht.
+
+Der Zustand ist aus den Daten abgeleitet (`alleEingebaut`), nicht gespeichert: Sobald eine Markierung zurückgenommen wird, verschwindet der Knopf von selbst.
 
 Der Ausstieg aus dem Flow ohne Archivierung gehört US-004.6.
 
@@ -478,12 +486,13 @@ Angezeigt wird das in der **Timer-Kapsel** oben links: links ein quadratischer S
 
 ## Offene Fragen
 
-Vier Punkte sind mit `[OFFEN]` markiert und vor der Implementierung zu klären:
+Drei Punkte sind mit `[OFFEN]` markiert und zu klären:
 
 - Fließtext der Ausstiegs-Rückfrage (Abschnitt "Wörtliche UI-Texte")
-- Beschriftung und Platz des Buttons "Zum Abschluss" (US-004.5)
 - Wirkung der Android-Zurück-Geste in der Schritt-Ansicht (US-004.6)
 - Verhalten einer laufenden Zeitmessung beim manuellen Schrittwechsel (US-004.7)
+
+**Erledigt:** Beschriftung und Platz des Buttons "Zum Abschluss" (US-004.5) — am 2026-07-27 entschieden, siehe dort.
 
 **Entschieden:** F-004 nutzt F-006 im Modus **"lesend-mit-Aktionen"**. Die Label eines Fotos sind während der Montage sichtbar, aber nicht änderbar; Fotos werden in der Montage weder aufgenommen noch gelöscht. Label werden ausschließlich in der Demontage (F-003) gesetzt. Die datenverändernden Aktionen der Montage sind das Abhaken (`eingebautBeiMontage`), die Zeitmessung (F-005) und die abschließende Archivierung.
 

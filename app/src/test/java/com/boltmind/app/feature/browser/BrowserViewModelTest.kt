@@ -504,6 +504,122 @@ class BrowserViewModelTest {
     }
 
     // ------------------------------------------------------------------
+    // Der Abschluss darf nie unerreichbar werden
+    // ------------------------------------------------------------------
+
+    /**
+     * Ist jedes Teil abgehakt, gibt es keinen offenen Schritt mehr, dessen
+     * Abhaken den Abschluss-Screen ausloesen koennte. Ohne die beiden Wege hier
+     * -- Sprung beim Wiedereinstieg und ein eigener Knopf nach der Rueckkehr --
+     * laesst sich der Vorgang nie archivieren und bleibt fuer immer in der
+     * offenen Liste stehen.
+     *
+     * Spec: docs/specs/F-004-montage/montage.md, US-004.5
+     */
+    @Nested
+    inner class `US-004_5 Abschluss erreichbar halten` {
+
+        @Test
+        fun `springt beim Wiedereinstieg sofort zum Abschluss, wenn schon alles drin ist`() {
+            // Given/When: der Mechaniker hat den Abschluss-Screen ohne "AB INS
+            // ARCHIV" verlassen und waehlt spaeter erneut "MONTAGE STARTEN"
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
+            )
+
+            // Then: direkt der Abschluss-Screen, ohne Schreibvorgang
+            assertTrue(browser.uiState.value.fertig)
+            verifyBlocking(repository, never()) { setzeEingebaut(any(), any()) }
+        }
+
+        @Test
+        fun `bleibt still, solange noch ein Teil fehlt`() {
+            // Given/When: ein Teil ist noch nicht eingebaut
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2))
+            )
+
+            // Then: kein Sprung -- es gibt noch Arbeit
+            assertFalse(browser.uiState.value.fertig)
+            assertFalse(browser.uiState.value.alleEingebaut)
+        }
+
+        @Test
+        fun `haelt einen Vorgang ohne Schritte nicht faelschlich fuer fertig`() {
+            // Given/When: ein Vorgang, in dem nie demontiert wurde
+            val browser = browserFuer(BrowserModus.MONTAGE, emptyList())
+
+            // Then: eine leere Liste ist nicht "alles eingebaut" -- sonst
+            // schickt der Wiedereinstieg den Mechaniker auf einen Abschluss-
+            // Screen ueber null Teile
+            assertFalse(browser.uiState.value.fertig)
+            assertFalse(browser.uiState.value.alleEingebaut)
+        }
+
+        @Test
+        fun `bietet nach der Rueckkehr vom Abschluss einen Weg dorthin zurueck`() {
+            // Given: der Sprung beim Wiedereinstieg ist quittiert -- der
+            // Mechaniker steht mit Back wieder in der Schritt-Ansicht
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
+            )
+            browser.onNavigationAbgeschlossen()
+            assertFalse(browser.uiState.value.fertig)
+
+            // Then: der Knopf "Zum Abschluss" steht bereit
+            assertTrue(browser.uiState.value.alleEingebaut)
+
+            // When: er wird getippt
+            browser.onZumAbschluss()
+            abarbeiten()
+
+            // Then: wieder zum Abschluss-Screen, ohne etwas zu schreiben
+            assertTrue(browser.uiState.value.fertig)
+            verifyBlocking(repository, never()) { setzeEingebaut(any(), any()) }
+        }
+
+        @Test
+        fun `nimmt den Knopf weg, sobald ein Haekchen zurueckgenommen wurde`() {
+            // Given: alles ist abgehakt und der Knopf steht
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
+            )
+            browser.onNavigationAbgeschlossen()
+            assertTrue(browser.uiState.value.alleEingebaut)
+
+            // When: der Mechaniker nimmt eine Markierung zurueck
+            schritteFlow.value = listOf(schritt(1, eingebaut = true), schritt(2))
+            abarbeiten()
+
+            // Then: wieder ein offenes Teil, der Knopf verschwindet
+            assertFalse(browser.uiState.value.alleEingebaut)
+        }
+
+        @Test
+        fun `kennt den Knopf nur in der Montage`() {
+            // Given/When: dieselbe Datenlage in Demontage und Archiv
+            val demontage = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
+            )
+            val archiv = browserFuer(
+                BrowserModus.ARCHIV,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
+            )
+
+            // Then: "Zum Abschluss" ist eine Montage-Aktion
+            assertFalse(demontage.uiState.value.alleEingebaut)
+            assertFalse(demontage.uiState.value.fertig)
+            assertFalse(archiv.uiState.value.alleEingebaut)
+            assertFalse(archiv.uiState.value.fertig)
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Kamera (K-02)
     // ------------------------------------------------------------------
 

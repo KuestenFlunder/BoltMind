@@ -67,6 +67,7 @@ fun BrowserScreen(
     onZumOffenenSchritt: () -> Unit,
     onEingebaut: () -> Unit,
     onHaekchenAnfragen: () -> Unit,
+    onZumAbschluss: () -> Unit,
     onVorherigerSchritt: () -> Unit,
     onNaechsterSchritt: () -> Unit,
     onFeierabendAnfragen: () -> Unit,
@@ -112,6 +113,7 @@ fun BrowserScreen(
                     onZumOffenenSchritt = onZumOffenenSchritt,
                     onEingebaut = onEingebaut,
                     onHaekchenAnfragen = onHaekchenAnfragen,
+                    onZumAbschluss = onZumAbschluss,
                     onVorherigerSchritt = onVorherigerSchritt,
                     onNaechsterSchritt = onNaechsterSchritt,
                     onFeierabendAnfragen = onFeierabendAnfragen
@@ -334,6 +336,7 @@ private fun Bedienkreise(
     onZumOffenenSchritt: () -> Unit,
     onEingebaut: () -> Unit,
     onHaekchenAnfragen: () -> Unit,
+    onZumAbschluss: () -> Unit,
     onVorherigerSchritt: () -> Unit,
     onNaechsterSchritt: () -> Unit,
     onFeierabendAnfragen: () -> Unit
@@ -434,6 +437,24 @@ private fun Bedienkreise(
                             BoltTypo.rundbuttonLabelKlein,
                             BoltTextLeise
                         )
+                    }
+                    // Ist jedes Teil drin, gibt es keinen offenen Schritt mehr,
+                    // dessen Abhaken den Abschluss-Screen ausloesen koennte.
+                    // Der grosse Kreis bleibt "DRIN", damit das Zuruecknehmen
+                    // erreichbar ist -- der Weg nach vorne kommt zusaetzlich
+                    // daneben (montage.md, US-004.5).
+                    if (uiState.alleEingebaut) {
+                        Rundbutton(
+                            rezept = GlasRezepte.orangeFlach,
+                            durchmesser = BoltMindDimensions.rundbuttonMittel,
+                            onKlick = onZumAbschluss
+                        ) {
+                            BoltText(
+                                stringResource(R.string.montage_zum_abschluss),
+                                BoltTypo.rundbuttonLabelKlein,
+                                BoltTextWeiss
+                            )
+                        }
                     }
                     if (uiState.nichtEingebaut) {
                         Rundbutton(

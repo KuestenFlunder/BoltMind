@@ -89,6 +89,21 @@ data class BrowserUiState(
     val amFahrzeugGeblieben: Boolean
         get() = istMontage && aktiverSchritt?.fotos?.none { it.istAblageort } == true
 
+    /**
+     * In der Montage: jedes Teil ist wieder drin, archiviert ist der Vorgang
+     * aber noch nicht.
+     *
+     * In diesem Zustand gibt es keinen offenen Schritt mehr, dessen Abhaken den
+     * Abschluss-Screen ausloesen koennte -- deshalb braucht es hier den eigenen
+     * Weg dorthin (montage.md, US-004.5).
+     *
+     * Eine leere Schrittliste zaehlt ausdruecklich **nicht** dazu: `all {}` ist
+     * auf ihr wahr, ein Abschluss ueber null Teile waere Unsinn.
+     */
+    val alleEingebaut: Boolean
+        get() = istMontage && schritte.isNotEmpty() &&
+            schritte.all { it.schritt.eingebautBeiMontage }
+
 
     val hatFotosImSchritt: Boolean get() = aktiverSchritt?.fotos?.isNotEmpty() == true
 
