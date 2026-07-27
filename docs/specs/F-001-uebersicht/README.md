@@ -23,7 +23,7 @@ Mechaniker in der Werkstatt, der morgens die App oeffnet oder zwischen zwei Fahr
 - Neuen Vorgang anlegen (→ F-002)
 - Vorgang loeschen (Swipe + Bestaetigungsdialog, kaskadierend inkl. aller Schritte und Fotos)
 - Archivierte Vorgaenge auflisten (ebenfalls sortiert nach letzter Bearbeitung, mit Abschlussdatum). Ein eigenes Archivierungs-Feld existiert nicht: das Abschlussdatum ist `aktualisiertAm` zum Zeitpunkt des Archivierens und aendert sich danach nicht mehr, weil archivierte Vorgaenge nur lesend geoeffnet werden (governance.md, Invariante `aktualisiertAm`)
-- Gesamtdauer und Dauer je Schritt anzeigen — **setzt F-005 voraus** (Quelle: Tabelle `zeit_messung`). F-005 ist nicht implementiert; bis dahin entfaellt jede Dauer-Anzeige
+- Gesamtdauer und Dauer je Schritt anzeigen — **setzt F-005 voraus** (Quelle: Tabelle `zeit_messung`). Seit 2026-07-27 erfuellt: die Archiv-Liste summiert die abgeschlossenen Messungen beider `referenzTyp`-Werte je Vorgang in derselben Abfrage
 - Archivierten Vorgang im F-006-Modus **nur-lesen** durchsehen: Schritt-Navigation (vor/zurueck und Thumbnail-Sprung) und Foto-Karussell liefert F-006, F-001 implementiert davon nichts selbst. F-001 uebergibt die Schritte **aufsteigend nach `schrittNummer`** (Demontage-Reihenfolge, siehe uebersicht.md US-001.5)
 - Die Archiv-Detailansicht wird ueber die Android-Zurueck-Geste und den Zurueck-Pfeil in der TopBar verlassen — "Zurueck"/"Weiter" als Beschriftung gehoeren allein der F-006-Schritt-Navigation im Inhaltsbereich
 
@@ -35,7 +35,7 @@ Mechaniker in der Werkstatt, der morgens die App oeffnet oder zwischen zwei Fahr
 | → | F-003 | Tap auf Vorgang oeffnet Demontage-Flow |
 | → | F-004 | Tap auf Vorgang oeffnet Montage-Flow |
 | → | F-006 | Archiv-Detailansicht bindet den Schritt-Browser im Modus **nur-lesen** ein: Thumbnail-Leiste, Foto-Karussell, Vollbild und die Vor/Zurueck-Navigation zwischen Schritten kommen vollstaendig aus F-006. F-001 liefert als Eingabe die Schritte **aufsteigend nach `schrittNummer`** |
-| → | F-005 | Liest `zeit_messung`-Daten fuer die Dauer-Anzeige im Archiv. F-005 ist nicht implementiert — ohne F-005 zeigt F-001 keine Dauer |
+| → | F-005 | Liest `zeit_messung`-Daten fuer die Dauer-Anzeige im Archiv. Implementiert |
 
 ## Ordner-Inhalt
 

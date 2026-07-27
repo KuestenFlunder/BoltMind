@@ -136,6 +136,22 @@ class DemontageViewModel(private val repository: ReparaturRepository) : ViewMode
 | State | Feature + UiState | `DemontageUiState` |
 | Package | lowercase, Feature-Name | `feature.demontage` |
 
+### String-Ressourcen
+
+Ein Key trägt **eine** Bedeutung. Zwei Regeln folgen daraus:
+
+- **Keys der Schritt-Navigation (F-006) tragen das Präfix `browser_`** — `browser_zurueck`,
+  `browser_weiter`, `browser_naechstes`. Sie gehören dem Inhaltsbereich.
+- **Screen-Chrome vergibt die Beschriftung „Zurück" nie.** Der Ausstieg aus einem Screen läuft über
+  die Android-Zurück-Geste und den Zurück-Pfeil in der TopBar; dessen contentDescription heißt
+  `zurueck_navigation_beschreibung`.
+
+Sonst kollidieren zwei Bedeutungen auf einem Key und in Tests wie Screenshots ist nicht mehr
+unterscheidbar, welches Element gemeint war.
+
+Obsolete Keys sterben in der Änderung, die ihren letzten Consumer löscht. Neue Keys entstehen dort,
+wo sie gerendert werden. Ein Sammel-Issue zum Strings-Aufräumen gibt es bewusst nicht.
+
 ## Dependency Injection: Koin
 
 ```kotlin
@@ -197,34 +213,44 @@ sind im Projekt nicht eingerichtet und deshalb kein Pflichtschritt — siehe
 
 ### Test-Struktur
 
+Ist-Stand, nicht Zielbild:
+
 ```
 app/src/
-├── test/java/com/boltmind/app/           # Unit Tests
+├── test/java/com/boltmind/app/               # JVM, JUnit 5
 │   ├── feature/
-│   │   ├── uebersicht/
-│   │   │   └── UebersichtViewModelTest.kt
-│   │   ├── neuervorgang/
-│   │   │   └── NeuerVorgangViewModelTest.kt
-│   │   ├── demontage/
-│   │   │   └── DemontageViewModelTest.kt
-│   │   └── montage/
-│   │       └── MontageViewModelTest.kt
-│   ├── ui/schrittbrowser/                # F-006 (reine Unit-Tests, kein ViewModel)
-│   │   └── KategorieVonTest.kt           # Kategorie-Ableitung + Index-Grenzfaelle
-│   └── data/repository/
-│       └── ReparaturRepositoryTest.kt
-├── androidTest/java/com/boltmind/app/    # Integration Tests (Zielstruktur, noch nicht angelegt)
-│   └── data/local/
-│       ├── ReparaturvorgangDaoTest.kt
-│       ├── SchrittDaoTest.kt
-│       ├── SchrittFotoDaoTest.kt
-│       └── MigrationTest.kt              # Room-Migrationen (MigrationTestHelper)
+│   │   ├── FormatierungTest.kt               # Datums- und Zeitformate
+│   │   ├── abschluss/AbschlussViewModelTest.kt
+│   │   └── browser/BrowserViewModelTest.kt   # F-003, F-004 und F-001-Archiv
+│   ├── data/
+│   │   ├── foto/FotoManagerTest.kt
+│   │   └── repository/ReparaturRepositoryTest.kt
+│   ├── service/zeiterfassung/ZeiterfassungServiceTest.kt
+│   └── ui/components/DebounceClickTest.kt
+└── androidTest/java/com/boltmind/app/        # Geraet/Emulator, JUnit 4
+    └── data/local/MigrationTest.kt           # Room-Migrationen
 ```
 
-Verbindlich ist derzeit nur der Zweig unter `app/src/test/`. `app/src/androidTest/` existiert im Repo
-noch nicht — `./gradlew connectedAndroidTest` läuft damit ins Leere und darf nicht als bestandener
-Check gemeldet werden (siehe [Werkzeug-Lücken](#werkzeug-lücken-stand-2026-07-26)). Wer den ersten
-Integration Test schreibt, legt das Verzeichnis nach obiger Struktur an.
+Ein einziger `BrowserViewModelTest` deckt Demontage, Montage und Archiv ab, weil ein einziges
+ViewModel alle drei Betriebsarten bedient. Getrennte `DemontageViewModelTest`/`MontageViewModelTest`
+gibt es nicht mehr.
+
+**Beide Zweige sind verbindlich.** `./gradlew test` und `./gradlew connectedDebugAndroidTest` laufen
+und sind zu benutzen — Letzteres braucht ein Gerät oder den Emulator (siehe `CLAUDE.md`).
+
+#### Konvention für `androidTest`
+
+Instrumentierte Tests laufen über `AndroidJUnitRunner` und damit unter **JUnit 4**, nicht JUnit 5.
+`@Nested inner class` gibt es dort nicht. Äquivalent:
+
+| JVM (JUnit 5) | Instrumentiert (JUnit 4) |
+|---|---|
+| `@Nested inner class \`US-XXX_Y ...\`` | eine **Testklasse** je User Story, benannt `UsXxxYBeschreibung` |
+| `@Test fun \`Verhalten aus dem Then\`()` | `@Test fun verhaltenAusDemThen()` — Backticks sind auf dem Gerät zulässig, aber `@DisplayName` fehlt, also trägt der Methodenname die Aussage |
+| `@BeforeEach` / `@AfterEach` | `@Before` / `@After` |
+
+Instrumentierte Tests werden **lokal vor dem PR** ausgeführt. Es gibt keine Build-Pipeline, die das
+übernimmt — wer sie nicht ausgeführt hat, schreibt das in den PR, statt sie als grün zu melden.
 
 ### User-Story-Traceability in Tests
 
@@ -236,6 +262,30 @@ Jede User Story aus der Spec (`US-XXX.Y`) wird als `@Nested inner class` im zuge
 2. **1 Akzeptanzkriterium = 1 `@Test`** — Testname beschreibt das erwartete Verhalten
 3. **Given/When/Then** aus der Spec als Kommentare im Test-Body (Arrange/Act/Assert)
 4. **Spec ist Source of Truth** — Tests leiten sich aus den Akzeptanzkriterien ab, nicht umgekehrt
+
+### Der `aktualisiertAm`-Guard
+
+`governance.md` verlangt, dass **jede** datenverändernde Repository-Operation in derselben Operation
+`Reparaturvorgang.aktualisiertAm` nachzieht. Verstöße sind im Betrieb unsichtbar — die Übersicht
+sortiert dann faktisch nach Erstellungsdatum statt nach letzter Bearbeitung, und das Abschlussdatum
+im Archiv stimmt nicht.
+
+Deshalb wird die Invariante nicht nur aufgeschrieben, sondern **erzwungen**. `ReparaturRepositoryTest`
+führt vier Listen, in die jede öffentliche Methode des Repositories einsortiert sein muss:
+
+| Liste | Bedeutung |
+|---|---|
+| `UEBER_DEN_TRICHTER` | schreibt Daten und stempelt über den Transaktions-Helper — ein `@TestFactory` prüft jede einzeln |
+| `EIGENER_ZEITSTEMPEL` | setzt `aktualisiertAm` selbst (Anlegen, Archivieren) — braucht einen eigenen Test |
+| `OHNE_ZEITSTEMPEL` | schreibt bewusst ohne zu stempeln |
+| `NUR_LESEND` | liest nur |
+
+Ein zweiter Test liest die tatsächliche Methodenliste per Reflection und vergleicht sie mit der
+Summe der vier Listen — in **beide** Richtungen. Eine neue Methode ohne Einsortierung lässt ihn
+fehlschlagen, ein Eintrag ohne Methode ebenso.
+
+**Regel: Wer eine öffentliche Repository-Methode anlegt, umbenennt oder löscht, pflegt diese Listen
+mit.** Das Fehlschlagen ist Absicht und keine Testschwäche.
 
 ### Test-Naming
 
@@ -448,19 +498,20 @@ vorgeschrieben werden:
 | Task | Zweck |
 |------|-------|
 | `./gradlew test` | Unit Tests (JVM, JUnit 5) — der verbindliche Check jedes TDD-Schritts |
+| `./gradlew connectedDebugAndroidTest` | Instrumentierte Tests (Room-Migrationen). Braucht Gerät oder Emulator |
 | `./gradlew lint` | Android Lint |
 | `./gradlew assembleDebug` | Debug-Build |
 
-### Werkzeug-Lücken (Stand 2026-07-26)
+### Werkzeug-Lücken (Stand 2026-07-27)
 
-Formatierung, statische Analyse und Instrumented Tests sind **gewollt, aber nicht eingerichtet**.
+Formatierung, statische Analyse und Compose-UI-Tests sind **gewollt, aber nicht eingerichtet**.
 Die folgende Tabelle beschreibt ein Soll, keinen Ist-Zustand:
 
 | Werkzeug | Soll | Ist |
 |----------|------|-----|
 | ktlint | Automatische Formatierung nach Kotlin Coding Conventions, `./gradlew ktlintCheck` / `ktlintFormat` | **Nicht eingerichtet.** Kein ktlint-Plugin in `build.gradle.kts` oder `gradle/libs.versions.toml`; die Tasks existieren nicht. |
 | detekt | Statische Code-Analyse (Complexity, Code Smells, Style), `./gradlew detekt`, Konfiguration in `config/detekt/detekt.yml` | **Nicht eingerichtet.** Kein detekt-Plugin, kein `config/`-Verzeichnis; die Task existiert nicht. |
-| Instrumented Tests | Room-/DAO-Integrationstests unter `app/src/androidTest/`, `./gradlew connectedAndroidTest` | **Leer.** `app/src/androidTest/` existiert nicht; die Task läuft ins Leere. |
+| Compose-UI-Tests | UI-Tests je Modus und für Mindesthöhen, `createAndroidComposeRule` | **Nicht geschrieben.** Die Abhängigkeiten (`ui-test-junit4`, `ui-test-manifest`) sind eingerichtet, aber es existiert kein einziger UI-Test. |
 
 Bis zur Einrichtung ist **keiner dieser Punkte eine Anforderung**: Er darf in keinem TDD-Zyklus als
 Pflichtschritt stehen, kein PR darf an ihm scheitern, und keine Zusammenfassung darf behaupten, der

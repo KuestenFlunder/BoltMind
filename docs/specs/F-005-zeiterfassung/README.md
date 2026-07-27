@@ -33,7 +33,7 @@ Die Tabelle ist ein reiner Verweis auf die Consumer-Specs. Wann der Timer laeuft
 
 **Zur Zeile F-004:** Die Montage-Zeitmessung ist bewusst zurueckgestellt. F-004 beschreibt bisher weder Start- noch Stopp-Trigger und erwaehnt F-005 in montage.md nicht. Solange das so ist, gibt es **keine** Montage-Zeitmessung — nicht weil der Service sie nicht koennte, sondern weil der Consumer die Nutzung noch nicht festgelegt hat. F-005 darf diese Luecke nicht selbst schliessen (der Service kennt seine Consumer nicht). Die Zeile bleibt hier stehen, damit die geplante Beziehung sichtbar ist; sie ist erst dann erfuellt, wenn F-004 einen eigenen Abschnitt "Ankerpunkt F-005" bekommt, so wie F-003 ihn hat.
 
-**Hinweis (Ist-Zustand):** F-005 ist nicht implementiert. Solange es kein `zeit_messung` gibt, koennen Consumer keine Dauer anzeigen. Consumer-AKs, die eine Dauer verlangen, sind entsprechend als F-005-abhaengig zu kennzeichnen.
+**Hinweis (Ist-Zustand, 2026-07-27):** F-005 ist implementiert — `ZeitMessung`, `ZeitMessungDao` und `ZeiterfassungService` stehen, die Tabelle `zeit_messung` kam mit `MIGRATION_2_3`. Consumer koennen Dauern anzeigen; F-001 tut es in der Archiv-Liste. Die frueher als `[F-005-abhaengig]` markierten Consumer-AKs sind damit erfuellbar.
 
 ## Ordner-Inhalt
 

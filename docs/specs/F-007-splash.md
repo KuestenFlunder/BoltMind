@@ -94,7 +94,7 @@ Verbindlich fuer UI-Tests, alle in `res/values/strings_splash.xml`:
 
 ## Offene Fragen
 
-- **[OFFEN]** Der Entwurf legt hinter Wortmarke und Claim eine **Videoschleife** (`assets/splash-loop.mp4`, formatfuellend, Deckkraft 0,85, stumm, endlos). Die Datei liess sich aus dem Design-Projekt nicht exportieren. Derzeit traegt die Stahltextur den Grund, mit demselben Verlauf darueber. Zu entscheiden: Video nachreichen oder die Textur festschreiben.
+- **[OFFEN]** Der Entwurf legt hinter Wortmarke und Claim eine **Videoschleife** (`assets/splash-loop.mp4`, formatfuellend, Deckkraft 0,85, stumm, endlos). Die Datei liess sich aus dem Design-Projekt nicht exportieren. Der gebaute Stand zeigt stattdessen eine ruhige, einfarbige Flaeche (`BoltRuhigerHintergrund`) — die zwischenzeitlich verwendete Stahltextur ist am 2026-07-27 projektweit entfernt worden. Zu entscheiden: Video nachreichen oder die ruhige Flaeche festschreiben.
 - **[OFFEN]** Erscheint der Splash bei **jedem** Start oder nur beim Kaltstart? Der gebaute Stand macht ihn zur Start-Route des NavHost; er erscheint also immer dann, wenn der Prozess neu aufgebaut wird — auch nach einem Kill im Hintergrund waehrend der Arbeit an einem Vorgang. Ob das gewollt ist oder ein Warmstart direkt in die Uebersicht fuehren soll, ist nicht entschieden.
 
 ---
