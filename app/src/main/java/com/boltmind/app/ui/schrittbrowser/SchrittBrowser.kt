@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -28,6 +30,7 @@ import com.boltmind.app.ui.components.BoltText
 import com.boltmind.app.ui.components.boltKlick
 import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltSchwarz00
+import com.boltmind.app.ui.theme.BoltSchwarz08
 import com.boltmind.app.ui.theme.BoltSchwarz50
 import com.boltmind.app.ui.theme.BoltSchwarz80
 import com.boltmind.app.ui.theme.BoltSchwarz93
@@ -73,21 +76,32 @@ fun SchrittBrowser(
             onFotoGetippt = aktionen.onVollbildOeffnen
         )
 
-        // Abdunklung oben und unten, damit Text auf jedem Foto lesbar bleibt.
+        // Abdunklung, damit Text auf jedem Foto lesbar bleibt. Zwei Lagen wie im
+        // Entwurf: ein radialer Schleier von oben und ein linearer von unten.
+        // Eine einzelne senkrechte Lage reicht nicht -- auf hellen Fotos
+        // verschwinden Kopfzeile und Label sonst darin.
         Box(
             Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.00f to BoltSchwarz80,
-                            0.28f to BoltSchwarz00,
-                            0.54f to BoltSchwarz00,
-                            0.78f to BoltSchwarz50,
-                            1.00f to BoltSchwarz93
+                .drawBehind {
+                    drawRect(
+                        Brush.radialGradient(
+                            colorStops = arrayOf(0f to BoltSchwarz80, 0.46f to BoltSchwarz08),
+                            center = Offset(size.width / 2f, 0f),
+                            radius = size.width * 1.2f
                         )
                     )
-                )
+                    drawRect(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.00f to BoltSchwarz00,
+                                0.46f to BoltSchwarz00,
+                                0.72f to BoltSchwarz50,
+                                1.00f to BoltSchwarz93
+                            )
+                        )
+                    )
+                }
         )
 
         // --- Bedienebene ---------------------------------------------------
@@ -113,7 +127,9 @@ fun SchrittBrowser(
                         start = BoltMindDimensions.screenRand,
                         bottom = BoltMindDimensions.rundbuttonGross + 40.dp
                     )
-                    .width(BoltMindDimensions.labelChipHoehe * 3.4f),
+                    // Breit genug fuer den laengsten Hinweis ("AM FAHRZEUG GEBLIEBEN"),
+                    // aber schmal genug, dass die Thumbnail-Leiste rechts frei bleibt.
+                    .fillMaxWidth(0.68f),
                 verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.touchAbstandMin)
             ) {
                 ueberLabels()
