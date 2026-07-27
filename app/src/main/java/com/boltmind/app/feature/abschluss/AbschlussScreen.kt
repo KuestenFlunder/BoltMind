@@ -33,7 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.boltmind.app.R
 import com.boltmind.app.ui.components.BoltText
-import com.boltmind.app.ui.components.BoltTexturHintergrund
+import com.boltmind.app.ui.components.BoltRuhigerHintergrund
 import com.boltmind.app.ui.components.boltKlick
 import com.boltmind.app.ui.theme.BoltErfolgFlaeche
 import com.boltmind.app.ui.theme.BoltGruen
@@ -79,7 +79,7 @@ fun AbschlussScreen(
     }
 
     Box(modifier.fillMaxSize()) {
-        BoltTexturHintergrund()
+        BoltRuhigerHintergrund()
 
         Column(
             Modifier

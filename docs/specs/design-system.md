@@ -113,21 +113,21 @@ Lichtkante (`inset 0 1px 0`) und einer Liste von Leuchten. Leuchten werden über
 ## 5. Hintergründe
 
 **Mesh-Verlauf** (Übersicht, Neuer Auftrag): sieben **elliptische** Radialverläufe auf
-`BoltHintergrund`, darüber die Stahltextur im Overlay-Modus, darüber ein abdunkelnder
-Schleier für die Lesbarkeit.
+`BoltHintergrund`, darüber ein abdunkelnder Schleier für die Lesbarkeit.
 
 Compose kennt nur kreisrunde Radialverläufe. Die Ellipsen entstehen, indem beim Zeichnen
 in Y gestaucht wird. Alle Positionen und Radien sind **Anteile** der Fläche, keine Pixel —
 der Hintergrund wächst dadurch mit dem Gerät mit.
 
-**Stahltextur:** Das Original ließ sich nicht exportieren — der Design-Abruf bricht am
-256-KiB-Limit mitten im letzten IDAT-Chunk ab. Ersatz ist eine prozedural erzeugte Textur
-aus periodischen Sinusanteilen: dadurch **nahtlos kachelbar** (das Original ist es nicht),
-512×512 Graustufen statt 1024×1024 RGBA, 112 statt 192 KB, Richtungsanisotropie
-dY/dX = 15.3 (deutlich horizontale Bürstung wie im Original).
+**Keine Stahltextur.** Der Prototyp legt sie an fuenf Stellen: einmal deckend
+(`opacity: .5`) im Praesentationsrahmen **um** das Telefon-Mockup, und dreimal
+innerhalb der App im Overlay-Modus (`.30`, `.28`, `.16`). Der auffaellige Stahl
+gehoert also gar nicht zur App.
 
-> **Offen:** Für exakte Übereinstimmung muss das Original manuell exportiert und
-> `res/drawable-nodpi/steel_texture.png` ersetzt werden. Ebenso fehlt `splash-loop.mp4`.
+Produktentscheidung vom 2026-07-27: sie entfaellt auch innerhalb der App
+ersatzlos. Der Mesh-Verlauf traegt allein; die Textur hat nichts hinzugefuegt
+ausser Unruhe. Damit entfaellt zugleich das Problem, dass sich das Original nicht
+exportieren liess (der Design-Abruf bricht am 256-KiB-Limit ab).
 
 ---
 

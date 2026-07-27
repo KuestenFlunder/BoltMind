@@ -90,7 +90,6 @@ import com.boltmind.app.ui.theme.BoltTextPrimaer as BoltTextFarbe
 // ============================================================================
 
 /** Deckkraft der Stahltextur im Anlage-Screen (Prototyp Zeile 148). */
-private const val TEXTUR_DECKKRAFT = 0.28f
 
 /**
  * Verdrahtung des Anlage-Screens.
@@ -152,7 +151,7 @@ fun NeuerVorgangScreen(
 
     GlasBuehne(
         modifier = modifier.fillMaxSize(),
-        hintergrund = { BoltMeshHintergrund(texturDeckkraft = TEXTUR_DECKKRAFT) }
+        hintergrund = { BoltMeshHintergrund() }
     ) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             Kopfzeile(onZurueck = onZurueck)

@@ -6,17 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
-import com.boltmind.app.R
 import com.boltmind.app.ui.theme.BoltHintergrund
 import com.boltmind.app.ui.theme.BoltMeshBlau
 import com.boltmind.app.ui.theme.BoltMeshDunkel90
@@ -96,69 +89,27 @@ private fun DrawScope.zeichneWolke(w: Wolke) {
 }
 
 /**
- * Zeichnet die Stahltextur kachelnd ueber die Flaeche.
- *
- * [kachel] ist die Kantenlaenge in Pixeln. Die Textur ist nahtlos, deshalb reicht
- * schlichtes Wiederholen ohne Uebergangsbehandlung.
- */
-private fun DrawScope.zeichneTextur(
-    bild: ImageBitmap,
-    deckkraft: Float,
-    kachel: Float,
-    mischung: BlendMode
-) {
-    val ziel = IntSize(kachel.toInt(), kachel.toInt())
-    var y = 0f
-    while (y < size.height) {
-        var x = 0f
-        while (x < size.width) {
-            drawImage(
-                image = bild,
-                dstOffset = IntOffset(x.toInt(), y.toInt()),
-                dstSize = ziel,
-                alpha = deckkraft,
-                blendMode = mischung
-            )
-            x += kachel
-        }
-        y += kachel
-    }
-}
-
-/**
  * Der Mesh-Hintergrund der Uebersicht und des Anlage-Screens: sieben Farbwolken,
- * darueber die Stahltextur im Overlay-Modus, darueber der abdunkelnde Schleier.
+ * darueber der abdunkelnde Schleier fuer die Lesbarkeit.
+ *
+ * Ohne Stahltextur. Der Prototyp legt sie zwar auch innerhalb der App ueber den
+ * Verlauf (Deckkraft .30 bzw. .28 im Overlay-Modus), der auffaellige Stahl liegt
+ * dort aber im Praesentationsrahmen um das Telefon-Mockup und gehoert gar nicht
+ * zur App. Produktentscheidung vom 2026-07-27: der Verlauf traegt allein.
  */
 @Composable
-fun BoltMeshHintergrund(
-    modifier: Modifier = Modifier,
-    texturDeckkraft: Float = 0.30f
-) {
-    LocalContext.current
-    val textur = ImageBitmap.imageResource(R.drawable.steel_texture)
+fun BoltMeshHintergrund(modifier: Modifier = Modifier) {
     Canvas(modifier.fillMaxSize()) {
         drawRect(BoltHintergrund)
         MeshWolken.forEach { zeichneWolke(it) }
-        zeichneTextur(textur, texturDeckkraft, size.maxDimension, BlendMode.Overlay)
         drawRect(Brush.verticalGradient(colorStops = SchleierStopps))
     }
 }
 
-/**
- * Der ruhige Hintergrund des Abschluss-Screens: nur Grundfarbe und eine schwach
- * eingeblendete, gekachelte Textur.
- */
+/** Ruhige Grundflaeche fuer Splash und Abschluss. */
 @Composable
-fun BoltTexturHintergrund(
-    modifier: Modifier = Modifier,
-    deckkraft: Float = 0.16f,
-    kachelGroesse: Float = 700f
-) {
-    val textur = ImageBitmap.imageResource(R.drawable.steel_texture)
-    Canvas(modifier.fillMaxSize()) {
-        drawRect(BoltHintergrund)
-        zeichneTextur(textur, deckkraft, kachelGroesse, BlendMode.SrcOver)
-    }
+fun BoltRuhigerHintergrund(modifier: Modifier = Modifier) {
+    Canvas(modifier.fillMaxSize()) { drawRect(BoltHintergrund) }
 }
 
 /** Reine Grundflaeche -- Browser, Kamera und Vollbild liegen auf Schwarz. */

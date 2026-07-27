@@ -35,7 +35,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.boltmind.app.R
 import com.boltmind.app.ui.components.BoltText
-import com.boltmind.app.ui.components.BoltTexturHintergrund
+import com.boltmind.app.ui.components.BoltRuhigerHintergrund
 import com.boltmind.app.ui.components.Flaeche
 import com.boltmind.app.ui.components.boltKlick
 import com.boltmind.app.ui.theme.BoltMindDimensions
@@ -137,7 +137,7 @@ fun SplashScreen(
         //  liess sich nicht exportieren. Bis sie nachgereicht wird, traegt die
         //  Stahltextur den Grund; der Verlauf darueber ist unveraendert der des
         //  Entwurfs.
-        BoltTexturHintergrund()
+        BoltRuhigerHintergrund()
         Box(Modifier.fillMaxSize().background(SplashSchleier))
 
         Column(
