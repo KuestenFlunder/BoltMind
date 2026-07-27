@@ -15,6 +15,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -156,13 +159,27 @@ class BrowserViewModel(
         }
     }
 
+    /**
+     * Zaehlt die Anzeige im Sekundentakt hoch -- aber nur, solange wirklich
+     * gemessen wird.
+     *
+     * Eine unbedingte Endlosschleife waere zweifach falsch: sie weckt das
+     * ViewModel auch dann jede Sekunde, wenn der Timer steht, und sie laesst
+     * jeden Test mit virtueller Zeit ins Leere laufen, weil immer noch eine
+     * Verzoegerung eingeplant ist.
+     */
     private fun starteTicker() {
         ticker?.cancel()
         ticker = viewModelScope.launch {
-            while (true) {
-                delay(1_000)
-                if (_uiState.value.timerLaeuft) zeitAktualisieren()
-            }
+            _uiState
+                .map { it.timerLaeuft }
+                .distinctUntilChanged()
+                .collectLatest { laeuft ->
+                    while (laeuft) {
+                        delay(1_000)
+                        zeitAktualisieren()
+                    }
+                }
         }
     }
 

@@ -275,10 +275,16 @@ class ReparaturRepositoryTest {
             // When: trotzdem geloescht wird
             repository.fotoLoeschen(FOTO_ID)
 
-            // Then: kein Loeschen, kein Aufruecken fremder Fotos, kein Zeitstempel
-            verify(fotoDao, never()).loeschen(FOTO_ID)
-            verify(fotoDao, never()).rueckeNach(SCHRITT_ID, BESTEHENDES_FOTO.reihenfolge)
-            verify(vorgangDao, never()).beruehre(VORGANG_ID, JETZT.toEpochMilli())
+            // Then: gar kein Loeschen, kein Aufruecken fremder Fotos, kein Zeitstempel
+            verify(fotoDao, never()).loeschen(ArgumentMatchers.anyLong())
+            verify(fotoDao, never()).rueckeNach(
+                ArgumentMatchers.anyLong(),
+                ArgumentMatchers.anyInt()
+            )
+            verify(vorgangDao, never()).beruehre(
+                ArgumentMatchers.anyLong(),
+                ArgumentMatchers.anyLong()
+            )
         }
     }
 
@@ -349,7 +355,7 @@ class ReparaturRepositoryTest {
             // Then: kein Datensatz entsteht, keiner verschwindet
             assertNull(neues)
             verify(fotoDao, never()).einfuegen(beliebigesFoto())
-            verify(fotoDao, never()).loeschen(FOTO_ID)
+            verify(fotoDao, never()).loeschen(ArgumentMatchers.anyLong())
         }
     }
 

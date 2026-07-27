@@ -14,10 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -40,21 +38,24 @@ import java.time.Instant
 /**
  * Tests fuer den Consumer des Schritt-Browsers.
  *
- * Ein Screen, drei Betriebsarten -- und die Unterschiede sitzen fast alle im
- * Startpunkt, in der Anzeigereihenfolge und darin, welche Aktionen ueberhaupt
- * erscheinen duerfen. Der teuerste Fehler waere, den betrachteten mit dem
- * offenen Schritt zu verwechseln: dann verbrennt ein Fehltipp beim Nachschlagen
- * eine Schrittnummer, die schon auf einem Ablageort-Etikett klebt
+ * Ein Screen, drei Betriebsarten -- die Unterschiede sitzen im Startpunkt, in
+ * der Anzeigereihenfolge und darin, welche Aktionen ueberhaupt erscheinen
+ * duerfen. Der teuerste Fehler waere, den betrachteten mit dem offenen Schritt
+ * zu verwechseln: dann verbrennt ein Fehltipp beim Nachschlagen eine
+ * Schrittnummer, die schon auf einem Ablageort-Etikett klebt
  * (docs/specs/design-system.md, K-07).
  *
- * Der Konstruktor startet einen Ticker mit `delay(1_000)`, der nie endet.
- * Deshalb wird hier ausschliesslich mit [runCurrent] gearbeitet --
- * `advanceUntilIdle` wuerde die virtuelle Zeit endlos weiterdrehen.
+ * **Kein `runTest` hier, mit Absicht.** Der Konstruktor startet einen Ticker
+ * mit `delay(1_000)`, der sich endlos neu einplant. `runTest` laesst den
+ * Scheduler am Ende jedes Tests leerlaufen und wuerde daran ewig drehen.
+ * Stattdessen wird der [TestCoroutineScheduler] direkt bedient: [abarbeiten]
+ * fuehrt genau die Coroutinen aus, die zur aktuellen virtuellen Zeit anstehen.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class BrowserViewModelTest {
 
-    private val dispatcher = StandardTestDispatcher()
+    private val scheduler = TestCoroutineScheduler()
+    private val dispatcher = StandardTestDispatcher(scheduler)
 
     private val schritteFlow = MutableStateFlow<List<SchrittMitFotos>>(emptyList())
 
@@ -92,55 +93,49 @@ class BrowserViewModelTest {
 
         @Test
         fun `setzt auf dem offenen Schritt auf, nicht auf dem ersten oder letzten`() {
-            runTest {
-                // Given: Schritt 2 ist offen, 1 und 3 sind abgeschlossen
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2, offen = true), schritt(3))
-                )
+            // Given: Schritt 2 ist offen, 1 und 3 sind abgeschlossen
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true), schritt(3))
+            )
 
-                // When: der Browser oeffnet
-                val zustand = browser.uiState.value
+            // When: der Browser oeffnet
+            val zustand = browser.uiState.value
 
-                // Then: der offene Schritt wird gezeigt
-                assertEquals(2, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertTrue(zustand.betrachtetOffenenSchritt)
-            }
+            // Then: der offene Schritt wird gezeigt
+            assertEquals(2, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertTrue(zustand.betrachtetOffenenSchritt)
         }
 
         @Test
         fun `landet auf dem letzten Schritt, wenn keiner mehr offen ist`() {
-            runTest {
-                // Given: alle Schritte sind abgeschlossen (nach "Beenden" wieder geoeffnet)
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3))
-                )
+            // Given: alle Schritte sind abgeschlossen (nach "Beenden" wieder geoeffnet)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3))
+            )
 
-                // When: der Browser oeffnet
-                val zustand = browser.uiState.value
+            // When: der Browser oeffnet
+            val zustand = browser.uiState.value
 
-                // Then: der letzte Schritt, und es gilt nicht als offener Schritt
-                assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertNull(zustand.offenerIndex)
-                assertFalse(zustand.betrachtetOffenenSchritt)
-            }
+            // Then: der letzte Schritt -- und er gilt nicht als offener Schritt
+            assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertNull(zustand.offenerIndex)
+            assertFalse(zustand.betrachtetOffenenSchritt)
         }
 
         @Test
         fun `bleibt bei einem Vorgang ohne Schritte auf Index 0`() {
-            runTest {
-                // Given: ein frisch angelegter Vorgang ohne Schritte
-                val browser = browserFuer(BrowserModus.DEMONTAGE, emptyList())
+            // Given: ein frisch angelegter Vorgang ohne Schritte
+            val browser = browserFuer(BrowserModus.DEMONTAGE, emptyList())
 
-                // When: der Browser oeffnet
-                val zustand = browser.uiState.value
+            // When: der Browser oeffnet
+            val zustand = browser.uiState.value
 
-                // Then: kein Absturz, kein aktiver Schritt
-                assertEquals(0, zustand.aktiverIndex)
-                assertNull(zustand.aktiverSchritt)
-                assertFalse(zustand.laedt)
-            }
+            // Then: kein Absturz, kein aktiver Schritt, aber fertig geladen
+            assertEquals(0, zustand.aktiverIndex)
+            assertNull(zustand.aktiverSchritt)
+            assertFalse(zustand.laedt)
         }
     }
 
@@ -149,71 +144,63 @@ class BrowserViewModelTest {
 
         @Test
         fun `dreht die Demontage-Reihenfolge um`() {
-            runTest {
-                // Given: die Schritte 1 bis 3 in Demontage-Reihenfolge
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3))
-                )
+            // Given: die Schritte 1 bis 3 in Demontage-Reihenfolge
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3))
+            )
 
-                // When: der Montage-Flow oeffnet
-                val nummern = browser.uiState.value.schritte.map { it.schritt.schrittNummer }
+            // When: der Montage-Flow oeffnet
+            val nummern = browser.uiState.value.schritte.map { it.schritt.schrittNummer }
 
-                // Then: das zuletzt ausgebaute Teil kommt zuerst
-                assertEquals(listOf(3, 2, 1), nummern)
-            }
+            // Then: das zuletzt ausgebaute Teil kommt zuerst
+            assertEquals(listOf(3, 2, 1), nummern)
         }
 
         @Test
         fun `setzt beim ersten noch nicht eingebauten Schritt der Montage-Reihenfolge auf`() {
-            runTest {
-                // Given: Schritt 3 ist bereits eingebaut, 1 und 2 nicht
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3, eingebaut = true))
-                )
+            // Given: Schritt 3 ist bereits eingebaut, 1 und 2 nicht
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3, eingebaut = true))
+            )
 
-                // When: der Montage-Flow oeffnet
-                val zustand = browser.uiState.value
+            // When: der Montage-Flow oeffnet
+            val zustand = browser.uiState.value
 
-                // Then: Schritt 2 -- nicht der mit der hoechsten Demontage-Nummer
-                assertEquals(2, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertEquals(1, zustand.eingebauteAnzahl)
-            }
+            // Then: Schritt 2 -- nicht der mit der hoechsten Demontage-Nummer
+            assertEquals(2, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertEquals(1, zustand.eingebauteAnzahl)
         }
 
         @Test
         fun `zeigt den hoechsten Schritt, wenn schon alles eingebaut ist`() {
-            runTest {
-                // Given: alle Schritte sind abgehakt, der Vorgang ist aber noch offen
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
-                )
+            // Given: alle Schritte sind abgehakt, der Vorgang ist aber noch offen
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
+            )
 
-                // When: der Montage-Flow oeffnet
-                val zustand = browser.uiState.value
+            // When: der Montage-Flow oeffnet
+            val zustand = browser.uiState.value
 
-                // Then: Anfang der Montage-Reihenfolge, Fortschritt vollstaendig
-                assertEquals(2, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertEquals(2, zustand.eingebauteAnzahl)
-            }
+            // Then: Anfang der Montage-Reihenfolge, Fortschritt vollstaendig
+            assertEquals(2, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertEquals(2, zustand.eingebauteAnzahl)
         }
 
         @Test
         fun `schreibt beim Oeffnen nichts in die Datenbank`() {
-            runTest {
-                // Given/When: der Wiedereinstieg in eine begonnene Montage
-                browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1), schritt(2, eingebaut = true))
-                )
+            // Given/When: der Wiedereinstieg in eine begonnene Montage
+            browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1), schritt(2, eingebaut = true))
+            )
 
-                // Then: reiner Lesevorgang
-                verifyBlocking(repository, never()) { setzeEingebaut(any(), any()) }
-                verifyBlocking(repository, never()) { schrittAnlegen(any()) }
-                verifyBlocking(repository, never()) { schrittAbschliessen(any()) }
-            }
+            // Then: reiner Lesevorgang
+            verifyBlocking(repository, never()) { setzeEingebaut(any(), any()) }
+            verifyBlocking(repository, never()) { schrittAnlegen(any()) }
+            verifyBlocking(repository, never()) { schrittAbschliessen(any()) }
         }
     }
 
@@ -222,20 +209,18 @@ class BrowserViewModelTest {
 
         @Test
         fun `beginnt beim ersten Schritt und laesst die Reihenfolge unveraendert`() {
-            runTest {
-                // Given: ein archivierter Vorgang mit drei Schritten
-                val browser = browserFuer(
-                    BrowserModus.ARCHIV,
-                    listOf(schritt(1), schritt(2), schritt(3))
-                )
+            // Given: ein archivierter Vorgang mit drei Schritten
+            val browser = browserFuer(
+                BrowserModus.ARCHIV,
+                listOf(schritt(1), schritt(2), schritt(3))
+            )
 
-                // When: die Nur-Lese-Ansicht oeffnet
-                val zustand = browser.uiState.value
+            // When: die Nur-Lese-Ansicht oeffnet
+            val zustand = browser.uiState.value
 
-                // Then: von vorne, in Demontage-Reihenfolge
-                assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertEquals(listOf(1, 2, 3), zustand.schritte.map { it.schritt.schrittNummer })
-            }
+            // Then: von vorne, in Demontage-Reihenfolge
+            assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertEquals(listOf(1, 2, 3), zustand.schritte.map { it.schritt.schrittNummer })
         }
     }
 
@@ -248,105 +233,96 @@ class BrowserViewModelTest {
 
         @Test
         fun `meldet beim Nachschlagen eines alten Schritts, dass nicht der offene betrachtet wird`() {
-            runTest {
-                // Given: Schritt 3 ist offen und wird betrachtet
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3, offen = true))
-                )
-                assertTrue(browser.uiState.value.betrachtetOffenenSchritt)
+            // Given: Schritt 3 ist offen und wird betrachtet
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            )
+            assertTrue(browser.uiState.value.betrachtetOffenenSchritt)
 
-                // When: der Mechaniker springt zum Nachschlagen auf Schritt 1
-                browser.onSchrittGewaehlt(0)
-                runCurrent()
+            // When: der Mechaniker springt zum Nachschlagen auf Schritt 1
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
 
-                // Then: "Naechstes Teil" und "Feierabend" duerfen nicht mehr erscheinen,
-                // der offene Schritt bleibt aber bekannt
-                val zustand = browser.uiState.value
-                assertFalse(zustand.betrachtetOffenenSchritt)
-                assertEquals(2, zustand.offenerIndex)
-                assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
-            }
+            // Then: "Naechstes Teil" und "Feierabend" duerfen nicht mehr erscheinen,
+            // der offene Schritt bleibt aber bekannt
+            val zustand = browser.uiState.value
+            assertFalse(zustand.betrachtetOffenenSchritt)
+            assertEquals(2, zustand.offenerIndex)
+            assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
         }
 
         @Test
         fun `springt vom nachgeschlagenen Schritt zurueck zum offenen`() {
-            runTest {
-                // Given: der Mechaniker schlaegt Schritt 1 nach, offen ist Schritt 3
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3, offen = true))
-                )
-                browser.onSchrittGewaehlt(0)
-                runCurrent()
+            // Given: der Mechaniker schlaegt Schritt 1 nach, offen ist Schritt 3
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            )
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
 
-                // When: "Zurueck zu Schritt 3"
-                browser.onZumOffenenSchritt()
-                runCurrent()
+            // When: "Zurueck zu Schritt 3"
+            browser.onZumOffenenSchritt()
+            abarbeiten()
 
-                // Then: wieder am offenen Schritt
-                val zustand = browser.uiState.value
-                assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertTrue(zustand.betrachtetOffenenSchritt)
-            }
+            // Then: wieder am offenen Schritt
+            val zustand = browser.uiState.value
+            assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertTrue(zustand.betrachtetOffenenSchritt)
         }
 
         @Test
         fun `schliesst beim naechsten Teil den offenen Schritt ab, nicht den betrachteten`() {
-            runTest {
-                // Given: Schritt 3 ist offen, betrachtet wird Schritt 1
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3, offen = true))
-                )
-                browser.onSchrittGewaehlt(0)
-                runCurrent()
+            // Given: Schritt 3 ist offen, betrachtet wird Schritt 1
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            )
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
 
-                // When: "Naechstes Teil"
-                browser.onNaechstesTeil()
-                runCurrent()
+            // When: "Naechstes Teil"
+            browser.onNaechstesTeil()
+            abarbeiten()
 
-                // Then: der offene Schritt 3 wird weitergereicht, nicht der betrachtete
-                val offenerSchritt = schritt(3, offen = true).schritt
-                verifyBlocking(fotoSteuerung) { naechstesTeil(VORGANG_ID, offenerSchritt) }
-            }
+            // Then: der offene Schritt 3 wird weitergereicht, nicht der betrachtete
+            val offenerSchritt = schritt(3, offen = true).schritt
+            verifyBlocking(fotoSteuerung) { naechstesTeil(VORGANG_ID, offenerSchritt) }
         }
 
         @Test
-        fun `reicht ohne offenen Schritt kein Ziel weiter`() {
-            runTest {
-                // Given: alle Schritte sind abgeschlossen
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1), schritt(2)))
+        fun `reicht beim Beenden ohne offenen Schritt kein Ziel weiter`() {
+            // Given: alle Schritte sind abgeschlossen
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1), schritt(2)))
 
-                // When: die Demontage wird beendet
-                browser.onFeierabendBestaetigt()
-                runCurrent()
+            // When: Feierabend
+            browser.onFeierabendBestaetigt()
+            abarbeiten()
 
-                // Then: es gibt keinen Schritt zum Abschliessen oder Verwerfen
-                verifyBlocking(fotoSteuerung) { beenden(null) }
-                assertTrue(browser.uiState.value.verlassen)
-            }
+            // Then: es gibt keinen Schritt zum Abschliessen oder Verwerfen
+            verifyBlocking(fotoSteuerung) { beenden(null) }
+            verifyBlocking(zeiterfassung) { stoppeAlleOffenen() }
+            assertTrue(browser.uiState.value.verlassen)
         }
 
         @Test
-        fun `haelt den offenen Schritt auch dann fest, wenn er nicht der letzte der Liste ist`() {
-            runTest {
-                // Given: nach einem Verwerfen steht der offene Schritt in der Mitte
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2, offen = true), schritt(3))
-                )
+        fun `haelt den offenen Schritt fest, auch wenn er nicht der letzte der Liste ist`() {
+            // Given: nach einem Verwerfen steht der offene Schritt in der Mitte
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true), schritt(3))
+            )
 
-                // When: der Mechaniker blaettert ans Ende
-                browser.onNaechsterSchritt()
-                runCurrent()
+            // When: der Mechaniker blaettert ans Ende
+            browser.onNaechsterSchritt()
+            abarbeiten()
 
-                // Then: Index 2 wird betrachtet, offen bleibt Index 1
-                val zustand = browser.uiState.value
-                assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertEquals(1, zustand.offenerIndex)
-                assertFalse(zustand.betrachtetOffenenSchritt)
-            }
+            // Then: betrachtet wird Schritt 3, offen bleibt Index 1
+            val zustand = browser.uiState.value
+            assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertEquals(1, zustand.offenerIndex)
+            assertFalse(zustand.betrachtetOffenenSchritt)
         }
     }
 
@@ -359,31 +335,27 @@ class BrowserViewModelTest {
 
         @Test
         fun `ist die hoechste vergebene Nummer plus eins, egal welcher Schritt sichtbar ist`() {
-            runTest {
-                // Given: Schritt 3 wurde verworfen, vergeben sind 1, 2 und 4
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(4, offen = true))
-                )
+            // Given: Schritt 3 wurde verworfen, vergeben sind 1, 2 und 4
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2), schritt(4, offen = true))
+            )
 
-                // When: der Mechaniker schlaegt Schritt 1 nach
-                browser.onSchrittGewaehlt(0)
-                runCurrent()
+            // When: der Mechaniker schlaegt Schritt 1 nach
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
 
-                // Then: die naechste Nummer bleibt 5 -- Nummern werden nie wiederverwendet
-                assertEquals(5, browser.uiState.value.naechsteSchrittNummer)
-            }
+            // Then: die naechste Nummer bleibt 5 -- Nummern werden nie wiederverwendet
+            assertEquals(5, browser.uiState.value.naechsteSchrittNummer)
         }
 
         @Test
         fun `ist 1, solange der Vorgang keinen Schritt hat`() {
-            runTest {
-                // Given: ein Vorgang ohne Schritte
-                val browser = browserFuer(BrowserModus.DEMONTAGE, emptyList())
+            // Given: ein Vorgang ohne Schritte
+            val browser = browserFuer(BrowserModus.DEMONTAGE, emptyList())
 
-                // When/Then: der erste Schritt bekaeme die 1
-                assertEquals(1, browser.uiState.value.naechsteSchrittNummer)
-            }
+            // When/Then: der erste Schritt bekaeme die 1
+            assertEquals(1, browser.uiState.value.naechsteSchrittNummer)
         }
     }
 
@@ -396,70 +368,47 @@ class BrowserViewModelTest {
 
         @Test
         fun `kippt genau das angetippte Label und laesst die anderen stehen`() {
-            runTest {
-                // Given: ein Foto, das nur "Bauteil" traegt
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-                val foto = foto(id = 7, bauteil = true)
+            // Given: ein Foto, das nur "Bauteil" traegt
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
 
-                // When: "Uebersicht" wird angetippt
-                browser.onLabelUmgeschaltet(foto, LabelArt.UEBERSICHT)
-                runCurrent()
+            // When: "Uebersicht" wird angetippt
+            browser.onLabelUmgeschaltet(foto(id = 7, bauteil = true), LabelArt.UEBERSICHT)
+            abarbeiten()
 
-                // Then: Uebersicht kommt dazu, Bauteil bleibt
-                verifyBlocking(repository) {
-                    setzeLabel(
-                        fotoId = 7,
-                        istBauteil = true,
-                        istUebersicht = true,
-                        istAblageort = false
-                    )
-                }
+            // Then: Uebersicht kommt dazu, Bauteil bleibt
+            verifyBlocking(repository) {
+                setzeLabel(fotoId = 7, istBauteil = true, istUebersicht = true, istAblageort = false)
             }
         }
 
         @Test
         fun `nimmt ein gesetztes Label wieder zurueck`() {
-            runTest {
-                // Given: ein Foto mit "Uebersicht" und "Ablageort"
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-                val foto = foto(id = 8, bauteil = false, uebersicht = true, ablageort = true)
+            // Given: ein Foto mit "Uebersicht" und "Ablageort"
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
+            val foto = foto(id = 8, bauteil = false, uebersicht = true, ablageort = true)
 
-                // When: "Ablageort" wird erneut angetippt
-                browser.onLabelUmgeschaltet(foto, LabelArt.ABLAGEORT)
-                runCurrent()
+            // When: "Ablageort" wird erneut angetippt
+            browser.onLabelUmgeschaltet(foto, LabelArt.ABLAGEORT)
+            abarbeiten()
 
-                // Then: nur Ablageort faellt weg
-                verifyBlocking(repository) {
-                    setzeLabel(
-                        fotoId = 8,
-                        istBauteil = false,
-                        istUebersicht = true,
-                        istAblageort = false
-                    )
-                }
+            // Then: nur Ablageort faellt weg
+            verifyBlocking(repository) {
+                setzeLabel(fotoId = 8, istBauteil = false, istUebersicht = true, istAblageort = false)
             }
         }
 
         @Test
         fun `laesst alle drei Label abwaehlen`() {
-            runTest {
-                // Given: ein frisches Foto mit dem Default-Label "Bauteil"
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-                val foto = foto(id = 9, bauteil = true)
+            // Given: ein frisches Foto mit dem Default-Label "Bauteil"
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
 
-                // When: "Bauteil" wird abgewaehlt
-                browser.onLabelUmgeschaltet(foto, LabelArt.BAUTEIL)
-                runCurrent()
+            // When: "Bauteil" wird abgewaehlt
+            browser.onLabelUmgeschaltet(foto(id = 9, bauteil = true), LabelArt.BAUTEIL)
+            abarbeiten()
 
-                // Then: kein Label ist gesetzt -- ein gueltiger Zustand
-                verifyBlocking(repository) {
-                    setzeLabel(
-                        fotoId = 9,
-                        istBauteil = false,
-                        istUebersicht = false,
-                        istAblageort = false
-                    )
-                }
+            // Then: kein Label ist gesetzt -- ein gueltiger Zustand
+            verifyBlocking(repository) {
+                setzeLabel(fotoId = 9, istBauteil = false, istUebersicht = false, istAblageort = false)
             }
         }
     }
@@ -473,90 +422,84 @@ class BrowserViewModelTest {
 
         @Test
         fun `setzt das Haekchen und stoppt die Montage-Messung dieses Schritts`() {
-            runTest {
-                // Given: die Montage steht auf Schritt 3
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3))
-                )
+            // Given: die Montage steht auf Schritt 3
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3))
+            )
 
-                // When: "Eingebaut"
-                browser.onEingebaut()
-                runCurrent()
+            // When: "Eingebaut"
+            browser.onEingebaut()
+            abarbeiten()
 
-                // Then: Haken gesetzt, Messung des Schritts gestoppt -- mit dem
-                // Montage-Referenztyp, nicht dem der Demontage (K-04)
-                verifyBlocking(repository) { setzeEingebaut(SCHRITT_ID_3, true) }
-                verifyBlocking(zeiterfassung) {
-                    stoppeFallsLaeuft(SCHRITT_ID_3, ReferenzTyp.MONTAGE_SCHRITT)
-                }
+            // Then: Haken gesetzt und die Messung mit dem Montage-Referenztyp
+            // gestoppt, nicht mit dem der Demontage (K-04)
+            verifyBlocking(repository) { setzeEingebaut(SCHRITT_ID_3, true) }
+            verifyBlocking(zeiterfassung) {
+                stoppeFallsLaeuft(SCHRITT_ID_3, ReferenzTyp.MONTAGE_SCHRITT)
             }
         }
 
         @Test
         fun `springt zum naechsten nicht eingebauten Schritt und ueberspringt erledigte`() {
-            runTest {
-                // Given: Montage-Reihenfolge 3, 2, 1 -- Schritt 2 ist schon eingebaut
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1), schritt(2, eingebaut = true), schritt(3))
-                )
-                assertEquals(3, browser.uiState.value.aktiverSchritt?.schritt?.schrittNummer)
+            // Given: Montage-Reihenfolge 3, 2, 1 -- Schritt 2 ist schon eingebaut
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1), schritt(2, eingebaut = true), schritt(3))
+            )
+            assertEquals(3, browser.uiState.value.aktiverSchritt?.schritt?.schrittNummer)
 
-                // When: Schritt 3 wird abgehakt
-                browser.onEingebaut()
-                runCurrent()
+            // When: Schritt 3 wird abgehakt
+            browser.onEingebaut()
+            abarbeiten()
 
-                // Then: weiter zu Schritt 1, Schritt 2 wird uebersprungen
-                val zustand = browser.uiState.value
-                assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
-                assertFalse(zustand.fertig)
-            }
+            // Then: weiter zu Schritt 1, Schritt 2 wird uebersprungen
+            val zustand = browser.uiState.value
+            assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertFalse(zustand.fertig)
         }
 
         @Test
         fun `meldet fertig statt weiterzuspringen, wenn es das letzte Teil war`() {
-            runTest {
-                // Given: nur noch Schritt 3 ist offen
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(
-                        schritt(1, eingebaut = true),
-                        schritt(2, eingebaut = true),
-                        schritt(3)
-                    )
-                )
+            // Given: nur noch Schritt 3 ist nicht eingebaut
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true), schritt(3))
+            )
 
-                // When: das letzte Teil wird abgehakt
-                browser.onEingebaut()
-                runCurrent()
+            // When: das letzte Teil wird abgehakt
+            browser.onEingebaut()
+            abarbeiten()
 
-                // Then: Abschluss-Screen statt Sprung -- der Schritt bleibt stehen
-                val zustand = browser.uiState.value
-                assertTrue(zustand.fertig)
-                assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
-            }
+            // Then: Abschluss statt Sprung -- der Schritt bleibt stehen
+            val zustand = browser.uiState.value
+            assertTrue(zustand.fertig)
+            assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
         }
 
         @Test
         fun `nimmt das Haekchen erst nach Bestaetigung zurueck und schliesst das Sheet`() {
-            runTest {
-                // Given: der Warndialog steht ueber Schritt 3
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3, eingebaut = true))
-                )
-                browser.zeigeSheet(SheetZustand("Haekchen weg?", "Sicher?", emptyList()))
-                assertNotNull(browser.uiState.value.sheet)
+            // Given: der Mechaniker blaettert zum bereits abgehakten Schritt 3 zurueck
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3, eingebaut = true))
+            )
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
+            assertEquals(3, browser.uiState.value.aktiverSchritt?.schritt?.schrittNummer)
 
-                // When: der Mechaniker bestaetigt
-                browser.onHaekchenZuruecknehmenBestaetigt()
-                runCurrent()
+            // und der Warndialog steht
+            browser.zeigeSheet(SheetZustand("Haekchen weg?", "Sicher?", emptyList()))
+            assertNotNull(browser.uiState.value.sheet)
+            verifyBlocking(repository, never()) { setzeEingebaut(any(), any()) }
 
-                // Then: Haken weg, Sheet zu
-                verifyBlocking(repository) { setzeEingebaut(SCHRITT_ID_3, false) }
-                assertNull(browser.uiState.value.sheet)
-            }
+            // When: der Mechaniker bestaetigt
+            browser.onHaekchenZuruecknehmenBestaetigt()
+            abarbeiten()
+
+            // Then: Haken weg, Sheet zu
+            verifyBlocking(repository) { setzeEingebaut(SCHRITT_ID_3, false) }
+            assertNull(browser.uiState.value.sheet)
         }
     }
 
@@ -569,94 +512,84 @@ class BrowserViewModelTest {
 
         @Test
         fun `raeumt nur die leere Zieldatei weg und laesst das vorhandene Foto stehen`() {
-            runTest {
-                // Given: "Wiederholen" wurde fuer ein vorhandenes Foto gestartet
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-                browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
+            // Given: "Wiederholen" wurde fuer das vorhandene Foto 42 gestartet
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
+            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
 
-                // When: die System-Kamera bricht ab
-                browser.onKameraAbgebrochen()
-                runCurrent()
+            // When: die System-Kamera bricht ab
+            browser.onKameraAbgebrochen()
+            abarbeiten()
 
-                // Then: nur die Huelle verschwindet, das alte Foto bleibt unberuehrt
-                verifyBlocking(fotoSteuerung) { verwerfeDatei(NEUER_PFAD) }
-                verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
-                verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
-            }
+            // Then: nur die leere Huelle verschwindet, das alte Foto bleibt unberuehrt
+            verifyBlocking(fotoSteuerung) { verwerfeDatei(NEUER_PFAD) }
+            verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
+            verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
         }
 
         @Test
         fun `ignoriert eine nachtraegliche Erfolgsmeldung nach dem Abbruch`() {
-            runTest {
-                // Given: die Aufnahme wurde bereits abgebrochen
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-                browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
-                browser.onKameraAbgebrochen()
-                runCurrent()
+            // Given: die Aufnahme wurde bereits abgebrochen
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
+            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
+            browser.onKameraAbgebrochen()
+            abarbeiten()
 
-                // When: doch noch eine Erfolgsmeldung eintrudelt
-                browser.onFotoAufgenommen()
-                runCurrent()
+            // When: doch noch eine Erfolgsmeldung eintrudelt
+            browser.onFotoAufgenommen()
+            abarbeiten()
 
-                // Then: nichts wird ersetzt oder angehaengt
-                assertNull(browser.offeneAufnahme)
-                verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
-                verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
-            }
+            // Then: nichts wird ersetzt oder angehaengt
+            assertNull(browser.offeneAufnahme)
+            verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
+            verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
         }
 
         @Test
         fun `tut nichts, wenn gar keine Aufnahme angemeldet war`() {
-            runTest {
-                // Given: keine laufende Aufnahme (z.B. kein Kamera-Programm auf dem Geraet)
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
+            // Given: keine laufende Aufnahme (z.B. kein Kamera-Programm auf dem Geraet)
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
 
-                // When: der Abbruch gemeldet wird
-                browser.onKameraAbgebrochen()
-                runCurrent()
+            // When: der Abbruch gemeldet wird
+            browser.onKameraAbgebrochen()
+            abarbeiten()
 
-                // Then: keine Datei wird geloescht
-                verifyNoInteractions(fotoSteuerung)
-            }
+            // Then: keine Datei wird geloescht
+            verifyNoInteractions(fotoSteuerung)
         }
 
         @Test
         fun `haengt ein bestaetigtes Foto an den betrachteten Schritt`() {
-            runTest {
-                // Given: "Weiteres Foto" am offenen Schritt 2
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2, offen = true))
-                )
-                browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = null)
+            // Given: "Weiteres Foto" am offenen Schritt 2
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = null)
 
-                // When: die System-Kamera bestaetigt
-                browser.onFotoAufgenommen()
-                runCurrent()
+            // When: die System-Kamera bestaetigt
+            browser.onFotoAufgenommen()
+            abarbeiten()
 
-                // Then: das Foto haengt am betrachteten Schritt, nichts wird ersetzt
-                verifyBlocking(fotoSteuerung) { fotoUebernehmen(SCHRITT_ID_2, NEUER_PFAD) }
-                verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
-                assertNull(browser.offeneAufnahme)
-            }
+            // Then: das Foto haengt am betrachteten Schritt, nichts wird ersetzt
+            verifyBlocking(fotoSteuerung) { fotoUebernehmen(SCHRITT_ID_2, NEUER_PFAD) }
+            verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
+            assertNull(browser.offeneAufnahme)
         }
 
         @Test
         fun `ersetzt das alte Foto erst nach bestaetigter Neuaufnahme`() {
-            runTest {
-                // Given: "Wiederholen" fuer Foto 42
-                val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-                browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
-                verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
+            // Given: "Wiederholen" fuer Foto 42 ist angemeldet
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
+            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
+            verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
 
-                // When: die System-Kamera bestaetigt
-                browser.onFotoAufgenommen()
-                runCurrent()
+            // When: die System-Kamera bestaetigt
+            browser.onFotoAufgenommen()
+            abarbeiten()
 
-                // Then: jetzt erst wird ersetzt, und nichts angehaengt
-                verifyBlocking(fotoSteuerung) { fotoErsetzen(42, NEUER_PFAD) }
-                verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
-            }
+            // Then: jetzt erst wird ersetzt, und nichts angehaengt
+            verifyBlocking(fotoSteuerung) { fotoErsetzen(42, NEUER_PFAD) }
+            verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
         }
     }
 
@@ -669,90 +602,104 @@ class BrowserViewModelTest {
 
         @Test
         fun `klemmt den Foto-Index, wenn die Fotoliste schrumpft`() {
-            runTest {
-                // Given: das dritte von drei Fotos ist sichtbar
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1, offen = true, fotos = listOf(foto(1), foto(2), foto(3))))
-                )
-                browser.onFotoGewaehlt(2)
-                runCurrent()
+            // Given: das dritte von drei Fotos ist sichtbar
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1, offen = true, fotos = listOf(foto(1), foto(2), foto(3))))
+            )
+            browser.onFotoGewaehlt(2)
+            abarbeiten()
 
-                // When: zwei Fotos verschwinden (Ersetzen, Aufraeumen)
-                schritteFlow.value = listOf(schritt(1, offen = true, fotos = listOf(foto(1))))
-                runCurrent()
+            // When: zwei Fotos verschwinden
+            schritteFlow.value = listOf(schritt(1, offen = true, fotos = listOf(foto(1))))
+            abarbeiten()
 
-                // Then: der Browser zeigt das verbliebene Foto statt ins Leere zu greifen
-                val zustand = browser.uiState.value.alsBrowserZustand()
-                assertEquals(0, zustand.fotoIndex)
-                assertEquals(1L, zustand.sichtbaresFoto?.id)
-            }
+            // Then: der Browser zeigt das verbliebene Foto statt ins Leere zu greifen
+            val zustand = browser.uiState.value.alsBrowserZustand()
+            assertEquals(0, zustand.fotoIndex)
+            assertEquals(1L, zustand.sichtbaresFoto?.id)
         }
 
         @Test
-        fun `klemmt den Schritt-Index, wenn ein Schritt verworfen wird`() {
-            runTest {
-                // Given: der dritte von drei Schritten wird betrachtet
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1), schritt(2), schritt(3, offen = true))
-                )
-                assertEquals(2, browser.uiState.value.aktiverIndex)
+        fun `klemmt den Schritt-Index, wenn Schritte verschwinden`() {
+            // Given: der dritte von drei Schritten wird betrachtet
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            )
+            assertEquals(2, browser.uiState.value.aktiverIndex)
 
-                // When: die Schritte 2 und 3 verschwinden
-                schritteFlow.value = listOf(schritt(1))
-                runCurrent()
+            // When: die Schritte 2 und 3 verschwinden (verworfen oder geloescht)
+            schritteFlow.value = listOf(schritt(1))
+            abarbeiten()
 
-                // Then: der Index rutscht auf den letzten gueltigen
-                val zustand = browser.uiState.value
-                assertEquals(0, zustand.aktiverIndex)
-                assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
-            }
+            // Then: der Index rutscht auf den letzten gueltigen
+            val zustand = browser.uiState.value
+            assertEquals(0, zustand.aktiverIndex)
+            assertEquals(1, zustand.aktiverSchritt?.schritt?.schrittNummer)
+        }
+
+        @Test
+        fun `haelt den betrachteten Schritt fest, wenn ein Foto dazukommt`() {
+            // Given: der Mechaniker schlaegt Schritt 1 nach, offen ist Schritt 3
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            )
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
+
+            // When: ein neues Foto am offenen Schritt landet und der Flow neu liefert
+            schritteFlow.value = listOf(
+                schritt(1),
+                schritt(2),
+                schritt(3, offen = true, fotos = listOf(foto(1)))
+            )
+            abarbeiten()
+
+            // Then: die Ansicht springt nicht zurueck auf den offenen Schritt
+            assertEquals(0, browser.uiState.value.aktiverIndex)
         }
 
         @Test
         fun `beginnt nach einem Schrittwechsel wieder beim ersten Foto`() {
-            runTest {
-                // Given: im ersten Schritt ist das zweite Foto sichtbar
-                val browser = browserFuer(
-                    BrowserModus.ARCHIV,
-                    listOf(
-                        schritt(1, fotos = listOf(foto(1), foto(2))),
-                        schritt(2, fotos = listOf(foto(3), foto(4)))
-                    )
+            // Given: im ersten Schritt ist das zweite Foto sichtbar
+            val browser = browserFuer(
+                BrowserModus.ARCHIV,
+                listOf(
+                    schritt(1, fotos = listOf(foto(1), foto(2))),
+                    schritt(2, fotos = listOf(foto(3), foto(4)))
                 )
-                browser.onFotoGewaehlt(1)
-                runCurrent()
+            )
+            browser.onFotoGewaehlt(1)
+            abarbeiten()
 
-                // When: der Mechaniker springt auf Schritt 2
-                browser.onSchrittGewaehlt(1)
-                runCurrent()
+            // When: der Mechaniker springt auf Schritt 2
+            browser.onSchrittGewaehlt(1)
+            abarbeiten()
 
-                // Then: das Karussell steht wieder vorn
-                assertEquals(0, browser.uiState.value.aktivesFoto)
-                assertEquals(3L, browser.uiState.value.alsBrowserZustand().sichtbaresFoto?.id)
-            }
+            // Then: das Karussell steht wieder vorn
+            assertEquals(0, browser.uiState.value.aktivesFoto)
+            assertEquals(3L, browser.uiState.value.alsBrowserZustand().sichtbaresFoto?.id)
         }
 
         @Test
         fun `blaettert nicht ueber die Enden hinaus`() {
-            runTest {
-                // Given: zwei Schritte, Start beim ersten
-                val browser = browserFuer(BrowserModus.ARCHIV, listOf(schritt(1), schritt(2)))
+            // Given: zwei Schritte, Start beim ersten
+            val browser = browserFuer(BrowserModus.ARCHIV, listOf(schritt(1), schritt(2)))
 
-                // When: zweimal zurueck, dann dreimal weiter
-                browser.onVorherigerSchritt()
-                runCurrent()
-                assertEquals(0, browser.uiState.value.aktiverIndex)
-                repeat(3) {
-                    browser.onNaechsterSchritt()
-                    runCurrent()
-                }
-
-                // Then: am letzten Schritt stehengeblieben, kein Index ausserhalb der Liste
-                assertEquals(1, browser.uiState.value.aktiverIndex)
-                assertEquals(2, browser.uiState.value.aktiverSchritt?.schritt?.schrittNummer)
+            // When: einmal zurueck, dann dreimal weiter
+            browser.onVorherigerSchritt()
+            abarbeiten()
+            assertEquals(0, browser.uiState.value.aktiverIndex)
+            repeat(3) {
+                browser.onNaechsterSchritt()
+                abarbeiten()
             }
+
+            // Then: am letzten Schritt stehengeblieben, kein Index ausserhalb der Liste
+            assertEquals(1, browser.uiState.value.aktiverIndex)
+            assertEquals(2, browser.uiState.value.aktiverSchritt?.schritt?.schrittNummer)
         }
     }
 
@@ -765,49 +712,38 @@ class BrowserViewModelTest {
 
         @Test
         fun `meldet am Fahrzeug geblieben, wenn der Schritt kein Ablageort-Foto hat`() {
-            runTest {
-                // Given: der Montage-Schritt hat nur ein Bauteil-Foto
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(schritt(1, fotos = listOf(foto(1, bauteil = true))))
-                )
+            // Given: der Montage-Schritt hat nur ein Bauteil-Foto
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, fotos = listOf(foto(1, bauteil = true))))
+            )
 
-                // When/Then: der Hinweis "Am Fahrzeug" gilt
-                assertTrue(browser.uiState.value.amFahrzeugGeblieben)
-            }
+            // When/Then: der Hinweis "Am Fahrzeug" gilt
+            assertTrue(browser.uiState.value.amFahrzeugGeblieben)
         }
 
         @Test
         fun `meldet nichts, sobald ein Ablageort-Foto existiert`() {
-            runTest {
-                // Given: der Schritt hat ein Foto vom Ablageort
-                val browser = browserFuer(
-                    BrowserModus.MONTAGE,
-                    listOf(
-                        schritt(
-                            1,
-                            fotos = listOf(foto(1, bauteil = true), foto(2, ablageort = true))
-                        )
-                    )
-                )
+            // Given: der Schritt hat ein Foto vom Ablageort
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, fotos = listOf(foto(1, bauteil = true), foto(2, ablageort = true))))
+            )
 
-                // When/Then: kein Hinweis -- das Teil liegt irgendwo
-                assertFalse(browser.uiState.value.amFahrzeugGeblieben)
-            }
+            // When/Then: kein Hinweis -- das Teil liegt irgendwo
+            assertFalse(browser.uiState.value.amFahrzeugGeblieben)
         }
 
         @Test
         fun `zeigt den Hinweis nicht in der Demontage`() {
-            runTest {
-                // Given: derselbe Schritt ohne Ablageort-Foto, aber im Demontage-Modus
-                val browser = browserFuer(
-                    BrowserModus.DEMONTAGE,
-                    listOf(schritt(1, offen = true, fotos = listOf(foto(1, bauteil = true))))
-                )
+            // Given: derselbe Schritt ohne Ablageort-Foto, aber im Demontage-Modus
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1, offen = true, fotos = listOf(foto(1, bauteil = true))))
+            )
 
-                // When/Then: "Am Fahrzeug" ist ein Montage-Hinweis
-                assertFalse(browser.uiState.value.amFahrzeugGeblieben)
-            }
+            // When/Then: "Am Fahrzeug" ist ein Montage-Hinweis
+            assertFalse(browser.uiState.value.amFahrzeugGeblieben)
         }
     }
 
@@ -816,26 +752,25 @@ class BrowserViewModelTest {
     // ------------------------------------------------------------------
 
     /**
-     * Baut das ViewModel und laesst die init-Coroutine genau einmal laufen.
+     * Fuehrt die Coroutinen aus, die zur aktuellen virtuellen Zeit anstehen.
      *
-     * Bewusst [runCurrent] statt `advanceUntilIdle`: der Ticker des ViewModels
-     * plant sich endlos neu ein und wuerde die virtuelle Zeit nie leerlaufen
-     * lassen.
+     * Bewusst kein `advanceUntilIdle`: der Ticker des ViewModels plant sich
+     * jede Sekunde neu ein, der Scheduler wuerde nie leerlaufen.
      */
-    private fun TestScope.browserFuer(
+    private fun abarbeiten() = scheduler.runCurrent()
+
+    private fun browserFuer(
         modus: BrowserModus,
         schritte: List<SchrittMitFotos>
     ): BrowserViewModel {
         schritteFlow.value = schritte
         val browser = BrowserViewModel(
-            zustand = SavedStateHandle(
-                mapOf("vorgangId" to VORGANG_ID, "modus" to modus.name)
-            ),
+            zustand = SavedStateHandle(mapOf("vorgangId" to VORGANG_ID, "modus" to modus.name)),
             repository = repository,
             zeiterfassung = zeiterfassung,
             fotos = fotoSteuerung
         )
-        runCurrent()
+        abarbeiten()
         return browser
     }
 
@@ -876,7 +811,7 @@ class BrowserViewModelTest {
         const val VORGANG_ID = 4L
         const val NEUER_PFAD = "/photos/schritt_neu.jpg"
 
-        /** [schritt] vergibt die ID als Nummer mal zehn. */
+        /** [schritt] vergibt die ID als Schrittnummer mal zehn. */
         const val SCHRITT_ID_2 = 20L
         const val SCHRITT_ID_3 = 30L
 
