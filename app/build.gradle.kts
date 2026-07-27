@@ -11,7 +11,9 @@ android {
 
     defaultConfig {
         applicationId = "com.boltmind.app"
-        minSdk = 26
+        // minSdk 31: Das Design-System setzt durchgehend auf echten Hintergrund-Blur
+        // (RenderEffect). Der ist erst ab Android 12 verfuegbar. Siehe docs/specs/design-system.md.
+        minSdk = 31
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
