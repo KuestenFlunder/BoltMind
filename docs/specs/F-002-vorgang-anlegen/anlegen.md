@@ -18,24 +18,27 @@ Der Abbruch geschieht über den System-Back-Button. Ein versehentlich angelegter
 
 - **Given** der Mechaniker hat in der Übersicht (F-001) auf "+" getippt
   **When** der Anlage-Flow startet
-  **Then** öffnet sich sofort die Kamera im Vollbild
+  **Then** wird sofort die System-Kamera gestartet, ohne app-eigenen Zwischenscreen
 
-- **Given** die Kamera ist geöffnet
-  **When** der Mechaniker den Auslöser-Button tippt
-  **Then** wird ein Foto aufgenommen und als Preview angezeigt
+- **Given** die System-Kamera ist gestartet
+  **When** der Mechaniker die Aufnahme in der System-Kamera bestätigt
+  **Then** wird das Foto als Fahrzeugfoto übernommen und das Formular (US-002.2) mit dem Foto angezeigt
 
-- **Given** die Kamera ist geöffnet
-  **When** der Mechaniker den System-Back-Button drückt
+- **Given** die System-Kamera ist gestartet
+  **When** der Mechaniker die Aufnahme abbricht (System-Back-Button oder "Abbrechen" in der System-Kamera)
   **Then** wird zur Übersicht (F-001) zurückgekehrt, ohne dass ein Vorgang angelegt wird
+  **And** die für die Aufnahme angelegte Zieldatei unter `photos/` wird gelöscht
 
-- **Given** die App hat keine Kamera-Berechtigung
-  **When** der Anlage-Flow gestartet wird
-  **Then** wird die Kamera-Berechtigung angefragt mit einer verständlichen Erklärung
+- **Given** auf dem Gerät ist keine App installiert, die den Foto-Intent bedienen kann
+  **When** der Anlage-Flow die System-Kamera starten will
+  **Then** erscheint ein Hinweis-Dialog "Keine Kamera-App gefunden"
+  **And** nach dem Schließen des Dialogs wird zur Übersicht (F-001) zurückgekehrt, ohne dass ein Vorgang angelegt wird
 
 #### UI-Verhalten
-- Vollbild-Kameravorschau mit großem Auslöser-Button
-- Kamera muss sofort auslösen (Quality Goal #3)
-- Identisches Kamera-UX wie im Demontage-Flow (F-003) für Konsistenz
+- Kein app-eigener Kamera-Screen: Aufnahme und Bestätigung übernimmt die System-Kamera
+- Zwischen "+"-Tap und System-Kamera zeigt die App keinen eigenen Screen (Quality Goal #3)
+- Die System-Kamera schreibt direkt in eine Zieldatei unter `photos/`; es gibt keinen `photos/temp/`-Ordner
+- Identisches Kamera-Verhalten wie im Demontage-Flow (F-003) für Konsistenz
 
 ---
 
@@ -48,8 +51,8 @@ Der Abbruch geschieht über den System-Back-Button. Ein versehentlich angelegter
 #### Akzeptanzkriterien
 
 - **Given** ein Fahrzeugfoto wurde aufgenommen
-  **When** die Foto-Preview angezeigt wird
-  **Then** ist das Foto oben sichtbar und darunter das Eingabeformular mit Auftragsnummer und Beschreibung
+  **When** das Formular angezeigt wird
+  **Then** ist das Foto oben als Vorschau sichtbar und darunter das Eingabeformular mit Auftragsnummer und Beschreibung
 
 - **Given** das Formular wird angezeigt
   **When** der Mechaniker die Auftragsnummer eingibt und auf "Starten" tippt
@@ -65,10 +68,11 @@ Der Abbruch geschieht über den System-Back-Button. Ein versehentlich angelegter
 
 - **Given** das Formular wird angezeigt
   **When** der Mechaniker den System-Back-Button drückt
-  **Then** wird zur Übersicht (F-001) zurückgekehrt, das temporäre Foto wird verworfen
+  **Then** wird zur Übersicht (F-001) zurückgekehrt, ohne dass ein Vorgang angelegt wird
+  **And** die bereits aufgenommene Foto-Datei unter `photos/` wird gelöscht (sie hat keine DB-Referenz)
 
 #### UI-Verhalten
-- Foto-Preview oben (nicht editierbar, nur Vorschau)
+- Foto-Vorschau oben (nicht editierbar, nur Vorschau)
 - Auftragsnummer-Feld mit Stern (*) als Pflichtfeld-Markierung
 - Beschreibung-Feld ohne Pflichtmarkierung
 - "Starten"-Button prominent am unteren Bildschirmrand
@@ -84,53 +88,74 @@ Der Abbruch geschieht über den System-Back-Button. Ein versehentlich angelegter
 
 #### Akzeptanzkriterien
 
-- **Given** das Formular mit Foto-Preview wird angezeigt
+- **Given** das Formular mit der Foto-Vorschau wird angezeigt
   **When** der Mechaniker auf "Bild wiederholen" tippt
-  **Then** öffnet sich die Kamera erneut
+  **Then** wird die System-Kamera erneut gestartet
 
-- **Given** die Kamera ist nach "Bild wiederholen" geöffnet
-  **When** der Mechaniker ein neues Foto aufnimmt
-  **Then** ersetzt das neue Foto das vorherige im Preview und das alte temporäre Foto wird gelöscht
+- **Given** die System-Kamera wurde nach "Bild wiederholen" gestartet
+  **When** der Mechaniker die neue Aufnahme in der System-Kamera bestätigt
+  **Then** ersetzt das neue Foto das vorherige in der Foto-Vorschau
+  **And** die alte Foto-Datei unter `photos/` wird gelöscht
 
-- **Given** die Kamera ist nach "Bild wiederholen" geöffnet
-  **When** der Mechaniker Back drückt
+- **Given** die System-Kamera wurde nach "Bild wiederholen" gestartet
+  **When** der Mechaniker die Aufnahme abbricht
   **Then** wird zurück zum Formular navigiert mit dem vorherigen Foto (kein Datenverlust der Formulareingaben)
 
 #### UI-Verhalten
-- "Bild wiederholen"-Button unter dem Foto-Preview, kleiner als "Starten"
-- Bereits eingegebene Formulardaten bleiben erhalten wenn die Kamera erneut geöffnet wird
+- "Bild wiederholen"-Button unter der Foto-Vorschau, kleiner als "Starten"
+- "Bild wiederholen" ist keine Kamera-Bestätigung, sondern eine Aktion am bereits aufgenommenen Foto (Governance: Kamera)
+- Bereits eingegebene Formulardaten bleiben erhalten wenn die System-Kamera erneut gestartet wird
 
 ## Nicht-funktionale Anforderungen
 
-- **Bedienbarkeit** (Quality Goal #1): Minimale Pflichtfelder (nur Auftragsnummer). Große Buttons und Eingabefelder.
-- **Zuverlässigkeit** (Quality Goal #2): Foto wird sofort auf dem Filesystem gespeichert. Bei Abbruch werden temporäre Fotos aufgeräumt.
-- **Performance** (Quality Goal #3): Kamera öffnet und löst sofort aus, keine Wartezeit.
+- **Bedienbarkeit** (Quality Goal #1): Minimale Pflichtfelder (nur Auftragsnummer). Große Buttons und Eingabefelder — die verbindlichen Mindestmaße für Touch-Targets und Abstände stehen in [../governance.md](../governance.md), Abschnitt "Touch-Targets".
+- **Zuverlässigkeit** (Quality Goal #2): Die System-Kamera schreibt das Foto direkt in die Zieldatei unter `photos/`; es gibt keinen `photos/temp/`-Ordner. Wird die Kamera abgebrochen oder der Anlage-Flow verworfen, wird diese Datei sofort gelöscht. Verbleibende Dateien ohne DB-Referenz räumt die Cleanup-Regel beim App-Start auf ([../governance.md](../governance.md)).
+- **Performance** (Quality Goal #3): Die App startet den Kamera-Intent direkt nach dem "+"-Tap und zeigt dazwischen keinen eigenen Screen. Die Startzeit der System-Kamera-App selbst liegt außerhalb des App-Einflusses — ein bewusst akzeptierter Kompromiss der Entscheidung "nur System-Kamera" gegenüber Quality Goal #3.
 
 ## Technische Hinweise
 
-- System-Kamera: `ActivityResultContracts.TakePicture()` fuer Fahrzeugfoto (gleicher Ansatz wie F-003, keine CAMERA-Permission noetig)
-- Foto-Speicherung: App-interner Speicher, JPEG mit mittlerer Kompression
-- Room Entity: `Reparaturvorgang(id, fahrzeugFotoPfad, auftragsnummer, beschreibung, status, erstelltAm)`
+- System-Kamera: `ActivityResultContracts.TakePicture()` + `FileProvider` für das Fahrzeugfoto (gleicher Ansatz wie F-003, keine CAMERA-Permission nötig, keine app-eigene Foto-Bestätigung — siehe [../governance.md](../governance.md), Abschnitt "Kamera")
+- Intent-Fehlerbehandlung: Vor dem Start prüfen, ob der Foto-Intent aufgelöst werden kann; andernfalls Hinweis-Dialog "Keine Kamera-App gefunden" und Rückkehr zu F-001
+- Foto-Speicherung: App-interner Speicher (`filesDir/photos/`). Die Zieldatei wird vor dem Kamera-Start angelegt und per `FileProvider` an die System-Kamera übergeben — kein `photos/temp/`. Auflösung und Kompression bestimmt die System-Kamera; die App übernimmt die gelieferte Datei, wie sie ist (Erwartungswert siehe [../governance.md](../governance.md), Abschnitt "Qualität")
+- Room Entity: `Reparaturvorgang(id, fahrzeugFotoPfad, auftragsnummer, beschreibung, status, erstelltAm, aktualisiertAm)`
 - `fahrzeugFotoPfad`: Pfad zum Fahrzeugfoto auf dem Filesystem (Pflicht)
 - `beschreibung`: Nullable (fakultativ)
+- `aktualisiertAm`: Zeitstempel der letzten Änderung. F-001 sortiert danach und leitet daraus das Abschlussdatum archivierter Vorgänge ab. Ein eigener Archivierungs-Zeitstempel existiert **nicht**
 - Sofort-Insert in DB, dann Navigation zu F-003 mit `vorgangId`
-- Abbruch vor Speicherung: Temporäres Foto wieder löschen
+- Abbruch vor Speicherung (Kamera abgebrochen oder Anlage-Flow verworfen): die angelegte Zieldatei unter `photos/` sofort löschen. Verbleibende Dateien ohne DB-Referenz — geprüft gegen `SchrittFoto.pfad` und `Reparaturvorgang.fahrzeugFotoPfad` — räumt die Cleanup-Regel beim App-Start auf ([../governance.md](../governance.md))
 - Spätere Erweiterung: OCR-Scanner für Auftragsnummer per Kamera vom Auftragszettel
+
+### [OFFEN] Abweichung: aktuelle Implementierung nutzt CameraX
+
+> **Achtung:** Der oben beschriebene Zielzustand "System-Kamera" ist in F-002 **noch nicht umgesetzt**. Die Spec beschreibt hier den Sollzustand, nicht den Istzustand.
+>
+> **Istzustand:** `feature/neuervorgang/NeuerVorgangScreen.kt` implementiert eine app-eigene Kameraansicht auf Basis von CameraX (`androidx.camera.core`, `androidx.camera.camera2`, `androidx.camera.lifecycle`, `androidx.camera.view`) mit Vollbild-`PreviewView` und eigenem Auslöser-Button und fragt zuvor die CAMERA-Permission ab. Im Manifest steht `<uses-permission android:name="android.permission.CAMERA" />`.
+>
+> **Notwendige Umstellung:**
+> - App-eigene CameraX-Ansicht durch `ActivityResultContracts.TakePicture()` + `FileProvider` ersetzen
+> - Permission-Abfrage und die zugehörigen UI-Zustände (Berechtigung angefragt / abgelehnt) ersatzlos entfernen
+> - `<uses-permission android:name="android.permission.CAMERA" />` aus dem `AndroidManifest.xml` entfernen
+> - CameraX-Dependencies aus `app/build.gradle.kts` und `gradle/libs.versions.toml` entfernen
+> - Tests auf das Verhalten der System-Kamera umstellen (Start, Bestätigung, Abbruch, keine Kamera-App)
+>
+> Nach der Umstellung entfällt dieser Hinweis.
 
 ## UI-Skizze
 
-### Schritt 1: Fahrzeugfoto
+### Schritt 1: Fahrzeugfoto (System-Kamera)
 ```
 ┌─────────────────────────────┐
-│  ← Neuer Vorgang            │
-├─────────────────────────────┤
 │                             │
+│   System-Kamera-App         │
 │                             │
-│      [ Kamera-Vorschau ]    │
+│   Aufnahme und Bestätigung  │
+│   liegen bei der System-    │
+│   Kamera. BoltMind zeigt    │
+│   hier keinen eigenen       │
+│   Screen.                   │
 │                             │
-│                             │
-│                             │
-│                         ◉   │
+│   Bestätigt → Schritt 2     │
+│   Abgebrochen → F-001       │
 └─────────────────────────────┘
 ```
 

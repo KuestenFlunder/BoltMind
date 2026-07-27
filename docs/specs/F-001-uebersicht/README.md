@@ -18,11 +18,14 @@ Mechaniker in der Werkstatt, der morgens die App oeffnet oder zwischen zwei Fahr
 
 ## Kernfaehigkeiten
 
-- Offene Vorgaenge auflisten (sortiert nach letzter Bearbeitung)
-- Vorgang antippen → Demontage oder Montage fortsetzen
+- Offene Vorgaenge auflisten (sortiert nach letzter Bearbeitung, mit Fahrzeugfoto, Auftragsnummer, Schrittanzahl)
+- Vorgang antippen → Auswahl-Dialog ab dem ersten Schritt mit den beiden verbindlichen Beschriftungen "Weiter demontieren" und "Montage starten" (der Dialog gehoert F-001, siehe uebersicht.md US-001.2)
 - Neuen Vorgang anlegen (→ F-002)
-- Vorgang loeschen (Swipe + Bestaetigung)
-- Archivierte Vorgaenge einsehen (Reklamationen, Zeitanalyse)
+- Vorgang loeschen (Swipe + Bestaetigungsdialog, kaskadierend inkl. aller Schritte und Fotos)
+- Archivierte Vorgaenge auflisten (ebenfalls sortiert nach letzter Bearbeitung, mit Abschlussdatum). Ein eigenes Archivierungs-Feld existiert nicht: das Abschlussdatum ist `aktualisiertAm` zum Zeitpunkt des Archivierens und aendert sich danach nicht mehr, weil archivierte Vorgaenge nur lesend geoeffnet werden (governance.md, Invariante `aktualisiertAm`)
+- Gesamtdauer und Dauer je Schritt anzeigen — **setzt F-005 voraus** (Quelle: Tabelle `zeit_messung`). F-005 ist nicht implementiert; bis dahin entfaellt jede Dauer-Anzeige
+- Archivierten Vorgang im F-006-Modus **nur-lesen** durchsehen: Schritt-Navigation (vor/zurueck und Thumbnail-Sprung) und Foto-Karussell liefert F-006, F-001 implementiert davon nichts selbst. F-001 uebergibt die Schritte **aufsteigend nach `schrittNummer`** (Demontage-Reihenfolge, siehe uebersicht.md US-001.5)
+- Die Archiv-Detailansicht wird ueber die Android-Zurueck-Geste und den Zurueck-Pfeil in der TopBar verlassen — "Zurueck"/"Weiter" als Beschriftung gehoeren allein der F-006-Schritt-Navigation im Inhaltsbereich
 
 ## Abhaengigkeiten
 
@@ -31,7 +34,8 @@ Mechaniker in der Werkstatt, der morgens die App oeffnet oder zwischen zwei Fahr
 | → | F-002 | "+"-Button startet Anlage-Flow |
 | → | F-003 | Tap auf Vorgang oeffnet Demontage-Flow |
 | → | F-004 | Tap auf Vorgang oeffnet Montage-Flow |
-| ← | F-005 | Liest ZeitMessung-Daten fuer Dauer-Anzeige im Archiv |
+| → | F-006 | Archiv-Detailansicht bindet den Schritt-Browser im Modus **nur-lesen** ein: Thumbnail-Leiste, Foto-Karussell, Vollbild und die Vor/Zurueck-Navigation zwischen Schritten kommen vollstaendig aus F-006. F-001 liefert als Eingabe die Schritte **aufsteigend nach `schrittNummer`** |
+| → | F-005 | Liest `zeit_messung`-Daten fuer die Dauer-Anzeige im Archiv. F-005 ist nicht implementiert — ohne F-005 zeigt F-001 keine Dauer |
 
 ## Ordner-Inhalt
 

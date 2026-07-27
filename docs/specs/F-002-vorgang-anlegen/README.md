@@ -18,11 +18,13 @@ Mechaniker, der einen neuen Reparaturauftrag beginnt und das Fahrzeug vor sich s
 
 ## Kernfaehigkeiten
 
-- Fahrzeugfoto aufnehmen (System-Kamera)
+- Fahrzeugfoto aufnehmen (System-Kamera, keine app-eigene Kamera und keine app-eigene Bestaetigung)
 - Auftragsnummer erfassen (Pflichtfeld)
 - Optionale Beschreibung
-- Foto wiederholen vor dem Starten
+- Foto wiederholen vor dem Starten (Aktion am bereits aufgenommenen Foto)
 - Abbruch ueber Back-Button (kein Vorgang wird angelegt)
+
+> **[OFFEN]** Die aktuelle Implementierung weicht davon ab: Sie nutzt CameraX mit app-eigener Kameraansicht und CAMERA-Permission. Die Umstellung auf die System-Kamera steht aus — Details in [anlegen.md](anlegen.md), Abschnitt "Technische Hinweise".
 
 ## Abhaengigkeiten
 

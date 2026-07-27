@@ -8,6 +8,18 @@ Jede Nutzeraktion, die Daten erzeugt oder veraendert, wird **sofort** in die DB 
 
 **Regel:** Wenn eine Aktion DB-relevant ist, wird sie in der gleichen Operation persistiert, in der sie ausgeloest wird. Kein Zwischenpuffer, kein "Speichern beim Verlassen".
 
+### Invariante: `aktualisiertAm`
+
+**Regel:** Jede Aktion, die Daten eines Reparaturvorgangs oder seiner Schritte und Fotos erzeugt, aendert oder loescht, setzt in derselben Operation `Reparaturvorgang.aktualisiertAm` auf den Zeitpunkt der Aktion. Das gilt auch fuer das Archivieren.
+
+Betroffen sind unter anderem: Schritt anlegen, Foto anhaengen, Foto wiederholen, Foto loeschen, Label aendern, Schritt abschliessen, Schritt abhaken und zuruecknehmen, Vorgang archivieren.
+
+**Grund:** `aktualisiertAm` ist der einzige projektweite Zeitstempel fuer "zuletzt angefasst". F-001 sortiert beide Listen (aktive Vorgaenge und Archiv) danach und leitet daraus das Abschlussdatum archivierter Vorgaenge ab. Ein Schreibvorgang, der das Feld nicht mitzieht, verfaelscht die Reihenfolge und das angezeigte Datum.
+
+**Einschraenkung:** Es gibt kein eigenes Archivierungs-Datum. Das im Archiv angezeigte Abschlussdatum ist `aktualisiertAm` zum Zeitpunkt des Archivierens. Da archivierte Vorgaenge nur lesend geoeffnet werden, aendert sich der Wert danach nicht mehr.
+
+Feature-Specs verweisen in ihren DB-Interaktions-Tabellen auf diese Invariante, statt sie neu zu formulieren.
+
 ## Bedienbarkeit
 
 ### Debounce
@@ -16,17 +28,71 @@ Global **300ms** fuer alle interaktiven Buttons. Grund: Mechaniker tragen Handsc
 
 ### Touch-Targets
 
-Alle primaeren Aktions-Buttons muessen mit Handschuhen bedienbar sein. Grosse Touch-Targets, ausreichend Abstand zwischen Buttons.
+Alle primaeren Aktions-Buttons muessen mit Handschuhen bedienbar sein. **Verbindliche Mindestmasse:**
+
+| Aspekt | Mindestwert |
+|---|---|
+| Hoehe eines primaeren Aktions-Buttons | **56dp** |
+| Abstand zwischen benachbarten Touch-Targets | **8dp** |
+
+Diese Werte sind projektweit verbindlich und pruefbar. Feature-Specs nennen in ihren NFR-Abschnitten **keine eigenen Zahlen**, sondern verweisen auf diesen Abschnitt.
 
 ## Foto-Handling
+
+### N Fotos pro Schritt
+
+Ein Schritt haelt **beliebig viele Fotos** (0..n). Es gibt keine festen Foto-Slots am Schritt selbst — jedes Foto ist ein eigener Datensatz mit Reihenfolge innerhalb des Schritts. Grund: Ein Demontage-Schritt braucht je nach Situation ein Detailfoto, mehrere Perspektiven, eine Uebersicht und/oder einen Ablageort — die Anzahl laesst sich nicht vorab festlegen.
+
+### Foto-Label
+
+Jedes Foto traegt drei **unabhaengige, kombinierbare** Label:
+
+| Label | Default | Bedeutung |
+|---|---|---|
+| Bauteil | gesetzt | Das Bauteil selbst, typischerweise im Zustand vor dem Ausbau |
+| Uebersicht | nicht gesetzt | Uebersichtsaufnahme des Umfelds / der Baugruppe |
+| Ablageort | nicht gesetzt | Physischer Ort, an dem das ausgebaute Teil abgelegt wurde |
+
+**Regeln:**
+
+- Mehrere Label gleichzeitig sind erlaubt (z.B. Bauteil + Ablageort an einem Foto).
+- Auch **alle drei abgewaehlt** ist ein gueltiger Zustand. Kein Zwang zu mindestens einem Label.
+- **Prioritaetsregel:** Wo eine einzelne Kategorie gebraucht wird (z.B. Einfaerbung, Filter, Gruppierung), gilt **Ablageort > Uebersicht > Bauteil**. Ein Foto mit den Labeln Bauteil + Ablageort zaehlt dort als Ablageort.
+- Ob ein Schritt einen Ablageort dokumentiert, ist aus den Fotos ableitbar — es gibt kein separates Feld und keinen separaten Schritt-Typ dafuer.
+- **Label-Aenderung ist sofort-save.** Das An- oder Abwaehlen eines Labels wird unmittelbar persistiert (siehe Sofort-Save Strategie).
+
+### Kamera
+
+Projektweit wird **ausschliesslich die System-Kamera** verwendet:
+
+- Aufnahme via `ActivityResultContracts.TakePicture()` + `FileProvider`. Keine app-eigene Kamera-Implementierung (kein CameraX).
+- **Keine CAMERA-Permission** im Manifest. Die System-Kamera-App verwaltet ihre Berechtigung selbst.
+- **Keine app-eigene Foto-Bestaetigung.** Die System-Kamera hat ihre eigene Bestaetigung; danach wird das Foto direkt an den Kontext (z.B. den Schritt) gehaengt und sofort persistiert. Es gibt keinen zusaetzlichen Preview-Screen mit "Bestaetigen"/"Wiederholen".
+- "Wiederholen" existiert nur als Aktion **am bereits aufgenommenen Foto**. Die Reihenfolge ist verbindlich und in genau dieser Abfolge einzuhalten:
+  1. Die System-Kamera wird gestartet. Das alte Foto bleibt dabei unangetastet — weder DB-Zeile noch Datei werden vorher geloescht.
+  2. **Erst nach erfolgreicher neuer Aufnahme** werden die alte DB-Zeile und die alte Datei geloescht und durch die neuen ersetzt. Das neue Foto uebernimmt dabei die `reihenfolge` des alten.
+  3. Bricht der Nutzer die Kamera ab, bleibt das alte Foto vollstaendig und unveraendert erhalten (DB-Zeile, Datei, `reihenfolge`, Label).
+
+  Grund: Quality Goal "Zuverlaessigkeit" — ein bereits aufgenommenes Foto darf durch einen Kamera-Abbruch nie verloren gehen. Ein "erst loeschen, dann Kamera starten" ist projektweit unzulaessig.
+- **Kamera-Abbruch:** Es wird keine DB-Zeile angelegt oder veraendert; geloescht wird ausschliesslich die fuer **diese** Aufnahme vorab erzeugte Zieldatei (siehe Abschnitt "Speicherort"). Beim "Wiederholen" bleiben die alte DB-Zeile und die alte Datei davon unberuehrt. Der Nutzer landet in der aufrufenden Ansicht.
+
+Diese Regel gilt fuer alle Features ohne Ausnahme und ist deshalb hier verankert, nicht in einzelnen Feature-Specs.
 
 ### Speicherort
 
 Fotos werden im **app-internen Speicher** abgelegt (`context.filesDir/photos/`). Nicht in der oeffentlichen Galerie. Grund: Datenschutz und Vermeidung versehentlicher Loeschung.
 
+**Es gibt keinen `photos/temp/`-Ordner** — projektweit, auch nicht waehrend des Anlage-Flows in F-002. Die System-Kamera schreibt direkt in die Zieldatei unter `photos/`. Eine app-eigene Bestaetigung, nach der verschoben werden muesste, existiert nicht (siehe Abschnitt "Kamera"). Wird die Kamera abgebrochen oder ein Anlage-Flow verworfen, wird die angelegte Datei sofort geloescht.
+
+**Cleanup-Regel (projektweit):** Beim App-Start werden alle Dateien in `photos/` geloescht, auf die keine DB-Zeile verweist — geprueft gegen `SchrittFoto.pfad` **und** `Reparaturvorgang.fahrzeugFotoPfad`. Das raeumt verwaiste Zieldateien aus abgebrochenen Kamera-Starts und verworfenen Anlage-Flows auf. Die Regel gilt fuer alle Features; Feature-Specs verweisen darauf, statt sie zu wiederholen.
+
 ### Qualitaet
 
-Mittlere Kompression, ca. 2-3 MB pro Foto. Balance zwischen Qualitaet (Schrauben-Positionen muessen erkennbar sein) und Speicherplatz.
+**Erwartungswert:** mittlere Kompression, ca. 2-3 MB pro Foto. Balance zwischen Qualitaet (Schrauben-Positionen muessen erkennbar sein) und Speicherplatz.
+
+Dieser Wert ist eine Erwartung, **keine erzwingbare Anforderung**: Aufloesung und Kompression bestimmt die System-Kamera-App (siehe Abschnitt "Kamera"). Die App bekommt nur die fertige Datei und **uebernimmt sie unveraendert**; sie komprimiert nicht nach. Liefert ein Geraet deutlich groessere Dateien, ist das kein Spec-Verstoss.
+
+- [ ] **OFFEN:** Optionale Nachkompression beim Uebernehmen (Herunterskalieren + JPEG-Requantisierung), falls die gelieferten Dateien in der Praxis den Speicher zu stark belasten. Bis zu einer Entscheidung ist das **keine Anforderung** und in keinem Feature zu implementieren.
 
 ### Fehlende Dateien
 
@@ -50,9 +116,10 @@ Domain-Begriffe auf **Deutsch**, technische Begriffe auf **Englisch**. Funktions
 | Domain (DE) | Bedeutung |
 |---|---|
 | Reparaturvorgang | Ein Reparaturauftrag an einem Fahrzeug |
-| Schritt | Ein einzelner Demontage-/Montage-Schritt |
-| SchrittTyp | AUSGEBAUT oder AM_FAHRZEUG |
-| Ablageort | Physischer Ort, an dem ein ausgebautes Teil abgelegt wird |
+| Schritt | Ein einzelner Demontage-/Montage-Schritt, haelt N Fotos |
+| SchrittFoto | Ein einzelnes Foto eines Schritts, mit Reihenfolge und Labeln |
+| Foto-Label | Bauteil / Uebersicht / Ablageort — kombinierbar, Default Bauteil |
+| Ablageort | Physischer Ort, an dem ein ausgebautes Teil abgelegt wird — dokumentiert als Foto-Label, nicht als eigener Schritt |
 | ZeitMessung | Eine Timer-Messung mit Start/Stopp (Service F-005) |
 
 ## Service-Architektur
