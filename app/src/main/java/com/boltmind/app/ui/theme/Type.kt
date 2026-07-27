@@ -101,7 +101,7 @@ fun mono(
 
 /**
  * Die wiederkehrenden Rollen aus dem Prototyp.
- * Ueber `BoltMindTheme` als `BoltText.` erreichbar.
+ * Ueber `BoltTypo` erreichbar.
  */
 object BoltTypo {
 

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Kopfzeile des Browsers -->
+    <string name="browser_modus_demontage">SCHRITT</string>
+    <string name="browser_modus_montage">EINBAU</string>
+    <string name="browser_modus_archiv">ARCHIV</string>
+    <string name="browser_feierabend">FEIERABEND</string>
+    <string name="archiv_nur_lesen">ARCHIV · NUR LESEN</string>
+
+    <!-- Aktionskreise -->
+    <string name="browser_naechstes">NÄCHSTES</string>
+    <string name="browser_weiteres_foto">NOCH\'N FOTO</string>
+    <string name="browser_zurueck">ZURÜCK</string>
+    <string name="browser_zurueck_zu_schritt">ZURÜCK ZU</string>
+
+    <!-- Montage -->
+    <string name="montage_sitzt">SITZT!</string>
+    <string name="montage_drin">DRIN</string>
+    <string name="montage_raus">RAUS</string>
+    <string name="montage_fortschritt">%1$d VON %2$d DRIN</string>
+
+    <!-- Timer -->
+    <string name="timer_laeuft">LÄUFT</string>
+    <string name="timer_steht">STEHT</string>
+
+    <!-- Glyphen -->
+    <string name="zeichen_start">▶</string>
+    <string name="zeichen_pause">❚❚</string>
+    <string name="zeichen_wiederholen">↺</string>
+    <string name="zeichen_hoch">↑</string>
+    <string name="zeichen_zurueck">‹</string>
+    <string name="zeichen_weiter">›</string>
+</resources>

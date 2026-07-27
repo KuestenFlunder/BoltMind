@@ -7,7 +7,7 @@
   strings.xml in die Quere kommen.
 
   Nicht hier: die Datumsformate ("Gerade eben", "Heute, hh:mm", ...). Die
-  Formatierung liegt im ViewModel und muss ohne Android testbar sein -- ihre
+  Formatierung liegt im ViewModel und muss ohne Android testbar sein – ihre
   Wortlaute stehen deshalb in DatumFormat.kt.
 -->
 <resources>

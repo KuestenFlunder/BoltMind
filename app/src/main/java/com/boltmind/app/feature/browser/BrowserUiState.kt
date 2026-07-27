@@ -89,6 +89,13 @@ data class BrowserUiState(
     val amFahrzeugGeblieben: Boolean
         get() = istMontage && aktiverSchritt?.fotos?.none { it.istAblageort } == true
 
+
+    val hatFotosImSchritt: Boolean get() = aktiverSchritt?.fotos?.isNotEmpty() == true
+
+    val istErsterSchritt: Boolean get() = aktiverIndex <= 0
+
+    val istLetzterSchritt: Boolean get() = aktiverIndex >= schritte.lastIndex
+
     val betriebsart: BrowserBetriebsart
         get() = when (modus) {
             BrowserModus.DEMONTAGE -> BrowserBetriebsart.BEARBEITBAR

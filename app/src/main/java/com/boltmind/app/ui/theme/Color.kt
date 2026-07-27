@@ -85,7 +85,7 @@ val BoltFehlerText = Color(0xFFF87171)
 val BoltTextWeiss = Color(0xFFFFFFFF)
 
 /** Standard-Ueberschrift. */
-val BoltText = Color(0xFFEDEFF1)
+val BoltTextPrimaer = Color(0xFFEDEFF1)
 
 /** Etwas gedaempfter -- Kopfzeile im Browser. */
 val BoltTextRuhig = Color(0xFFE3E7EA)
@@ -173,6 +173,14 @@ val BoltPanel82 = Color(0xD1121416)
 
 /** Vorgangskarte im Hover-Zustand. */
 val BoltPanelHover = Color(0xE6181B1E)
+
+/**
+ * Transparenter Anfang des Fussverlaufs in der Uebersicht.
+ * Prototyp Z. 113: `linear-gradient(180deg,rgba(11,12,13,0),rgba(11,12,13,.55))`.
+ * Muss dieselbe Grundfarbe tragen wie [BoltPanel55], sonst laeuft der Verlauf
+ * ueber Grau statt sauber auszublenden.
+ */
+val BoltPanel00 = Color(0x000B0C0D)
 
 /** Timer-Kapsel, Label-Chip inaktiv. */
 val BoltPanel55 = Color(0x8C0B0C0D)
@@ -279,6 +287,13 @@ val BoltLabelUebersichtFlaeche = Color(0x2E3B9DFF)
 
 /** Farbwolke oben rechts im Sheet. */
 val BoltSheetWolkeBlau = Color(0x383B9DFF)
+
+/**
+ * Farbwolke oben links im Sheet -- das Gegenstueck zu [BoltSheetWolkeBlau].
+ * Prototyp Z. 406: `radial-gradient(closest-side,rgba(255,122,26,.4),...)`.
+ * Die Leuchtleiter kennt 0.45 und 0.35, aber keine 0.40.
+ */
+val BoltSheetWolkeOrange = Color(0x66FF7A1A)
 
 /** Gefahr-Aktion im Sheet. */
 val BoltGefahrFlaeche = Color(0x24EF4444)

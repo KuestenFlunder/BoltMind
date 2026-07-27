@@ -93,6 +93,42 @@ object BoltMindDimensions {
     /** Leerzustand-Symbol. */
     val leerSymbol = 64.dp
 
+    /** Radius des gestrichelten Quadrats im Leerzustand. Prototyp Z. 100. */
+    val radiusLeerSymbol = 19.dp
+
+    /** Radius des Chips "n TEILE" auf der Vorgangskarte. Prototyp Z. 91. */
+    val radiusChip = 7.dp
+
+    /**
+     * Gap 14 im Entwurf. Sitzt zwischen [abstandM] und [abstandL] und kommt
+     * siebenmal vor -- Vorgangskarte Z. 85, Sheet Z. 405, Sheet-Kopf Z. 409.
+     */
+    val abstandMl = 14.dp
+
+    /** Gap 11 der Kopfzeile zwischen Logo und Wortmarke. Prototyp Z. 67. */
+    val abstandKopf = 11.dp
+
+    /** Innenrand des FAB, Prototyp Z. 108 (`padding:0 26px`). */
+    val fabInnenrand = 26.dp
+
+    /** Grundlinie von FAB und Motivationszeile ueber dem Rand. Prototyp Z. 108/114. */
+    val fussAbstand = 26.dp
+
+    /** Hoehe des Ausblendverlaufs am unteren Rand. Prototyp Z. 113. */
+    val fussVerlaufHoehe = 120.dp
+
+    /** Breite der Motivationszeile "You can do it.". Prototyp Z. 114. */
+    val motivationBreite = 126.dp
+
+    /** Unterer Innenabstand der Liste, damit FAB und Verlauf nichts verdecken. Prototyp Z. 83. */
+    val listeFussRaum = 130.dp
+
+    /** Abstand des Leerzustands zur Listenoberkante. Prototyp Z. 99. */
+    val leerAbstandOben = 120.dp
+
+    /** Seitlicher Innenrand des Leerzustands. Prototyp Z. 99. */
+    val leerRand = 30.dp
+
     // --- Anlage -------------------------------------------------------------
 
     /** Zurueck-Chip. Entwurf 46dp, auf das Mindestmass gehoben. */

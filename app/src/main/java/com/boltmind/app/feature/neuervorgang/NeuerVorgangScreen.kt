@@ -28,15 +28,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -71,10 +75,11 @@ import com.boltmind.app.ui.theme.BoltTypo
 import com.boltmind.app.ui.theme.GlasRezepte
 import com.boltmind.app.ui.theme.GlasBuehne
 import com.boltmind.app.ui.theme.barlow
+import com.boltmind.app.ui.theme.barlowCondensed
 import com.boltmind.app.ui.theme.glas
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
-import com.boltmind.app.ui.theme.BoltText as BoltTextFarbe
+import com.boltmind.app.ui.theme.BoltTextPrimaer as BoltTextFarbe
 
 // ============================================================================
 // F-002 "Neuer Auftrag" -- Prototyp Zeile 145-182.
@@ -211,6 +216,13 @@ private fun KameraAnbindung(
     val kontext = LocalContext.current
     val zielPfad by rememberUpdatedState(auftrag?.zielPfad)
 
+    /**
+     * Hoechste bereits gestartete Auftragsnummer. Ohne diese Marke wuerde ein
+     * Konfigurationswechsel waehrend der laufenden Aufnahme die Kamera ein zweites
+     * Mal oeffnen -- der Auftrag steht ja noch offen im Zustand.
+     */
+    var zuletztGestartet by rememberSaveable { mutableIntStateOf(0) }
+
     val starter = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { erfolgreich ->
@@ -220,6 +232,8 @@ private fun KameraAnbindung(
 
     LaunchedEffect(auftrag) {
         val offen = auftrag ?: return@LaunchedEffect
+        if (offen.nummer <= zuletztGestartet) return@LaunchedEffect
+        zuletztGestartet = offen.nummer
         val uri = FileProvider.getUriForFile(
             kontext,
             "${kontext.packageName}.fileprovider",
@@ -284,7 +298,9 @@ private fun Fahrzeugfoto(
         modifier = Modifier
             .fillMaxWidth()
             .height(BoltMindDimensions.anlageFotoHoehe)
-            .clipUndRahmen(form)
+            // Prototyp: overflow:hidden, Radius 18, Rahmen 1px #2a2e33
+            .clip(form)
+            .border(BoltMindDimensions.rahmenDuenn, BoltRahmenDunkel, form)
     ) {
         if (fotoPfad == null) {
             Box(Modifier.fillMaxSize().background(BoltEingabeFlaeche))
@@ -292,7 +308,7 @@ private fun Fahrzeugfoto(
             AsyncImage(
                 model = File(fotoPfad),
                 contentDescription = stringResource(R.string.nv_fahrzeugfoto_beschreibung),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -318,24 +334,15 @@ private fun Fahrzeugfoto(
                 )
                 BoltText(
                     text = stringResource(R.string.nv_neu_knipsen),
-                    stil = BoltTypo.labelChipKlein,
+                    // Prototyp Z. 159: Barlow Condensed 700, 13px, ls 1.2px.
+                    // Fuer diese Groesse gibt es keine Rolle in BoltTypo.
+                    stil = barlowCondensed(13.sp, letterSpacing = 1.2.sp),
                     farbe = BoltTextFarbe
                 )
             }
         }
     }
 }
-
-/** Beschnitt und Rahmen des Fotorahmens -- `overflow:hidden` plus 1px `#2a2e33`. */
-@Composable
-private fun Modifier.clipUndRahmen(form: RoundedCornerShape): Modifier =
-    this
-        .androidClip(form)
-        .border(BoltMindDimensions.rahmenDuenn, BoltRahmenDunkel, form)
-
-@Composable
-private fun Modifier.androidClip(form: RoundedCornerShape): Modifier =
-    this.then(androidx.compose.ui.draw.clip(form))
 
 /** Feld "AUFTRAGSNUMMER *" samt Fehlerzeile. Prototyp Zeile 162-168. */
 @Composable
