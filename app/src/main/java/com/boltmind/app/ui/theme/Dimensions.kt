@@ -218,6 +218,22 @@ object BoltMindDimensions {
     val splashBalkenBreite = 150.dp
     val splashBalkenHoehe = 3.dp
 
+    /** Eckenradius des Ladebalkens. Entwurf `border-radius:2px`, L54. */
+    val splashBalkenRadius = 2.dp
+
+    /** Abstand des Textblocks zur Unterkante. Entwurf `bottom:104px`, L51. */
+    val splashTextblockAbstandUnten = 104.dp
+
+    /** Abstand zwischen Wortmarke, Claim und Balken. Entwurf `gap:14px`, L51. */
+    val splashElementAbstand = 14.dp
+
+    /** Zusaetzlicher Abstand ueber dem Balken. Entwurf `margin-top:18px`, L54. */
+    val splashBalkenAbstand = 18.dp
+
+    /** Strecke, die die Wortmarke beim Einblenden hochfaehrt. Entwurf `bmIn`
+     *  mit `translateY(10px)`, L21/L52. */
+    val splashEinblendVersatz = 10.dp
+
     // --- Logo ---------------------------------------------------------------
 
     val logoQuadrat = 30.dp

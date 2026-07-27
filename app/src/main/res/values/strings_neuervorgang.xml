@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  F-002 "Neuer Auftrag".
+
+  Alle Texte woertlich aus dem Design-Prototyp (BoltMindApp.dc.html, Zeile 145-182)
+  bzw. aus der Textliste in interaktionen.md, Abschnitt "Neuer Auftrag" (Nr. 33-45).
+  Eigene Datei, damit die Screens sich nicht in strings.xml in die Quere kommen.
+-->
+<resources>
+
+    <!-- Kopfzeile -->
+    <string name="nv_glyphe_zurueck">‹</string>
+    <string name="nv_zurueck_beschreibung">Zurück</string>
+    <string name="nv_titel">NEUER AUFTRAG</string>
+
+    <!-- Fahrzeugfoto -->
+    <string name="nv_fahrzeugfoto_beschreibung">Fahrzeugfoto</string>
+    <string name="nv_glyphe_wiederholen">↺</string>
+    <string name="nv_neu_knipsen">NEU KNIPSEN</string>
+
+    <!-- Auftragsnummer -->
+    <string name="nv_label_auftragsnummer">AUFTRAGSNUMMER</string>
+    <string name="nv_pflichtstern">*</string>
+    <string name="nv_platzhalter_auftragsnummer">2026-0815</string>
+
+    <!-- Fehlerzeile -->
+    <string name="nv_glyphe_fehler">!</string>
+    <string name="nv_fehler_nummer">Ohne Nummer geht\'s nicht.</string>
+
+    <!-- Beschreibung -->
+    <string name="nv_label_beschreibung">WAS IST ZU TUN?</string>
+    <string name="nv_platzhalter_beschreibung">Bremsen vorne wechseln</string>
+
+    <!-- Primaeraktion -->
+    <string name="nv_los_gehts">LOS GEHT\'S</string>
+    <string name="nv_glyphe_pfeil">→</string>
+
+    <!--
+      Kein Pendant im Prototyp: der zeigt einen eigenen Kamera-Screen, den es in
+      der App nicht gibt. Text aus F-002/anlegen.md, US-002.1, letztes AK.
+    -->
+    <string name="nv_keine_kamera_app">Keine Kamera-App gefunden</string>
+    <string name="nv_keine_kamera_app_ok">OK</string>
+
+</resources>

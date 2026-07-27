@@ -124,6 +124,7 @@ val BoltStatusleisteRahmen = Color(0xFF7D848A)
 
 // --- Weiss-Leiter: Raender, Glasfuellungen, Overlays -------------------------
 
+val BoltWeiss03 = Color(0x08FFFFFF)
 val BoltWeiss05 = Color(0x0DFFFFFF)
 val BoltWeiss07 = Color(0x12FFFFFF)
 val BoltWeiss08 = Color(0x14FFFFFF)
@@ -140,6 +141,7 @@ val BoltWeiss25 = Color(0x40FFFFFF)
 val BoltWeiss26 = Color(0x42FFFFFF)
 val BoltWeiss28 = Color(0x47FFFFFF)
 val BoltWeiss30 = Color(0x4DFFFFFF)
+val BoltWeiss34 = Color(0x57FFFFFF)
 val BoltWeiss35 = Color(0x59FFFFFF)
 val BoltWeiss40 = Color(0x66FFFFFF)
 val BoltWeiss45 = Color(0x73FFFFFF)
@@ -235,9 +237,18 @@ val BoltGlasOrangeRing = Color(0x66FFB069)
 val BoltLeuchtOrange50 = Color(0x80FF7A1A)
 val BoltLeuchtOrange45 = Color(0x73FF7A1A)
 val BoltLeuchtOrange35 = Color(0x59FF7A1A)
+val BoltLeuchtOrange30 = Color(0x4DFF7A1A)
 val BoltLeuchtOrange28 = Color(0x47FF7A1A)
 val BoltLeuchtOrange18 = Color(0x2EFF7A1A)
+val BoltLeuchtOrange16 = Color(0x29FF7A1A)
 val BoltLeuchtOrange05 = Color(0x0DFF7A1A)
+
+// Verlauf der primaeren Sheet-Aktion. Der Entwurf nutzt hier 160 Grad und drei
+// Stopps -- eine eigene Mischung, nicht die Flaechenvariante.
+val BoltGlasOrangeSheetHell = Color(0x4DFFA85C)
+val BoltGlasOrangeSheetMitte = Color(0x24EF6A05)
+val BoltGlasOrangeSheetUnten = Color(0x33FF8F33)
+val BoltGlasOrangeSheetRand = Color(0xCCFF963C)
 
 /** Fuellung des aktiven Labels "Ablageort". */
 val BoltLabelAblageortFlaeche = Color(0x2EFF7A1A)
@@ -273,3 +284,10 @@ val BoltSheetWolkeBlau = Color(0x383B9DFF)
 val BoltGefahrFlaeche = Color(0x24EF4444)
 val BoltGefahrRand = Color(0xB3EF4444)
 val BoltGefahrLeuchten = Color(0x42EF4444)
+
+/**
+ * Farbcodierung eines Schritts ohne jedes Label. Erreichbar nur, wenn der
+ * Mechaniker an einem Foto alle drei Haken entfernt -- laut Governance ein
+ * gueltiger Zustand.
+ */
+val BoltKategorieOhne = Color(0xFF5A6167)

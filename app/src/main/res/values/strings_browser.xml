@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Schritt-Browser (F-006). Wortlaute 1:1 aus dem Design-Prototyp. -->
+
+    <string name="browser_foto_beschreibung">Foto des Schritts</string>
+    <string name="browser_keine_fotos">Keine Fotos zu diesem Schritt</string>
+    <string name="browser_kein_foto">KEIN FOTO</string>
+    <string name="browser_foto_zaehler">FOTO %1$d/%2$d</string>
+    <string name="browser_wisch_hinweis">← WISCHEN</string>
+    <string name="browser_ueberlauf_oben">+%d ↑</string>
+    <string name="browser_ueberlauf_unten">+%d ↓</string>
+
+    <!-- Foto-Label. Drei unabhaengige, kombinierbare Marken; Default ist Bauteil. -->
+    <string name="label_bauteil">BAUTEIL</string>
+    <string name="label_uebersicht">ÜBERSICHT</string>
+    <string name="label_ablageort">ABLAGEORT</string>
+
+    <string name="montage_am_fahrzeug">AM FAHRZEUG GEBLIEBEN</string>
+
+    <!-- Reine Glyphen. Liegen hier, damit UI-Tests gegen feste Texte pruefen koennen. -->
+    <string name="zeichen_haken">✓</string>
+
+    <!-- Vollbild -->
+    <string name="vollbild_schritt">SCHRITT %d</string>
+    <string name="label_bauteil_lang">Bauteil</string>
+    <string name="label_uebersicht_lang">Übersicht</string>
+    <string name="label_ablageort_lang">Ablageort</string>
+    <string name="label_ohne">ohne Label</string>
+    <string name="zeichen_kreuz">✕</string>
+</resources>

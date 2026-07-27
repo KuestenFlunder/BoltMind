@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Texte des Splash-Screens.
+
+  Woertlich aus dem Design-Prototyp "BoltMind App.dc.html", Zeilen 52 und 53.
+  Eigene Datei, damit die Screens sich beim gleichzeitigen Bauen nicht in die
+  Quere kommen.
+-->
+<resources>
+
+    <!-- Wortmarke, Prototyp Z. 52 -->
+    <string name="splash_wortmarke">BOLTMIND</string>
+
+    <!-- Claim, Prototyp Z. 53 -->
+    <string name="splash_claim">JEDES TEIL FINDET HEIM</string>
+
+    <!-- Nur fuer die Sprachausgabe: die ganze Flaeche ist antippbar (skipSplash, Z. 56). -->
+    <string name="splash_ueberspringen">Weiter zur Übersicht</string>
+
+</resources>
