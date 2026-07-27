@@ -55,6 +55,11 @@ android {
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
+
+    // MigrationTestHelper sucht die exportierten Schema-JSONs in den androidTest-Assets.
+    // Ohne diese Zeile findet er sie nicht und jeder Migrationstest scheitert mit
+    // "Cannot find the schema file in the assets folder".
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
 }
 
 dependencies {

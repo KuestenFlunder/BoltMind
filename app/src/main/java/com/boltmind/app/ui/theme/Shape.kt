@@ -1,11 +1,16 @@
 package com.boltmind.app.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
-import sv.lib.squircleshape.SquircleShape
 
+/**
+ * Der Entwurf verwendet durchgehend gewoehnliche `border-radius`-Ecken, keine
+ * Squircles. Die frueher benutzte Squircle-Bibliothek entfaellt damit.
+ */
 val BoltMindShapes = Shapes(
-    small = SquircleShape(BoltMindDimensions.cornerS),
-    medium = SquircleShape(BoltMindDimensions.cornerM),
-    large = SquircleShape(BoltMindDimensions.cornerL),
-    extraLarge = SquircleShape(BoltMindDimensions.cornerXl),
+    extraSmall = RoundedCornerShape(BoltMindDimensions.radiusXs),
+    small = RoundedCornerShape(BoltMindDimensions.radiusS),
+    medium = RoundedCornerShape(BoltMindDimensions.radiusStandard),
+    large = RoundedCornerShape(BoltMindDimensions.radiusXl),
+    extraLarge = RoundedCornerShape(BoltMindDimensions.radiusSheet)
 )

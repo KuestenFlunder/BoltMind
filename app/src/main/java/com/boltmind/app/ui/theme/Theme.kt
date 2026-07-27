@@ -5,40 +5,36 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val BoltMindColorScheme = darkColorScheme(
-    primary = BoltPrimary,
-    onPrimary = BoltOnPrimary,
-    primaryContainer = BoltPrimaryContainer,
-    onPrimaryContainer = BoltOnPrimaryContainer,
-    secondary = BoltSecondary,
-    onSecondary = BoltOnSecondary,
-    secondaryContainer = BoltSecondaryContainer,
-    onSecondaryContainer = BoltOnSecondaryContainer,
-    tertiary = BoltTertiary,
-    onTertiary = BoltOnTertiary,
-    background = BoltBackground,
-    onBackground = BoltOnBackground,
-    surface = BoltSurface,
-    onSurface = BoltOnSurface,
-    surfaceVariant = BoltSurfaceVariant,
-    onSurfaceVariant = BoltOnSurfaceVariant,
-    surfaceContainerHigh = BoltSurfaceContainerHigh,
-    surfaceBright = BoltSurfaceBright,
-    surfaceContainer = BoltSurfaceContainer,
-    outline = BoltOutline,
-    outlineVariant = BoltOutlineVariant,
-    error = BoltError,
-    onError = BoltOnError,
-    errorContainer = BoltErrorContainer,
-    onErrorContainer = BoltOnErrorContainer,
-    inverseSurface = BoltInverseSurface,
-    inverseOnSurface = BoltInverseOnSurface,
-    inversePrimary = BoltInversePrimary,
-    scrim = BoltScrim,
+/**
+ * BoltMind ist bewusst nur dunkel. Die Zuordnung nach Material3 deckt die Faelle
+ * ab, in denen ein Material-Baustein selbst Farben zieht; die Screens arbeiten
+ * direkt mit den Token aus Color.kt.
+ */
+private val BoltMindFarbschema = darkColorScheme(
+    primary = BoltOrange,
+    onPrimary = BoltAufOrange,
+    primaryContainer = BoltOrangeVerlaufUnten,
+    onPrimaryContainer = BoltOrangeHell,
+    secondary = BoltTextSekundaer,
+    onSecondary = BoltHintergrund,
+    tertiary = BoltGruen,
+    onTertiary = BoltAufGruen,
+    background = BoltHintergrund,
+    onBackground = BoltText,
+    surface = BoltHintergrund,
+    onSurface = BoltText,
+    surfaceVariant = BoltChipFlaeche,
+    onSurfaceVariant = BoltTextSchwach,
+    outline = BoltRahmenDunkel,
+    outlineVariant = BoltRahmenGestrichelt,
+    error = BoltFehler,
+    onError = BoltTextWeiss,
+    errorContainer = BoltGefahrFlaeche,
+    onErrorContainer = BoltFehlerText,
+    scrim = BoltScrim
 )
 
 @Composable
@@ -47,10 +43,9 @@ fun BoltMindTheme(content: @Composable () -> Unit) {
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            @Suppress("DEPRECATION")
-            window.statusBarColor = BoltBackground.toArgb()
-            @Suppress("DEPRECATION")
-            window.navigationBarColor = BoltBackground.toArgb()
+            // Der Entwurf zeichnet bis unter die Systemleisten; die Screens
+            // halten den Inhalt ueber Insets frei.
+            WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = false
                 isAppearanceLightNavigationBars = false
@@ -59,9 +54,9 @@ fun BoltMindTheme(content: @Composable () -> Unit) {
     }
 
     MaterialTheme(
-        colorScheme = BoltMindColorScheme,
+        colorScheme = BoltMindFarbschema,
         typography = BoltMindTypography,
         shapes = BoltMindShapes,
-        content = content,
+        content = content
     )
 }

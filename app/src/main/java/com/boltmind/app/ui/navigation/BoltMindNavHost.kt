@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -15,104 +12,84 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.boltmind.app.feature.demontage.DemontageScreen
-import com.boltmind.app.feature.neuervorgang.NeuerVorgangScreen
-import com.boltmind.app.feature.neuervorgang.NeuerVorgangViewModel
-import com.boltmind.app.feature.uebersicht.NavigationsZiel
-import com.boltmind.app.feature.uebersicht.UebersichtScreen
-import com.boltmind.app.feature.uebersicht.UebersichtViewModel
-import org.koin.androidx.compose.koinViewModel
+
+/**
+ * Die drei Betriebsarten des Schritt-Browsers (F-006).
+ *
+ * Der Browser selbst ist zustandslos und kennt keine Navigation -- der Modus
+ * entscheidet nur darueber, welche Bedienelemente der Consumer einhaengt und
+ * ob die Foto-Label bearbeitbar sind.
+ */
+enum class BrowserModus {
+    /** F-003 Demontage: Label aenderbar, neue Schritte anlegbar. */
+    DEMONTAGE,
+
+    /** F-004 Montage: Label nur lesbar, Haken setzbar. */
+    MONTAGE,
+
+    /** F-001 Archiv: nur lesen. */
+    ARCHIV;
+
+    companion object {
+        fun ausName(name: String?): BrowserModus =
+            entries.firstOrNull { it.name == name } ?: DEMONTAGE
+    }
+}
 
 object BoltMindRoutes {
+    const val SPLASH = "splash"
     const val UEBERSICHT = "uebersicht"
     const val NEUER_VORGANG = "neuer_vorgang"
-    const val DEMONTAGE = "demontage/{vorgangId}"
-    const val MONTAGE = "montage/{vorgangId}"
+    const val BROWSER = "browser/{vorgangId}/{modus}"
+    const val ABSCHLUSS = "abschluss/{vorgangId}"
 
-    fun demontage(vorgangId: Long) = "demontage/$vorgangId"
-    fun montage(vorgangId: Long) = "montage/$vorgangId"
+    fun browser(vorgangId: Long, modus: BrowserModus) = "browser/$vorgangId/${modus.name}"
+    fun abschluss(vorgangId: Long) = "abschluss/$vorgangId"
 }
 
 @Composable
 fun BoltMindNavHost(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController(),
+    navController: NavHostController = rememberNavController()
 ) {
     NavHost(
         navController = navController,
-        startDestination = BoltMindRoutes.UEBERSICHT,
-        modifier = modifier,
+        startDestination = BoltMindRoutes.SPLASH,
+        modifier = modifier
     ) {
+        composable(BoltMindRoutes.SPLASH) {
+            Platzhalter("Splash")
+        }
+
         composable(BoltMindRoutes.UEBERSICHT) {
-            val viewModel: UebersichtViewModel = koinViewModel()
-            val uiState by viewModel.uiState.collectAsState()
+            Platzhalter("Uebersicht")
+        }
 
-            LaunchedEffect(uiState.navigationsZiel) {
-                when (val ziel = uiState.navigationsZiel) {
-                    is NavigationsZiel.Demontage -> {
-                        navController.navigate(BoltMindRoutes.demontage(ziel.vorgangId))
-                        viewModel.onNavigationAbgeschlossen()
-                    }
-                    is NavigationsZiel.Montage -> {
-                        navController.navigate(BoltMindRoutes.montage(ziel.vorgangId))
-                        viewModel.onNavigationAbgeschlossen()
-                    }
-                    null -> { /* kein Navigationsziel */ }
-                }
-            }
-
-            UebersichtScreen(
-                uiState = uiState,
-                onVorgangGetippt = viewModel::onVorgangGetippt,
-                onNeuerVorgangGetippt = {
-                    navController.navigate(BoltMindRoutes.NEUER_VORGANG)
-                },
-                onWeiterDemontieren = viewModel::onWeiterDemontierenGewaehlt,
-                onMontageStarten = viewModel::onMontageStartenGewaehlt,
-                onDialogVerwerfen = viewModel::onDialogVerworfen,
-                onLoeschenAngefragt = viewModel::onLoeschenAngefragt,
-                onLoeschenBestaetigt = viewModel::onLoeschenBestaetigt,
-                onLoeschenAbgebrochen = viewModel::onLoeschenAbgebrochen,
-                onTabGewaehlt = viewModel::onTabGewaehlt,
-            )
-        }
-        composable(
-            route = BoltMindRoutes.DEMONTAGE,
-            arguments = listOf(navArgument("vorgangId") { type = NavType.LongType }),
-        ) {
-            DemontageScreen(
-                onFlowBeendet = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route = BoltMindRoutes.MONTAGE,
-            arguments = listOf(navArgument("vorgangId") { type = NavType.LongType }),
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Montage – kommt in F-004")
-            }
-        }
         composable(BoltMindRoutes.NEUER_VORGANG) {
-            val viewModel: NeuerVorgangViewModel = koinViewModel()
-            val uiState by viewModel.uiState.collectAsState()
+            Platzhalter("Neuer Auftrag")
+        }
 
-            LaunchedEffect(uiState.erstellterVorgangId) {
-                uiState.erstellterVorgangId?.let {
-                    viewModel.onNavigationAbgeschlossen()
-                    navController.popBackStack()
-                }
-            }
-
-            NeuerVorgangScreen(
-                uiState = uiState,
-                onFotoAufgenommen = viewModel::onFotoAufgenommen,
-                onBildWiederholen = viewModel::onBildWiederholen,
-                onKameraAbgebrochen = viewModel::onKameraAbgebrochen,
-                onAuftragsnummerGeaendert = viewModel::onAuftragsnummerGeaendert,
-                onBeschreibungGeaendert = viewModel::onBeschreibungGeaendert,
-                onStartenGetippt = viewModel::onStartenGetippt,
-                onZurueck = { navController.popBackStack() },
+        composable(
+            route = BoltMindRoutes.BROWSER,
+            arguments = listOf(
+                navArgument("vorgangId") { type = NavType.LongType },
+                navArgument("modus") { type = NavType.StringType }
             )
+        ) { eintrag ->
+            val modus = BrowserModus.ausName(eintrag.arguments?.getString("modus"))
+            Platzhalter("Browser $modus")
+        }
+
+        composable(
+            route = BoltMindRoutes.ABSCHLUSS,
+            arguments = listOf(navArgument("vorgangId") { type = NavType.LongType })
+        ) {
+            Platzhalter("Abschluss")
         }
     }
+}
+
+@Composable
+private fun Platzhalter(name: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(name) }
 }
