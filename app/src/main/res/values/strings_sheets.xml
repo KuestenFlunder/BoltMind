@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bottom-Sheets des Browsers. Wortlaute 1:1 aus dem Design-Prototyp. -->
+    <string name="sheet_feierabend_titel">FEIERABEND?</string>
+    <string name="sheet_feierabend_text">Alles ist gespeichert — du kannst jederzeit weitermachen.</string>
+    <string name="sheet_weiter_arbeiten">WEITER ARBEITEN</string>
+    <string name="sheet_ja_feierabend">JA, FEIERABEND</string>
+
+    <string name="sheet_haekchen_titel">DOCH NICHT DRIN?</string>
+    <string name="sheet_haekchen_text">Häkchen für diesen Schritt zurücknehmen?</string>
+    <string name="sheet_abbrechen">ABBRECHEN</string>
+    <string name="sheet_haekchen_weg">HÄKCHEN WEG</string>
+</resources>

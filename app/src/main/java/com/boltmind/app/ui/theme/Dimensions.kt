@@ -140,6 +140,22 @@ object BoltMindDimensions {
     /** "NEU KNIPSEN". Entwurf 44dp, auf das Mindestmass gehoben. */
     val bildWiederholenHoehe = 56.dp
 
+    /**
+     * Unterer Rand von Formular und Fussleiste im Anlage-Screen.
+     * Prototyp Z. 156 (`padding:0 16px 20px`) und Z. 176 (`padding:12px 16px 20px`).
+     * Liegt zwischen [abstandL] und [abstandXl] und hat deshalb einen eigenen Namen.
+     */
+    val anlageRandUnten = 20.dp
+
+    /** Abstand von "NEU KNIPSEN" zur Bildkante. Prototyp Z. 159 (`right:10px;bottom:10px`). */
+    val anlageFotoAktionRand = 10.dp
+
+    /** Abstand zwischen Feldbeschriftung und Pflichtstern. Prototyp Z. 163 (`gap:6px`). */
+    val anlagePflichtsternAbstand = 6.dp
+
+    /** Roter Punkt der Fehlerzeile. Prototyp Z. 166 (`18 x 18`). */
+    val fehlerPunkt = 18.dp
+
     /** Einzeiliges Eingabefeld. */
     val eingabeHoehe = 66.dp
 

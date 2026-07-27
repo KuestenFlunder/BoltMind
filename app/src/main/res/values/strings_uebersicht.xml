@@ -52,4 +52,5 @@
     <string name="uebersicht_loeschen_frage">Vorgang und alle Fotos unwiderruflich löschen?</string>
     <string name="uebersicht_wischen_beschreibung">Nach links wischen zum Löschen</string>
 
+    <string name="uebersicht_loeschen_titel">WIRKLICH WEG?</string>
 </resources>

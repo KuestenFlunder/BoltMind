@@ -30,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -43,12 +42,13 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
@@ -91,11 +91,6 @@ import com.boltmind.app.ui.theme.BoltTextPrimaer as BoltTextFarbe
 
 /** Deckkraft der Stahltextur im Anlage-Screen (Prototyp Zeile 148). */
 private const val TEXTUR_DECKKRAFT = 0.28f
-
-private val RadiusFoto = 18.dp
-private val RadiusWiederholen = 12.dp
-private val RadiusEingabe = 16.dp
-private val RadiusZurueck = BoltMindDimensions.radiusStandard
 
 /**
  * Verdrahtung des Anlage-Screens.
@@ -169,7 +164,7 @@ fun NeuerVorgangScreen(
                     .padding(
                         start = BoltMindDimensions.screenRand,
                         end = BoltMindDimensions.screenRand,
-                        bottom = BoltMindDimensions.abstandXl
+                        bottom = BoltMindDimensions.anlageRandUnten
                     ),
                 verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.abstandL)
             ) {
@@ -217,11 +212,16 @@ private fun KameraAnbindung(
     val zielPfad by rememberUpdatedState(auftrag?.zielPfad)
 
     /**
-     * Hoechste bereits gestartete Auftragsnummer. Ohne diese Marke wuerde ein
+     * Marke des zuletzt gestarteten Auftrags. Ohne sie wuerde ein
      * Konfigurationswechsel waehrend der laufenden Aufnahme die Kamera ein zweites
      * Mal oeffnen -- der Auftrag steht ja noch offen im Zustand.
+     *
+     * Die Marke traegt den Zielpfad und nicht nur die laufende Nummer: der Zaehler
+     * im ViewModel faengt nach einem Prozesstod wieder bei eins an, waehrend diese
+     * Marke den Prozesstod ueberlebt. Ein reiner Zahlenvergleich wuerde die erste
+     * Aufnahme danach stillschweigend verschlucken.
      */
-    var zuletztGestartet by rememberSaveable { mutableIntStateOf(0) }
+    var zuletztGestartet by rememberSaveable { mutableStateOf<String?>(null) }
 
     val starter = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
@@ -232,8 +232,9 @@ private fun KameraAnbindung(
 
     LaunchedEffect(auftrag) {
         val offen = auftrag ?: return@LaunchedEffect
-        if (offen.nummer <= zuletztGestartet) return@LaunchedEffect
-        zuletztGestartet = offen.nummer
+        val marke = "${offen.nummer}@${offen.zielPfad}"
+        if (marke == zuletztGestartet) return@LaunchedEffect
+        zuletztGestartet = marke
         val uri = FileProvider.getUriForFile(
             kontext,
             "${kontext.packageName}.fileprovider",
@@ -242,6 +243,12 @@ private fun KameraAnbindung(
         try {
             starter.launch(uri)
         } catch (_: ActivityNotFoundException) {
+            // Kein Kamera-Programm auf dem Geraet.
+            onKeineKameraApp()
+        } catch (_: SecurityException) {
+            // Deklariert die App die CAMERA-Berechtigung, ohne sie zu halten,
+            // verweigert das System ACTION_IMAGE_CAPTURE. Governance verbietet die
+            // Berechtigung -- der Fang hier haelt trotzdem den Absturz ab.
             onKeineKameraApp()
         }
     }
@@ -263,14 +270,16 @@ private fun Kopfzeile(onZurueck: () -> Unit) {
                 top = BoltMindDimensions.abstandS,
                 bottom = BoltMindDimensions.abstandM
             ),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(BoltMindDimensions.abstandMl),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val zurueckBeschreibung = stringResource(R.string.nv_zurueck_beschreibung)
         GlasFlaeche(
             rezept = GlasRezepte.neutral07,
-            eckRadius = RadiusZurueck,
+            eckRadius = BoltMindDimensions.radiusStandard,
             modifier = Modifier
                 .size(BoltMindDimensions.zurueckChip)
+                .semantics { contentDescription = zurueckBeschreibung }
                 .boltKlick(onKlick = onZurueck)
         ) {
             BoltText(
@@ -293,7 +302,7 @@ private fun Fahrzeugfoto(
     fotoPfad: String?,
     onBildWiederholen: () -> Unit
 ) {
-    val form = RoundedCornerShape(RadiusFoto)
+    val form = RoundedCornerShape(BoltMindDimensions.radiusXl)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -316,10 +325,10 @@ private fun Fahrzeugfoto(
         GlasAktion(
             rezept = GlasRezepte.neutral12,
             hoehe = BoltMindDimensions.bildWiederholenHoehe,
-            eckRadius = RadiusWiederholen,
+            eckRadius = BoltMindDimensions.radiusM,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(10.dp),
+                .padding(BoltMindDimensions.anlageFotoAktionRand),
             onKlick = onBildWiederholen
         ) {
             Row(
@@ -352,7 +361,10 @@ private fun FeldAuftragsnummer(
     onWertGeaendert: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.abstandS)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            horizontalArrangement =
+                Arrangement.spacedBy(BoltMindDimensions.anlagePflichtsternAbstand)
+        ) {
             BoltText(
                 text = stringResource(R.string.nv_label_auftragsnummer),
                 stil = BoltTypo.feldLabel,
@@ -396,7 +408,9 @@ private fun Fehlerzeile() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(18.dp).background(BoltFehler, CircleShape),
+            modifier = Modifier
+                .size(BoltMindDimensions.fehlerPunkt)
+                .background(BoltFehler, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             BoltText(
@@ -433,7 +447,7 @@ private fun FeldBeschreibung(
             hoehe = BoltMindDimensions.textbereichHoehe,
             innenAbstand = PaddingValues(
                 horizontal = BoltMindDimensions.kopfRand,
-                vertical = 14.dp
+                vertical = BoltMindDimensions.abstandMl
             ),
             einzeilig = false,
             inhaltAusrichtung = Alignment.TopStart,
@@ -469,7 +483,11 @@ private fun BoltEingabe(
         modifier = modifier
             .fillMaxWidth()
             .height(hoehe)
-            .glas(GlasRezepte.eingabe, RoundedCornerShape(RadiusEingabe), RadiusEingabe),
+            .glas(
+                GlasRezepte.eingabe,
+                RoundedCornerShape(BoltMindDimensions.radiusL),
+                BoltMindDimensions.radiusL
+            ),
         decorationBox = { innen ->
             Box(
                 modifier = Modifier.fillMaxSize().padding(innenAbstand),
@@ -497,7 +515,7 @@ private fun Fussleiste(onStartenGetippt: () -> Unit) {
             start = BoltMindDimensions.screenRand,
             end = BoltMindDimensions.screenRand,
             top = BoltMindDimensions.abstandM,
-            bottom = BoltMindDimensions.abstandXl
+            bottom = BoltMindDimensions.anlageRandUnten
         )
     ) {
         GlasAktion(
@@ -545,7 +563,7 @@ private fun BoxScope.KeineKameraHinweis(onSchliessen: () -> Unit) {
             Column(
                 modifier = Modifier.padding(BoltMindDimensions.abstandXl),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.abstandMl)
             ) {
                 BoltText(
                     text = stringResource(R.string.nv_keine_kamera_app),

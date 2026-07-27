@@ -26,7 +26,8 @@ import kotlinx.coroutines.launch
 class BrowserViewModel(
     zustand: SavedStateHandle,
     private val repository: ReparaturRepository,
-    private val zeiterfassung: ZeiterfassungService
+    private val zeiterfassung: ZeiterfassungService,
+    private val fotos: BrowserFotoSteuerung
 ) : ViewModel() {
 
     private val vorgangId: Long = checkNotNull(zustand["vorgangId"])
@@ -180,9 +181,65 @@ class BrowserViewModel(
         }
     }
 
+    // --- Kamera und Schritte (Demontage) ---------------------------------------
+
+    /**
+     * Der Pfad, unter dem die System-Kamera gerade schreibt, und wofuer.
+     * Bricht sie ab, raeumt [onKameraAbgebrochen] die leere Huelle weg.
+     */
+    var offeneAufnahme: OffeneAufnahme? = null
+        private set
+
+    fun aufnahmeAngemeldet(pfad: String, ersetztFotoId: Long?) {
+        offeneAufnahme = OffeneAufnahme(pfad, ersetztFotoId)
+    }
+
+    fun onFotoAufgenommen() {
+        val aufnahme = offeneAufnahme ?: return
+        offeneAufnahme = null
+        val schrittId = _uiState.value.aktiverSchritt?.schritt?.id ?: return
+        viewModelScope.launch {
+            if (aufnahme.ersetztFotoId != null) {
+                fotos.fotoErsetzen(aufnahme.ersetztFotoId, aufnahme.pfad)
+            } else {
+                fotos.fotoUebernehmen(schrittId, aufnahme.pfad)
+            }
+        }
+    }
+
+    /** Kamera abgebrochen. Ein vorhandenes Foto bleibt in jedem Fall unangetastet. */
+    fun onKameraAbgebrochen() {
+        offeneAufnahme?.let { fotos.verwerfeDatei(it.pfad) }
+        offeneAufnahme = null
+    }
+
+    fun onNaechstesTeil() {
+        val offen = _uiState.value.offenerIndex
+            ?.let { _uiState.value.schritte.getOrNull(it)?.schritt }
+        viewModelScope.launch { fotos.naechstesTeil(vorgangId, offen) }
+    }
+
+    /** Springt vom nachgeschlagenen Schritt zurueck zum offenen. */
+    fun onZumOffenenSchritt() {
+        _uiState.value.offenerIndex?.let(::onSchrittGewaehlt)
+    }
+
+    fun onFeierabendBestaetigt() {
+        val offen = _uiState.value.offenerIndex
+            ?.let { _uiState.value.schritte.getOrNull(it)?.schritt }
+        viewModelScope.launch {
+            fotos.beenden(offen)
+            zeiterfassung.stoppeAlleOffenen()
+            _uiState.update { it.copy(sheet = null, verlassen = true) }
+        }
+    }
+
     fun onKameraFehltBestaetigt() = _uiState.update { it.copy(kameraFehlt = false) }
 
     fun onNavigationAbgeschlossen() = _uiState.update { it.copy(verlassen = false, fertig = false) }
+
+    /** Eine angemeldete, noch nicht bestaetigte Aufnahme. */
+    data class OffeneAufnahme(val pfad: String, val ersetztFotoId: Long?)
 
     override fun onCleared() {
         ticker?.cancel()
