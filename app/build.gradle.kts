@@ -90,14 +90,7 @@ dependencies {
     // ExifInterface
     implementation(libs.androidx.exifinterface)
 
-    // CameraX
-    implementation(libs.androidx.camera.core)
-    implementation(libs.androidx.camera.camera2)
-    implementation(libs.androidx.camera.lifecycle)
-    implementation(libs.androidx.camera.view)
 
-    // Squircle Shape
-    implementation(libs.squircle.shape)
 
     // Image Loading
     implementation(libs.coil.compose)

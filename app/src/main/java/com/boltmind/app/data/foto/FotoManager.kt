@@ -8,39 +8,9 @@ class FotoManager(private val baseDir: File) {
     private val photosDir: File
         get() = File(baseDir, "photos").also { it.mkdirs() }
 
-    private val tempDir: File
-        get() = File(photosDir, "temp").also { it.mkdirs() }
-
-    fun erstelleTempDatei(prefix: String): File {
-        return File(tempDir, "${prefix}_${System.currentTimeMillis()}.jpg")
-    }
-
-    fun bestaetigeFoto(tempPfad: String, zielName: String): String? {
-        val tempFile = File(tempPfad)
-        if (!tempFile.exists()) return null
-        entferneExifMetadaten(tempPfad)
-        val zielDatei = File(photosDir, "$zielName.jpg")
-        return if (tempFile.renameTo(zielDatei)) zielDatei.absolutePath else null
-    }
-
-    fun loescheTempFoto(pfad: String) {
-        val file = File(pfad)
-        if (file.exists()) file.delete()
-    }
-
-    fun bereinigeTempOrdner() {
-        val temp = File(File(baseDir, "photos"), "temp")
-        if (temp.exists()) {
-            temp.listFiles()?.forEach { it.delete() }
-        }
-    }
-
     // ------------------------------------------------------------------
-    // Zielzustand: System-Kamera schreibt direkt nach photos/
-    //
-    // Die drei Methoden hier ersetzen mittelfristig den temp-Zyklus darueber
-    // (governance.md, Abschnitt "Speicherort": es gibt keinen photos/temp/-Ordner
-    // mehr). Der alte Weg bleibt vorerst stehen, bis alle Screens umgestellt sind.
+    // Die System-Kamera schreibt direkt nach photos/. Einen temp-Ordner gibt es
+    // nicht mehr (governance.md, Abschnitt "Speicherort").
     // ------------------------------------------------------------------
 
     /**
@@ -99,5 +69,29 @@ class FotoManager(private val baseDir: File) {
     fun fotoExistiert(pfad: String?): Boolean {
         if (pfad == null) return false
         return File(pfad).exists()
+    }
+
+    /**
+     * Loescht Dateien in `photos/`, auf die keine Datenbankzeile mehr verweist.
+     *
+     * [bekanntePfade] muss **alle** referenzierten Pfade enthalten: die der
+     * `SchrittFoto`-Zeilen und die Fahrzeugfotos der Vorgaenge.
+     *
+     * Sicherheitsregel: Konnte der Aufrufer die Datenbank nicht lesen, uebergibt er
+     * `null` -- dann wird **nichts** geloescht. Ein Lesefehler wuerde sonst den
+     * kompletten Fotobestand abraeumen.
+     *
+     * @return Anzahl geloeschter Dateien.
+     */
+    fun bereinigeVerwaisteFotos(bekanntePfade: Set<String>?): Int {
+        if (bekanntePfade == null) return 0
+        val dateien = photosDir.listFiles()?.filter { it.isFile } ?: return 0
+        var geloescht = 0
+        dateien.forEach { datei ->
+            if (datei.absolutePath !in bekanntePfade) {
+                if (datei.delete()) geloescht++
+            }
+        }
+        return geloescht
     }
 }

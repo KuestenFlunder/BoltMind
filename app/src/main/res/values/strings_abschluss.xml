@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Abschluss-Screen der Montage. Wortlaute 1:1 aus dem Design-Prototyp. -->
+    <string name="abschluss_titel">ALLES WIEDER DRAN</string>
+    <string name="abschluss_teile">TEILE</string>
+    <string name="abschluss_gemessen">GEMESSEN</string>
+    <string name="abschluss_archivieren">AB INS ARCHIV</string>
+</resources>

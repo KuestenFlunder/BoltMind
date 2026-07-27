@@ -5,226 +5,187 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
-import java.nio.file.Path
 
+@DisplayName("FotoManager")
 class FotoManagerTest {
 
     @TempDir
-    lateinit var tempDir: Path
+    lateinit var basis: File
+
     private lateinit var fotoManager: FotoManager
 
+    private val photosDir: File get() = File(basis, "photos")
+
     @BeforeEach
-    fun setup() {
-        fotoManager = FotoManager(tempDir.toFile())
+    fun setUp() {
+        fotoManager = FotoManager(basis)
     }
 
-    @Nested
-    inner class `Temp-Foto erstellen` {
-
-        @Test
-        fun `erstellt Datei in temp-Ordner mit korrektem Prefix`() {
-            // When
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-
-            // Then
-            assertTrue(tempFile.parentFile?.name == "temp")
-            assertTrue(tempFile.name.startsWith("bauteil_"))
-            assertTrue(tempFile.name.endsWith(".jpg"))
+    private fun legeDateiAn(name: String, inhalt: String = "x"): File =
+        File(photosDir, name).also {
+            it.parentFile?.mkdirs()
+            it.writeText(inhalt)
         }
-
-        @Test
-        fun `erstellt temp-Ordner falls nicht vorhanden`() {
-            // When
-            fotoManager.erstelleTempDatei("bauteil")
-
-            // Then
-            assertTrue(File(tempDir.toFile(), "photos/temp").exists())
-        }
-    }
 
     @Nested
-    inner class `Foto bestaetigen` {
+    @DisplayName("Zieldatei anlegen")
+    inner class Zieldatei {
 
         @Test
-        fun `verschiebt Datei von temp nach photos`() {
-            // Given
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-            tempFile.writeText("fake-image-data")
-
-            // When
-            val permanentPfad = fotoManager.bestaetigeFoto(tempFile.absolutePath, "bauteil_1")
-
-            // Then
-            assertFalse(tempFile.exists())
-            assertTrue(File(permanentPfad!!).exists())
-            assertEquals("fake-image-data", File(permanentPfad).readText())
+        fun `liegt direkt unter photos, nicht in einem temp-Ordner`() {
+            val ziel = fotoManager.erstelleZieldatei("schritt")
+            assertEquals(photosDir.absolutePath, ziel.parentFile?.absolutePath)
+            assertFalse(
+                File(photosDir, "temp").exists(),
+                "Der temp-Zyklus ist abgeschafft; es darf kein temp-Ordner mehr entstehen."
+            )
         }
 
         @Test
-        fun `permanente Datei liegt in photos-Ordner`() {
-            // Given
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-            tempFile.writeText("data")
-
-            // When
-            val permanentPfad = fotoManager.bestaetigeFoto(tempFile.absolutePath, "bauteil_5")
-
-            // Then
-            val permanentFile = File(permanentPfad!!)
-            assertEquals("photos", permanentFile.parentFile?.name)
-            assertTrue(permanentFile.name.startsWith("bauteil_5"))
+        fun `wird leer vorangelegt, damit der FileProvider sie aufloesen kann`() {
+            val ziel = fotoManager.erstelleZieldatei("schritt")
+            assertTrue(ziel.exists())
+            assertEquals(0L, ziel.length())
         }
 
         @Test
-        fun `gibt null zurueck wenn temp-Datei nicht existiert`() {
-            // When
-            val result = fotoManager.bestaetigeFoto("/nicht/existent.jpg", "bauteil_1")
-
-            // Then
-            assertNull(result)
+        fun `zwei Aufrufe liefern verschiedene Dateien`() {
+            val a = fotoManager.erstelleZieldatei("schritt")
+            Thread.sleep(2)
+            val b = fotoManager.erstelleZieldatei("schritt")
+            assertTrue(a.absolutePath != b.absolutePath)
         }
     }
 
     @Nested
-    inner class `Temp-Foto loeschen` {
+    @DisplayName("Aufnahme uebernehmen")
+    inner class Uebernehmen {
 
         @Test
-        fun `loescht temporaere Datei`() {
-            // Given
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-            tempFile.writeText("data")
-
-            // When
-            fotoManager.loescheTempFoto(tempFile.absolutePath)
-
-            // Then
-            assertFalse(tempFile.exists())
+        fun `liefert den Pfad, wenn die Kamera geschrieben hat`() {
+            val datei = legeDateiAn("schritt_1.jpg", "bilddaten")
+            assertEquals(datei.absolutePath, fotoManager.uebernimmAufnahme(datei.absolutePath))
         }
 
         @Test
-        fun `ignoriert nicht existierende Datei`() {
-            // When / Then - kein Fehler
-            fotoManager.loescheTempFoto("/nicht/existent.jpg")
-        }
-    }
-
-    @Nested
-    inner class `Temp-Ordner bereinigen` {
-
-        @Test
-        fun `loescht alle Dateien im temp-Ordner`() {
-            // Given
-            val temp1 = fotoManager.erstelleTempDatei("bauteil")
-            val temp2 = fotoManager.erstelleTempDatei("ablageort")
-            temp1.writeText("data1")
-            temp2.writeText("data2")
-
-            // When
-            fotoManager.bereinigeTempOrdner()
-
-            // Then
-            assertFalse(temp1.exists())
-            assertFalse(temp2.exists())
+        fun `wertet eine leere Datei als Abbruch und raeumt sie weg`() {
+            val huelle = fotoManager.erstelleZieldatei("schritt")
+            assertNull(
+                fotoManager.uebernimmAufnahme(huelle.absolutePath),
+                "Eine leere Huelle bedeutet: die Kamera hat nichts geliefert."
+            )
+            assertFalse(huelle.exists(), "Die leere Huelle darf nicht liegen bleiben.")
         }
 
         @Test
-        fun `laesst permanente Fotos unangetastet`() {
-            // Given
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-            tempFile.writeText("data")
-            val permanentPfad = fotoManager.bestaetigeFoto(tempFile.absolutePath, "bauteil_1")
-
-            // When
-            fotoManager.bereinigeTempOrdner()
-
-            // Then
-            assertTrue(File(permanentPfad!!).exists())
-        }
-
-        @Test
-        fun `funktioniert wenn temp-Ordner nicht existiert`() {
-            // When / Then - kein Fehler
-            fotoManager.bereinigeTempOrdner()
+        fun `meldet Abbruch, wenn die Datei gar nicht existiert`() {
+            assertNull(
+                fotoManager.uebernimmAufnahme(File(photosDir, "gibtsnicht.jpg").absolutePath)
+            )
         }
     }
 
     @Nested
-    inner class `Foto-Existenz pruefen` {
+    @DisplayName("Foto loeschen")
+    inner class Loeschen {
 
         @Test
-        fun `gibt true fuer existierende Datei`() {
-            // Given
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-            tempFile.writeText("data")
-            val pfad = fotoManager.bestaetigeFoto(tempFile.absolutePath, "bauteil_1")
-
-            // Then
-            assertTrue(fotoManager.fotoExistiert(pfad!!))
+        fun `entfernt eine vorhandene Datei`() {
+            val datei = legeDateiAn("weg.jpg")
+            fotoManager.loescheFoto(datei.absolutePath)
+            assertFalse(datei.exists())
         }
 
         @Test
-        fun `gibt false fuer nicht existierende Datei`() {
-            assertFalse(fotoManager.fotoExistiert("/nicht/existent.jpg"))
+        fun `vertraegt null, Leerstring und fehlende Datei`() {
+            fotoManager.loescheFoto(null)
+            fotoManager.loescheFoto("")
+            fotoManager.loescheFoto(File(photosDir, "nie.jpg").absolutePath)
+        }
+    }
+
+    @Nested
+    @DisplayName("Verwaiste Dateien aufraeumen")
+    inner class Verwaiste {
+
+        @Test
+        fun `loescht genau die Dateien ohne Datenbankzeile`() {
+            val bekannt = legeDateiAn("bekannt.jpg")
+            val verwaist = legeDateiAn("verwaist.jpg")
+
+            val anzahl = fotoManager.bereinigeVerwaisteFotos(setOf(bekannt.absolutePath))
+
+            assertEquals(1, anzahl)
+            assertTrue(bekannt.exists(), "Referenzierte Dateien bleiben.")
+            assertFalse(verwaist.exists())
         }
 
         @Test
-        fun `gibt false fuer null-Pfad`() {
+        fun `loescht nichts, wenn die Datenbank nicht lesbar war`() {
+            val a = legeDateiAn("a.jpg")
+            val b = legeDateiAn("b.jpg")
+
+            val anzahl = fotoManager.bereinigeVerwaisteFotos(null)
+
+            assertEquals(0, anzahl)
+            assertTrue(a.exists() && b.exists())
+            // Sonst raeumt ein einzelner Lesefehler den kompletten Bestand ab -- ein
+            // Datenverlust, den der Nutzer erst Wochen spaeter im Archiv bemerkt.
+        }
+
+        @Test
+        fun `laesst das Fahrzeugfoto stehen, auch wenn es zu keinem Schritt gehoert`() {
+            val fahrzeug = legeDateiAn("fahrzeug_1.jpg")
+            val schrittFoto = legeDateiAn("schritt_1.jpg")
+
+            fotoManager.bereinigeVerwaisteFotos(
+                setOf(fahrzeug.absolutePath, schrittFoto.absolutePath)
+            )
+
+            assertTrue(fahrzeug.exists())
+            assertTrue(schrittFoto.exists())
+        }
+
+        @Test
+        fun `kommt mit einem leeren Ordner zurecht`() {
+            assertEquals(0, fotoManager.bereinigeVerwaisteFotos(emptySet()))
+        }
+    }
+
+    @Nested
+    @DisplayName("Foto-Existenz")
+    inner class Existenz {
+
+        @Test
+        fun `erkennt vorhandene und fehlende Dateien`() {
+            val da = legeDateiAn("da.jpg")
+            assertTrue(fotoManager.fotoExistiert(da.absolutePath))
+            assertFalse(fotoManager.fotoExistiert(File(photosDir, "weg.jpg").absolutePath))
             assertFalse(fotoManager.fotoExistiert(null))
         }
     }
 
     @Nested
-    inner class `EXIF-Metadaten entfernen` {
+    @DisplayName("EXIF-Metadaten")
+    inner class Exif {
 
         @Test
-        fun `wirft keinen Fehler bei nicht existierender Datei`() {
-            // When / Then - kein Fehler (best-effort)
-            fotoManager.entferneExifMetadaten("/nicht/existent.jpg")
+        fun `wirft nicht, wenn die Datei kein gueltiges JPEG ist`() {
+            // Auf der JVM steht kein Android-Framework bereit; das Stripping ist
+            // best-effort und darf den Aufrufer niemals mitreissen.
+            val datei = legeDateiAn("kaputt.jpg", "kein jpeg")
+            fotoManager.entferneExifMetadaten(datei.absolutePath)
+            assertTrue(datei.exists())
         }
 
         @Test
-        fun `wirft keinen Fehler bei nicht-JPEG Datei`() {
-            // Given
-            val file = File(tempDir.toFile(), "test.txt")
-            file.writeText("keine JPEG Datei")
-
-            // When / Then - kein Fehler (best-effort)
-            fotoManager.entferneExifMetadaten(file.absolutePath)
-        }
-
-        @Test
-        fun `Datei existiert nach Aufruf weiterhin`() {
-            // Given
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-            tempFile.writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xD9.toByte()))
-
-            // When
-            fotoManager.entferneExifMetadaten(tempFile.absolutePath)
-
-            // Then
-            assertTrue(tempFile.exists())
-        }
-    }
-
-    @Nested
-    inner class `Foto bestaetigen mit EXIF-Stripping` {
-
-        @Test
-        fun `ruft EXIF-Stripping vor Verschiebung auf`() {
-            // Given
-            val tempFile = fotoManager.erstelleTempDatei("bauteil")
-            tempFile.writeText("fake-image-data")
-
-            // When
-            val permanentPfad = fotoManager.bestaetigeFoto(tempFile.absolutePath, "bauteil_1")
-
-            // Then - Datei wurde verschoben (EXIF-Stripping laeuft davor, best-effort)
-            assertTrue(permanentPfad != null)
-            assertTrue(File(permanentPfad!!).exists())
+        fun `wirft nicht bei fehlender Datei`() {
+            fotoManager.entferneExifMetadaten(File(photosDir, "nie.jpg").absolutePath)
         }
     }
 }
