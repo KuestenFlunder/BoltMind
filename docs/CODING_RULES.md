@@ -252,6 +252,23 @@ Instrumentierte Tests laufen über `AndroidJUnitRunner` und damit unter **JUnit 
 Instrumentierte Tests werden **lokal vor dem PR** ausgeführt. Es gibt keine Build-Pipeline, die das
 übernimmt — wer sie nicht ausgeführt hat, schreibt das in den PR, statt sie als grün zu melden.
 
+#### Falle: Endlos-Animationen hängen Compose-Tests auf
+
+Compose synchronisiert Tests gegen die Animationsuhr und wartet auf Ruhe. Zwei Stellen im Projekt
+erreichen sie nie:
+
+| Stelle | Animation |
+|---|---|
+| `ui/schrittbrowser/ThumbnailLeiste.kt` | Atem-Puls des aktiven Thumbnails |
+| `ui/schrittbrowser/FotoKarussell.kt` | pulsierender Wischhinweis |
+
+Ein Test, der den Schritt-Browser betritt, läuft mit Auto-Synchronisierung bis zum Timeout. Er muss
+`composeTestRule.mainClock.autoAdvance = false` setzen und die Uhr mit `advanceTimeBy(...)` von Hand
+stellen.
+
+Splash und Übersicht haben nur endliche Animationen — dort genügt die Voreinstellung. `StartSmokeTest`
+zeigt das Muster inklusive `waitUntil` statt blindem Warten.
+
 ### User-Story-Traceability in Tests
 
 Jede User Story aus der Spec (`US-XXX.Y`) wird als `@Nested inner class` im zugehörigen Test abgebildet. So lässt sich jeder Test direkt auf eine User Story und deren Akzeptanzkriterien zurückverfolgen.
@@ -511,7 +528,7 @@ Die folgende Tabelle beschreibt ein Soll, keinen Ist-Zustand:
 |----------|------|-----|
 | ktlint | Automatische Formatierung nach Kotlin Coding Conventions, `./gradlew ktlintCheck` / `ktlintFormat` | **Nicht eingerichtet.** Kein ktlint-Plugin in `build.gradle.kts` oder `gradle/libs.versions.toml`; die Tasks existieren nicht. |
 | detekt | Statische Code-Analyse (Complexity, Code Smells, Style), `./gradlew detekt`, Konfiguration in `config/detekt/detekt.yml` | **Nicht eingerichtet.** Kein detekt-Plugin, kein `config/`-Verzeichnis; die Task existiert nicht. |
-| Compose-UI-Tests | UI-Tests je Modus und für Mindesthöhen, `createAndroidComposeRule` | **Nicht geschrieben.** Die Abhängigkeiten (`ui-test-junit4`, `ui-test-manifest`) sind eingerichtet, aber es existiert kein einziger UI-Test. |
+Compose-UI-Tests sind **eingerichtet und belegt** (siehe unten) und deshalb keine Lücke mehr.
 
 Bis zur Einrichtung ist **keiner dieser Punkte eine Anforderung**: Er darf in keinem TDD-Zyklus als
 Pflichtschritt stehen, kein PR darf an ihm scheitern, und keine Zusammenfassung darf behaupten, der
