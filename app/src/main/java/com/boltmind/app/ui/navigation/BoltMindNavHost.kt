@@ -11,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.boltmind.app.feature.abschluss.AbschlussScreen
+import com.boltmind.app.feature.abschluss.AbschlussViewModel
 import com.boltmind.app.feature.neuervorgang.NeuerVorgangRoute
 import com.boltmind.app.feature.splash.SplashScreen
 import com.boltmind.app.feature.uebersicht.UebersichtScreen
@@ -126,10 +128,39 @@ fun BoltMindNavHost(
                 navArgument("modus") { type = NavType.StringType }
             )
         ) {
+            val vorgangId = it.arguments?.getLong("vorgangId") ?: 0L
             BrowserRoute(
                 onVerlassen = {
                     navController.popBackStack(BoltMindRoutes.UEBERSICHT, inclusive = false)
+                },
+                onMontageFertig = {
+                    navController.navigate(BoltMindRoutes.abschluss(vorgangId))
                 }
+            )
+        }
+
+        composable(
+            route = BoltMindRoutes.ABSCHLUSS,
+            arguments = listOf(navArgument("vorgangId") { type = NavType.LongType })
+        ) {
+            val viewModel: AbschlussViewModel = koinViewModel()
+            val uiState by viewModel.uiState.collectAsState()
+
+            LaunchedEffect(uiState.archiviert) {
+                if (uiState.archiviert) {
+                    viewModel.onNavigationAbgeschlossen()
+                    // Archivieren beendet den Vorgang: der ganze Montage-Pfad
+                    // verschwindet aus dem Stapel, Zurueck fuehrt in die Uebersicht.
+                    navController.popBackStack(BoltMindRoutes.UEBERSICHT, inclusive = false)
+                }
+            }
+
+            AbschlussScreen(
+                auftragsnummer = uiState.auftragsnummer,
+                beschreibung = uiState.beschreibung,
+                anzahlTeile = uiState.anzahlTeile,
+                gemesseneZeit = uiState.gemesseneZeit,
+                onArchivieren = viewModel::onArchivieren
             )
         }
     }

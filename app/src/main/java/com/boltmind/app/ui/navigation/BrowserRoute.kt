@@ -31,6 +31,7 @@ import org.koin.compose.koinInject
 @Composable
 fun BrowserRoute(
     onVerlassen: () -> Unit,
+    onMontageFertig: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: BrowserViewModel = koinViewModel(),
     fotoManager: FotoManager = koinInject()
@@ -51,6 +52,13 @@ fun BrowserRoute(
         runCatching { kamera.launch(uri) }.onFailure {
             // Kein Kamera-Programm auf dem Geraet: die leere Huelle wieder wegraeumen.
             viewModel.onKameraAbgebrochen()
+        }
+    }
+
+    LaunchedEffect(uiState.fertig) {
+        if (uiState.fertig) {
+            viewModel.onNavigationAbgeschlossen()
+            onMontageFertig()
         }
     }
 

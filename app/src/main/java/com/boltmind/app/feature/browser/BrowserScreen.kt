@@ -85,12 +85,16 @@ fun BrowserScreen(
                 onLabelUmgeschaltet = onLabelUmgeschaltet
             ),
             kopfzeile = {
-                Kopfzeile(uiState, onFeierabendAnfragen, onVerlassen)
+                Column {
+                    Kopfzeile(uiState, onFeierabendAnfragen, onVerlassen)
+                    if (!uiState.istArchiv) {
+                        Box(Modifier.padding(start = BoltMindDimensions.screenRand, top = 6.dp)) {
+                            TimerKapsel(uiState, onTimerUmgeschaltet)
+                        }
+                    }
+                }
             },
             ueberLabels = {
-                if (!uiState.istArchiv) {
-                    TimerKapsel(uiState, onTimerUmgeschaltet)
-                }
                 if (uiState.istMontage) {
                     Fortschritt(uiState)
                 }

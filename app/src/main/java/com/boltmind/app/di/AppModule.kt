@@ -5,6 +5,7 @@ import com.boltmind.app.data.local.BoltMindDatabase
 import com.boltmind.app.data.repository.ReparaturRepository
 import com.boltmind.app.data.repository.RoomTransaktionsLauf
 import com.boltmind.app.data.repository.TransaktionsLauf
+import com.boltmind.app.feature.abschluss.AbschlussViewModel
 import com.boltmind.app.feature.browser.BrowserFotoSteuerung
 import com.boltmind.app.feature.browser.BrowserViewModel
 import com.boltmind.app.feature.neuervorgang.NeuerVorgangViewModel
@@ -30,4 +31,5 @@ val appModule = module {
     viewModel { UebersichtViewModel(get()) }
     viewModel { NeuerVorgangViewModel(get(), get()) }
     viewModel { BrowserViewModel(get(), get(), get(), get()) }
+    viewModel { AbschlussViewModel(get(), get(), get()) }
 }
