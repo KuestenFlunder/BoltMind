@@ -144,9 +144,24 @@ fun GlasAktion(
     onKlick: () -> Unit,
     inhalt: @Composable RowScope.() -> Unit
 ) {
+    // Das Governance-Minimum steht bewusst ZWEIMAL.
+    //
+    // Aussen, weil Size-Modifier ueber Constraints von aussen nach innen wirken:
+    // ein `.height(40.dp)` des Aufrufers wuerde ein nur innen stehendes Minimum
+    // wegcoercen. Genau daran ist der frueher hier stehende `BoltMindButton`
+    // gescheitert -- lautlos, denn die Aktion sah weiterhin richtig aus.
+    //
+    // Innen, weil ein `.padding()` des Aufrufers sonst von der Flaeche abginge
+    // statt obendrauf zu kommen. `NeuerVorgangScreen` gibt "NEU KNIPSEN" ein
+    // Padding mit; ohne die innere Zusicherung schrumpfte die Glasflaeche dort
+    // von 56dp auf 36dp -- eine blosse Umsortierung waere also kein Fix, sondern
+    // ein zweiter Fehler.
+    val mindesthoehe = hoehe.coerceAtLeast(BoltMindDimensions.touchTargetMin)
     Row(
-        modifier = modifier
-            .sizeIn(minHeight = hoehe.coerceAtLeast(BoltMindDimensions.touchTargetMin))
+        modifier = Modifier
+            .sizeIn(minHeight = mindesthoehe)
+            .then(modifier)
+            .sizeIn(minHeight = mindesthoehe)
             .boltKlick(aktiv = aktiv, stauchung = stauchung, onKlick = onKlick)
             .glas(rezept, RoundedCornerShape(eckRadius), eckRadius),
         horizontalArrangement = Arrangement.Center,

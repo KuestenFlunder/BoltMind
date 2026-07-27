@@ -171,7 +171,7 @@ der Entwurf, in drei die Regel — jeweils dort, wo Datenintegrität dranhängt.
 
 | # | Punkt | Entscheidung |
 |---|---|---|
-| K-01 | Trefferflächen | **Regel** — Sekundärelemente auf 56dp, Thumbnails mit Ausnahme (oben) |
+| K-01 | Trefferflächen | **Regel** — Sekundärelemente auf 56dp, Thumbnails mit Ausnahme (oben). Seit 2026-07-27 testgesichert: `DimensionenTest` bewacht die Token-Werte, `MindesthoeheTest` belegt, dass ein äußeres `.height(40.dp)` die Aktion nicht unter 56dp drückt |
 | K-02 | „Wiederholen" löscht vor dem Kamerastart | **Regel** — erst nach bestätigter Neuaufnahme löschen. Ein Abbruch darf nie ein Foto vernichten. Das neue Foto übernimmt die `reihenfolge` des alten |
 | K-03 | Timer von Hand start-/stoppbar | **Entwurf** — die F-005-Spec sagt „läuft durch, keine Pause". Der Entwurf hat einen Play/Pause-Schalter, und `ZeitMessung` trägt Pausen ohnehin (jedes Start/Stopp-Paar ist eine Zeile). **F-005 muss nachgezogen werden** |
 | K-04 | Timer auch in der Montage | **Entwurf** — bisher unspezifiziert. `referenzTyp = MONTAGE_SCHRITT` |
