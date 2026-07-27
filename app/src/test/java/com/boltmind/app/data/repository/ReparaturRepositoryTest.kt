@@ -131,8 +131,8 @@ class ReparaturRepositoryTest {
         }
 
         @Test
-        fun `Neuanlage stempelt aktualisiertAm auf die Aktionszeit`() = runTest {
-            // Given: ein Vorgang mit einem alten Zeitstempel aus dem Aufrufer
+        fun `Neuanlage stempelt beide Zeitstempel aus derselben Uhr`() = runTest {
+            // Given: ein Vorgang, dessen Zeitstempel der Aufrufer mitbringt
             val roh = Reparaturvorgang(
                 auftragsnummer = "A-1",
                 erstelltAm = FRUEHER,
@@ -143,9 +143,11 @@ class ReparaturRepositoryTest {
             // When: der Vorgang angelegt wird
             val id = repository.erstelleVorgang(roh)
 
-            // Then: gespeichert wird mit der Aktionszeit, die neue Id kommt zurueck
+            // Then: BEIDE Zeitstempel kommen aus der Uhr des Repositories.
+            // Sonst haette dieselbe Zeile zwei Zeitquellen, und erstelltAm koennte
+            // je nach Aufrufer sogar nach aktualisiertAm liegen.
             assertEquals(VORGANG_ID, id)
-            verify(vorgangDao).einfuegen(roh.copy(aktualisiertAm = JETZT))
+            verify(vorgangDao).einfuegen(roh.copy(erstelltAm = JETZT, aktualisiertAm = JETZT))
         }
 
         @Test

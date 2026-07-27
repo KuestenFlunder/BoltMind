@@ -70,9 +70,14 @@ class ReparaturRepository(
 
     suspend fun zaehleEingebaute(vorgangId: Long): Int = schrittDao.zaehleEingebaute(vorgangId)
 
-    /** Neuanlage. `aktualisiertAm` setzt der Aufrufer ueber die Entity selbst. */
-    suspend fun erstelleVorgang(vorgang: Reparaturvorgang): Long =
-        vorgangDao.einfuegen(vorgang.copy(aktualisiertAm = uhr()))
+    /**
+     * Neuanlage. Beide Zeitstempel kommen aus der Uhr des Repositories, damit
+     * dieselbe Zeile nicht zwei Zeitquellen hat.
+     */
+    suspend fun erstelleVorgang(vorgang: Reparaturvorgang): Long {
+        val jetzt = uhr()
+        return vorgangDao.einfuegen(vorgang.copy(erstelltAm = jetzt, aktualisiertAm = jetzt))
+    }
 
     suspend fun aktualisiereVorgang(vorgang: Reparaturvorgang) =
         vorgangDao.aktualisieren(vorgang.copy(aktualisiertAm = uhr()))
