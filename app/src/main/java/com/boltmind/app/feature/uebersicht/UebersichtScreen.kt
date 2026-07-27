@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -316,7 +317,7 @@ private fun VorgangKarteZeile(
                         .padding(horizontal = 9.dp, vertical = 4.dp)
                 ) {
                     BoltText(
-                        stringResource(R.string.uebersicht_teile, karte.schrittAnzahl),
+                        pluralStringResource(R.plurals.uebersicht_teile, karte.schrittAnzahl, karte.schrittAnzahl),
                         BoltTypo.teileChip,
                         BoltTextTertiaer
                     )

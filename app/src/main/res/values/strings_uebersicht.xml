@@ -23,7 +23,6 @@
     <!-- Vorgangskarte, Prototyp Z. 85-95 -->
     <string name="uebersicht_auftragsnummer">#%1$s</string>
     <string name="uebersicht_ohne_beschreibung">Ohne Beschreibung</string>
-    <string name="uebersicht_teile">%1$d TEILE</string>
     <string name="uebersicht_chevron">›</string>
     <string name="uebersicht_fahrzeugfoto">Fahrzeugfoto</string>
     <!-- Der Prototyp kennt keinen fehlenden Bildpfad; ohne Datei darf die Karte nicht abstuerzen. -->
@@ -53,4 +52,10 @@
     <string name="uebersicht_wischen_beschreibung">Nach links wischen zum Löschen</string>
 
     <string name="uebersicht_loeschen_titel">WIRKLICH WEG?</string>
+    <!-- Ein Schritt ist "1 TEIL", nicht "1 TEILE". Der Prototyp zeigt nur
+         Vorgaenge mit mehreren Schritten und trifft den Fall deshalb nie. -->
+    <plurals name="uebersicht_teile">
+        <item quantity="one">%1$d TEIL</item>
+        <item quantity="other">%1$d TEILE</item>
+    </plurals>
 </resources>
