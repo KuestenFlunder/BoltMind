@@ -322,7 +322,16 @@ private fun VorgangKarteZeile(
                         BoltTextTertiaer
                     )
                 }
-                BoltText(karte.datumText, BoltTypo.vorgangDatum, BoltTextSchwaecher)
+                BoltText(
+                    text = karte.datumText,
+                    stil = BoltTypo.vorgangDatum,
+                    farbe = BoltTextSchwaecher,
+                    // Zwei Zeilen erlaubt: der Loeschknopf rechts nimmt 56dp, die der
+                    // Entwurf nicht vorsieht. Bei "Gerade eben · 30 min" reicht eine
+                    // Zeile sonst nicht, und die Dauer wurde abgeschnitten.
+                    maxZeilen = 2,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
             }
         }
         Box(
