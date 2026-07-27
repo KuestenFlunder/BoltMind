@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -125,6 +126,9 @@ fun AbschlussScreen(
                 )
 
                 Row(
+                    // IntrinsicSize.Min: ohne das nimmt die Zeile die volle Hoehe der
+                    // Spalte an, und der Trennstrich zieht sich ueber den halben Screen.
+                    modifier = Modifier.height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(26.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
