@@ -582,6 +582,33 @@ class BrowserViewModelTest {
         }
 
         @Test
+        fun `schickt nach der Rueckkehr nicht bei jeder Datenmeldung erneut zum Abschluss`() {
+            // Given: der Mechaniker hat den Abschluss-Screen mit Back verlassen
+            val browser = browserFuer(
+                BrowserModus.MONTAGE,
+                listOf(schritt(1, eingebaut = true), schritt(2, eingebaut = true))
+            )
+            browser.onNavigationAbgeschlossen()
+            assertFalse(browser.uiState.value.fertig)
+
+            // When: der Flow meldet die weiterhin vollstaendige Liste erneut.
+            // Room stoesst ihn bei jeder Aenderung an den Schritt-Tabellen an --
+            // was sich dabei aendert, ist gleichgueltig, hier ein Foto
+            schritteFlow.value = listOf(
+                schritt(1, eingebaut = true, fotos = listOf(foto(1))),
+                schritt(2, eingebaut = true)
+            )
+            abarbeiten()
+
+            // Then: er bleibt in der Schritt-Ansicht. Griffe der Sprung nicht nur
+            // beim ersten Laden, waere der Abschluss-Screen eine Falle: Back
+            // wuerde ihn verlassen und die naechste Meldung ihn sofort
+            // zurueckwerfen
+            assertFalse(browser.uiState.value.fertig)
+            assertTrue(browser.uiState.value.alleEingebaut)
+        }
+
+        @Test
         fun `nimmt den Knopf weg, sobald ein Haekchen zurueckgenommen wurde`() {
             // Given: alles ist abgehakt und der Knopf steht
             val browser = browserFuer(
