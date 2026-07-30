@@ -155,7 +155,7 @@ Diese Punkte wurden nach mehreren Spec-Überarbeitungen entschieden. Wenn ein ä
 
 - **Ablageort ist ein Foto-Label, kein eigener Schritt.** Ein Schritt hält N Fotos (`SchrittFoto`), jedes mit den drei kombinierbaren Flags Bauteil / Übersicht / Ablageort, Default Bauteil. `SchrittTyp` ist ersatzlos gestrichen.
 - **Schrittnummer und Fortschritt sind zwei verschiedene Dinge.** „Schritt 12" ist immer die Demontage-Nummer und wird nie umnummeriert — sie ist die Korrelation zum physischen Ablageort. Der Fortschritt heißt getrennt davon „3 von 15 eingebaut". Formulierungen wie „Schritt 5 von 15" vermischen beides und sind verboten.
-- **F-006 besitzt die Schritt-Navigation vollständig** — Thumbnail-Sprung *und* Vor/Zurück. F-001, F-003 und F-004 verweisen darauf, statt eigene Bedienelemente zu spezifizieren. Einen Sprung-Dialog mit Nummerneingabe gibt es nicht.
+- **Der Thumbnail-Sprung gehört F-006, Vor/Zurück dem Consumer** (entschieden am 2026-07-31, vorher lag beides bei F-006). Die drei Betriebsarten haben an derselben Stelle unterschiedliche Bedienelemente — die Demontage hat gar kein Vor/Zurück, die Montage nur „ZURÜCK", das Archiv zwei schlichte Pfeile. Ein einheitliches Vor/Zurück aus F-006 hätte daneben gestanden statt darin. Die Consumer hängen ihre Kreise in den Slot `bedienkreise`. Einen Sprung-Dialog mit Nummerneingabe gibt es nicht.
 - **Horizontales Wischen** im Bildbereich wechselt das **Foto innerhalb des Schritts** (Karussell), nie den Schritt.
 - **Label sind nur in der Demontage änderbar.** F-004 und das Archiv zeigen sie, ändern sie aber nicht.
 - **Abschluss nur über den Abschluss-Screen.** Ist der letzte Schritt abgehakt, erscheint „Zusammenbau abgeschlossen!" mit „Archivieren"-Button. Back führt zum letzten Schritt zurück, **ohne** zu archivieren. Der „Weiter"-Button wird nicht zum Abschlussbutton — Archivieren nimmt den Vorgang aus der aktiven Liste und braucht mit Handschuhen eine Bestätigung.
@@ -199,12 +199,11 @@ Das UI-Test-Harness steht seit #104; die Konventionen und die Animations-Falle s
 `emulator -avd boltmind36 -gpu host`, danach `./gradlew installDebug`. Für ein echtes
 Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neuer.
 
-**Offen:** siebzehn Issues in zwei Milestones. **R5** sind acht Punkte ohne
-Entscheidungsbedarf — darunter die Demontage-Sackgasse nach Feierabend (#121), die
-Glas-Effekt-Abweichungen (#120), die gestauchte Montage-Bedienzeile (#124) und die
-LOC-Grenze des `BrowserViewModel` (#126). **R6** sind neun Produktfragen, die eine Antwort
-brauchen, bevor Code entsteht — darunter das Splash-Video und die zwei Timer-Entscheidungen
-aus #94.
+**Offen:** achtzehn Issues, neun je Milestone. **R5** ist Arbeit ohne Entscheidungsbedarf —
+darunter die Demontage-Sackgasse nach Feierabend (#121), die Glas-Effekt-Abweichungen (#120),
+die gestauchte Montage-Bedienzeile (#124) und die LOC-Grenze des `BrowserViewModel` (#126).
+**R6** sind Produktfragen, die eine Antwort brauchen, bevor Code entsteht — darunter das
+Splash-Video und die zwei Timer-Entscheidungen aus #94.
 
 Der Issue-Nachzug ist erledigt: #76–#96 wurden gegen den gebauten Stand geprüft, fünf
 rückwirkende Issues (#99–#103) schließen die Lücken der Kette Spec → Issue → Test für

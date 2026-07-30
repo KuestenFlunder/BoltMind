@@ -145,7 +145,9 @@ Details siehe [browser.md](browser.md).
 | F-004 Montage | Schritte in Montage-Reihenfolge; Label werden nur gelesen, Aktionskreise „RAUS" / „ZURÜCK" / „SITZT!" gehoeren F-004 | `LESEND_MIT_AKTIONEN` | F-004 montage.md |
 | F-001 Archiv-Detailansicht | Durchblaettern der Dokumentation eines archivierten Vorgangs, zwei schlichte Pfeile als Vor/Zurueck | `NUR_LESEN` | F-001 uebersicht.md |
 
-Alle drei Consumer bringen ihre **Vor/Zurueck-Elemente selbst** mit und haengen sie in den Slot `bedienkreise`. Sie nutzen dafuer `istErster` und `istLetzter` aus dem Zustand, statt die Randpruefung je Screen neu zu bauen. Der Thumbnail-Sprung dagegen kommt aus F-006.
+Alle drei Consumer bringen ihre **Vor/Zurueck-Elemente selbst** mit und haengen sie in den Slot `bedienkreise`. Der Thumbnail-Sprung dagegen kommt aus F-006.
+
+Fuer die Randpruefung bietet der Browser `istErster` und `istLetzter` an. **Gebaut ist es anders:** der Browser-Screen prueft mit eigenen Feldern (`istErsterSchritt` / `istLetzterSchritt` auf `BrowserUiState`), die Flags des Browsers haben null Aufrufstellen. Die Doppelung ist bekannt und als #127 notiert.
 
 ## Abhaengigkeiten
 
