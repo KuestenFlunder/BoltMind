@@ -33,6 +33,7 @@ Diese Texte sind verbindlich und werden von UI-Tests wörtlich geprüft. Sie lie
 | Rundbutton, Schritt bereits eingebaut | `DRIN` | `montage_drin` |
 | Rundbutton, Ausstieg | `RAUS` | `montage_raus` |
 | Rundbutton, Schritt-Navigation | `ZURÜCK` (mit Glyphe `↑`) | `browser_zurueck` |
+| Rundbutton, Weg zum Abschluss (nur wenn alles drin ist) | `ABSCHLUSS` | `montage_zum_abschluss` |
 | Hinweis ohne Ablageort-Foto | `AM FAHRZEUG GEBLIEBEN` | `montage_am_fahrzeug` |
 | Rückfrage Ausstieg, Titel | `FEIERABEND?` | `sheet_feierabend_titel` |
 | Rückfrage Ausstieg, Aktionen | `WEITER ARBEITEN` / `JA, FEIERABEND` | `sheet_weiter_arbeiten`, `sheet_ja_feierabend` |

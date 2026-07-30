@@ -172,7 +172,7 @@ Diese Punkte wurden nach mehreren Spec-Überarbeitungen entschieden. Wenn ein ä
 3. `docs/specs/F-XXX-name/README.md` — Feature-Intention und Abhängigkeiten
 4. `docs/specs/F-XXX-name/*.md` — Detail-Specs (User Stories, Workflow, Views)
 
-## Implementierungsstand (Stand 2026-07-27, Branch `feature/design-umsetzung`, PR #98)
+## Implementierungsstand (Stand 2026-07-31, PR #117)
 
 Der Design-Prototyp ist umgesetzt. Alle sechs Features sind gebaut; die Reife
 unterscheidet sich noch.
@@ -190,17 +190,21 @@ unterscheidet sich noch.
 Der Timer ist von Hand pausierbar, und die Montage misst ebenfalls. Beides kippt eine
 zuvor bindende MVP-Antwort in `F-005/service.md`.
 
-**Tests:** 175 JVM-Tests (`./gradlew test`) plus vier Migrationstests in `androidTest`
-(`./gradlew connectedDebugAndroidTest`). Keine Compose-UI-Tests — siehe #104.
+**Tests:** 189 JVM-Tests (`./gradlew test`) plus 13 instrumentierte Tests
+(`./gradlew connectedDebugAndroidTest`) — vier Room-Migrationen und neun Compose-UI-Tests.
+Das UI-Test-Harness steht seit #104; die Konventionen und die Animations-Falle stehen in
+`docs/CODING_RULES.md`.
 
 **Emulator:** AVD `boltmind36` (Android 16, arm64). Starten mit
 `emulator -avd boltmind36 -gpu host`, danach `./gradlew installDebug`. Für ein echtes
 Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neuer.
 
-**Offen:** vierzehn Issues in zwei Milestones. **R5** ist Arbeit ohne Entscheidungsbedarf
-(Compose-UI-Tests, Touch-Target-Nachweis, EXIF-Guard, Platzhalter-Bild, Leucht-Ring,
-F-006-README). **R6** sind acht Produktfragen, die eine Antwort brauchen, bevor Code
-entsteht — darunter das Splash-Video und die zwei Timer-Entscheidungen aus #94.
+**Offen:** siebzehn Issues in zwei Milestones. **R5** sind acht Punkte ohne
+Entscheidungsbedarf — darunter die Demontage-Sackgasse nach Feierabend (#121), die
+Glas-Effekt-Abweichungen (#120), die gestauchte Montage-Bedienzeile (#124) und die
+LOC-Grenze des `BrowserViewModel` (#126). **R6** sind neun Produktfragen, die eine Antwort
+brauchen, bevor Code entsteht — darunter das Splash-Video und die zwei Timer-Entscheidungen
+aus #94.
 
 Der Issue-Nachzug ist erledigt: #76–#96 wurden gegen den gebauten Stand geprüft, fünf
 rückwirkende Issues (#99–#103) schließen die Lücken der Kette Spec → Issue → Test für
@@ -301,7 +305,7 @@ Bei Design-Entscheidungen in dieser Reihenfolge abwägen.
 ## Verbotene Patterns
 
 - Business-Logik in Composables
-- ViewModel > 200 LOC (aktuell: Demontage 190, Uebersicht 170, NeuerVorgang 80 — Demontage ist nah am Limit, bei Erweiterung aufteilen)
+- ViewModel > 200 LOC (gemessen: Browser 279, Uebersicht 146, NeuerVorgang 141, Abschluss 69 — `BrowserViewModel` reisst das Limit, weil es alle drei Betriebsarten bedient; offen als #126)
 - Synchrone DB-Calls auf Main-Thread
 - Wildcard-Imports
 - `GlobalScope`

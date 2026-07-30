@@ -221,14 +221,21 @@ app/src/
 │   ├── feature/
 │   │   ├── FormatierungTest.kt               # Datums- und Zeitformate
 │   │   ├── abschluss/AbschlussViewModelTest.kt
-│   │   └── browser/BrowserViewModelTest.kt   # F-003, F-004 und F-001-Archiv
+│   │   ├── browser/BrowserViewModelTest.kt   # F-003, F-004 und F-001-Archiv
+│   │   └── browser/BrowserFotoSteuerungTest.kt  # Kamera-Abbruch, Wiederholen
 │   ├── data/
 │   │   ├── foto/FotoManagerTest.kt
 │   │   └── repository/ReparaturRepositoryTest.kt
 │   ├── service/zeiterfassung/ZeiterfassungServiceTest.kt
-│   └── ui/components/DebounceClickTest.kt
+│   └── ui/
+│       ├── components/DebounceClickTest.kt
+│       └── theme/DimensionenTest.kt          # Touch-Target-Mindestmasse
 └── androidTest/java/com/boltmind/app/        # Geraet/Emulator, JUnit 4
-    └── data/local/MigrationTest.kt           # Room-Migrationen
+    ├── data/local/MigrationTest.kt           # Room-Migrationen
+    └── ui/
+        ├── StartSmokeTest.kt                 # Start, Splash, Tabwechsel
+        ├── MindesthoeheTest.kt               # GlasAktion haelt 56dp
+        └── FotoPlatzhalterTest.kt            # Platzhalter bei fehlender Datei
 ```
 
 Ein einziger `BrowserViewModelTest` deckt Demontage, Montage und Archiv ab, weil ein einziges
@@ -515,20 +522,23 @@ vorgeschrieben werden:
 | Task | Zweck |
 |------|-------|
 | `./gradlew test` | Unit Tests (JVM, JUnit 5) — der verbindliche Check jedes TDD-Schritts |
-| `./gradlew connectedDebugAndroidTest` | Instrumentierte Tests (Room-Migrationen). Braucht Gerät oder Emulator |
+| `./gradlew connectedDebugAndroidTest` | Instrumentierte Tests (Room-Migrationen und Compose-UI). Braucht Gerät oder Emulator |
 | `./gradlew lint` | Android Lint |
 | `./gradlew assembleDebug` | Debug-Build |
 
-### Werkzeug-Lücken (Stand 2026-07-27)
+### Werkzeug-Lücken (Stand 2026-07-31)
 
-Formatierung, statische Analyse und Compose-UI-Tests sind **gewollt, aber nicht eingerichtet**.
+Formatierung und statische Analyse sind **gewollt, aber nicht eingerichtet**.
 Die folgende Tabelle beschreibt ein Soll, keinen Ist-Zustand:
 
 | Werkzeug | Soll | Ist |
 |----------|------|-----|
 | ktlint | Automatische Formatierung nach Kotlin Coding Conventions, `./gradlew ktlintCheck` / `ktlintFormat` | **Nicht eingerichtet.** Kein ktlint-Plugin in `build.gradle.kts` oder `gradle/libs.versions.toml`; die Tasks existieren nicht. |
 | detekt | Statische Code-Analyse (Complexity, Code Smells, Style), `./gradlew detekt`, Konfiguration in `config/detekt/detekt.yml` | **Nicht eingerichtet.** Kein detekt-Plugin, kein `config/`-Verzeichnis; die Task existiert nicht. |
-Compose-UI-Tests sind **eingerichtet und belegt** (siehe unten) und deshalb keine Lücke mehr.
+
+Compose-UI-Tests waren früher ebenfalls eine Lücke. Sie sind es **nicht mehr**: der
+androidTest-Zweig läuft, die Konventionen stehen im Abschnitt „Konvention für `androidTest`",
+und die Animations-Falle ist gleich darunter beschrieben.
 
 Bis zur Einrichtung ist **keiner dieser Punkte eine Anforderung**: Er darf in keinem TDD-Zyklus als
 Pflichtschritt stehen, kein PR darf an ihm scheitern, und keine Zusammenfassung darf behaupten, der
