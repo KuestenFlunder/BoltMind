@@ -128,10 +128,11 @@ Code                             Erst nach RED. Siehe TDD-Workflow unten.
 Issues via `gh issue list`. Ein Issue ist eine **Vertical Slice**: es geht durch alle Schichten (Datenschicht → ViewModel → UI → Tests) und liefert für sich Nutzerwert. Milestones bündeln Scheiben zu Liefer-Wellen:
 
 ```
-R1: Foto-Modell              Fundament — SchrittFoto, Label, System-Kamera
-R2: Schritt-Browser          F-006 als gemeinsames Modul, freie Navigation
-R3: Montage und Archiv       Montage-Flow, Archiv-Detailansicht
-R4: Zeiterfassung end-to-end F-005 inklusive Consumer
+R0–R4                        Abgeschlossen und geschlossen (Stand 2026-07-27)
+R5: Absicherung              Aufgaben aus #76–#93, die trotz geschlossenem Issue
+                             offen blieben, plus dabei gefundene Defekte
+R6: Offene Entscheidungen    Produktfragen im gebauten Stand — brauchen eine
+                             Antwort, bevor Code entsteht
 ```
 
 **Nicht mehr verwenden:** die früheren Schichten-Milestones `F-XXX-A/B/C` (Datenschicht / ViewModel / UI). Sie sind geschlossen. Eine Datenschicht ohne Oberfläche ist nicht abnehmbar, und die Issues einer Schicht altern gemeinsam, wenn sich die Spec ändert — genau das ist bei den F-004-Issues passiert.
@@ -154,7 +155,7 @@ Diese Punkte wurden nach mehreren Spec-Überarbeitungen entschieden. Wenn ein ä
 
 - **Ablageort ist ein Foto-Label, kein eigener Schritt.** Ein Schritt hält N Fotos (`SchrittFoto`), jedes mit den drei kombinierbaren Flags Bauteil / Übersicht / Ablageort, Default Bauteil. `SchrittTyp` ist ersatzlos gestrichen.
 - **Schrittnummer und Fortschritt sind zwei verschiedene Dinge.** „Schritt 12" ist immer die Demontage-Nummer und wird nie umnummeriert — sie ist die Korrelation zum physischen Ablageort. Der Fortschritt heißt getrennt davon „3 von 15 eingebaut". Formulierungen wie „Schritt 5 von 15" vermischen beides und sind verboten.
-- **F-006 besitzt die Schritt-Navigation vollständig** — Thumbnail-Sprung *und* Vor/Zurück. F-001, F-003 und F-004 verweisen darauf, statt eigene Bedienelemente zu spezifizieren. Einen Sprung-Dialog mit Nummerneingabe gibt es nicht.
+- **Der Thumbnail-Sprung gehört F-006, Vor/Zurück dem Consumer** (entschieden am 2026-07-31, vorher lag beides bei F-006). Die drei Betriebsarten haben an derselben Stelle unterschiedliche Bedienelemente — die Demontage hat gar kein Vor/Zurück, die Montage nur „ZURÜCK", das Archiv zwei schlichte Pfeile. Ein einheitliches Vor/Zurück aus F-006 hätte daneben gestanden statt darin. Die Consumer hängen ihre Kreise in den Slot `bedienkreise`. Einen Sprung-Dialog mit Nummerneingabe gibt es nicht.
 - **Horizontales Wischen** im Bildbereich wechselt das **Foto innerhalb des Schritts** (Karussell), nie den Schritt.
 - **Label sind nur in der Demontage änderbar.** F-004 und das Archiv zeigen sie, ändern sie aber nicht.
 - **Abschluss nur über den Abschluss-Screen.** Ist der letzte Schritt abgehakt, erscheint „Zusammenbau abgeschlossen!" mit „Archivieren"-Button. Back führt zum letzten Schritt zurück, **ohne** zu archivieren. Der „Weiter"-Button wird nicht zum Abschlussbutton — Archivieren nimmt den Vorgang aus der aktiven Liste und braucht mit Handschuhen eine Bestätigung.
@@ -171,7 +172,7 @@ Diese Punkte wurden nach mehreren Spec-Überarbeitungen entschieden. Wenn ein ä
 3. `docs/specs/F-XXX-name/README.md` — Feature-Intention und Abhängigkeiten
 4. `docs/specs/F-XXX-name/*.md` — Detail-Specs (User Stories, Workflow, Views)
 
-## Implementierungsstand (Stand 2026-07-27, Branch `feature/design-umsetzung`, PR #98)
+## Implementierungsstand (Stand 2026-07-31, PR #117)
 
 Der Design-Prototyp ist umgesetzt. Alle sechs Features sind gebaut; die Reife
 unterscheidet sich noch.
@@ -181,7 +182,7 @@ unterscheidet sich noch.
 | **F-001** Übersicht | ✅ | Tabs, Vorgangsliste mit Dauer im Archiv, Leerzustände, FAB, Auswahl- und Lösch-Sheet. Vier-Stufen-Datumsregel. Archiv-Detailansicht ist der Browser im Modus ARCHIV. |
 | **F-002** Anlage | ✅ | System-Kamera, Pflicht-Auftragsnummer, Beschreibungsfeld, Direktstart in die Demontage. CameraX und `CAMERA`-Permission sind raus. |
 | **F-003** Demontage | ✅ | Browser im Modus DEMONTAGE. Am Emulator durchgeklickt. |
-| **F-004** Montage | ⚠️ gebaut, nicht durchgespielt | Modus MONTAGE plus Abschluss-Screen. Kompiliert und verdrahtet, aber noch nicht mit echten Daten geprüft. |
+| **F-004** Montage | ✅ | Modus MONTAGE plus Abschluss-Screen. Am 2026-07-27 mit gesetzter Datenbank durchgespielt: Wiedereinstieg, Abhaken, Häkchen zurücknehmen, Archivieren. |
 | **F-005** Zeiterfassung | ✅ | `ZeitMessung`, DAO, Service, Timer-Chip. Pausierbar — siehe unten. |
 | **F-006** Schritt-Browser | ✅ | `ui/schrittbrowser/`, zustandslos, drei Betriebsarten. |
 
@@ -189,16 +190,24 @@ unterscheidet sich noch.
 Der Timer ist von Hand pausierbar, und die Montage misst ebenfalls. Beides kippt eine
 zuvor bindende MVP-Antwort in `F-005/service.md`.
 
-**Tests:** 161 JVM-Tests (`./gradlew test`) plus vier Migrationstests in `androidTest`
-(`./gradlew connectedDebugAndroidTest`). Keine Compose-UI-Tests.
+**Tests:** 189 JVM-Tests (`./gradlew test`) plus 13 instrumentierte Tests
+(`./gradlew connectedDebugAndroidTest`) — vier Room-Migrationen und neun Compose-UI-Tests.
+Das UI-Test-Harness steht seit #104; die Konventionen und die Animations-Falle stehen in
+`docs/CODING_RULES.md`.
 
 **Emulator:** AVD `boltmind36` (Android 16, arm64). Starten mit
 `emulator -avd boltmind36 -gpu host`, danach `./gradlew installDebug`. Für ein echtes
 Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neuer.
 
-**Offen:** Splash-Video und Original-Stahltextur ließen sich nicht exportieren und sind
-prozedural ersetzt (als TODO markiert). Die Issues #76–#96 sind noch nicht gegen den
-gebauten Stand nachgezogen.
+**Offen:** achtzehn Issues, neun je Milestone. **R5** ist Arbeit ohne Entscheidungsbedarf —
+darunter die Demontage-Sackgasse nach Feierabend (#121), die Glas-Effekt-Abweichungen (#120),
+die gestauchte Montage-Bedienzeile (#124) und die LOC-Grenze des `BrowserViewModel` (#126).
+**R6** sind Produktfragen, die eine Antwort brauchen, bevor Code entsteht — darunter das
+Splash-Video und die zwei Timer-Entscheidungen aus #94.
+
+Der Issue-Nachzug ist erledigt: #76–#96 wurden gegen den gebauten Stand geprüft, fünf
+rückwirkende Issues (#99–#103) schließen die Lücken der Kette Spec → Issue → Test für
+Arbeit, die in PR #98 ohne Issue entstand.
 
 ### Veraltete Doku
 
@@ -295,7 +304,7 @@ Bei Design-Entscheidungen in dieser Reihenfolge abwägen.
 ## Verbotene Patterns
 
 - Business-Logik in Composables
-- ViewModel > 200 LOC (aktuell: Demontage 190, Uebersicht 170, NeuerVorgang 80 — Demontage ist nah am Limit, bei Erweiterung aufteilen)
+- ViewModel > 200 LOC (gemessen: Browser 279, Uebersicht 146, NeuerVorgang 141, Abschluss 69 — `BrowserViewModel` reisst das Limit, weil es alle drei Betriebsarten bedient; offen als #126)
 - Synchrone DB-Calls auf Main-Thread
 - Wildcard-Imports
 - `GlobalScope`

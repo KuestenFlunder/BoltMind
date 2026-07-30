@@ -31,7 +31,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import coil.compose.SubcomposeAsyncImage
+import com.boltmind.app.ui.components.FotoPlatzhalter
 import com.boltmind.app.R
 import com.boltmind.app.data.model.SchrittMitFotos
 import com.boltmind.app.ui.components.BoltText
@@ -132,6 +135,7 @@ private fun Thumbnail(
     val radius = if (aktiv) BoltMindDimensions.radiusThumbAktiv else BoltMindDimensions.radiusStandard
     val erledigt = zeigeErledigt && schritt.schritt.eingebautBeiMontage
     val mehrFotos = schritt.fotos.size > 1
+    val fehlendBeschreibung = stringResource(R.string.browser_foto_fehlt_beschreibung)
 
     // Der aktive Schritt atmet -- im Entwurf ein pulsierender Aussenschein.
     val puls = rememberInfiniteTransition(label = "thumbAtem")
@@ -175,13 +179,28 @@ private fun Thumbnail(
         ) {
             val erstesFoto = schritt.fotos.firstOrNull()
             if (erstesFoto != null) {
-                AsyncImage(
+                // Kachel und App-Icon sind beide quadratisch, hier genuegt der
+                // error-Slot ohne Subcompose-Umweg. Ohne Beschriftung -- auf
+                // 54dp waere Text unlesbar; die contentDescription traegt die
+                // Aussage stattdessen fuer die Sprachausgabe und fuer Tests.
+                SubcomposeAsyncImage(
                     model = File(erstesFoto.pfad),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    error = {
+                        FotoPlatzhalter(
+                            modifier = Modifier.semantics {
+                                contentDescription = fehlendBeschreibung
+                            },
+                            symbolGroesse = kachel * 0.5f,
+                            mitBeschriftung = false
+                        )
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
+                // Schritt ohne Fotos -- ein anderer Fall als eine fehlende
+                // Datei und deshalb bewusst nur eine dunkle Kachel.
                 Box(Modifier.fillMaxSize().background(BoltHintergrund))
             }
             // Abdunklung oben, damit die Nummer lesbar bleibt.

@@ -351,7 +351,11 @@ Gilt **ausschliesslich** fuer `BEARBEITBAR` (F-003 Demontage).
   **When** seine Kachel dargestellt wird
   **Then** bleiben Schrittnummer, Farbstreifen und Trefferflaeche unveraendert erhalten
 
-> **[OFFEN]** Womit die fehlende Datei ersetzt wird, ist nicht entschieden. `governance.md`, Abschnitt „Fehlende Dateien", verlangt ein Platzhalter-Bild; der gebaute Stand setzt an `AsyncImage` weder `placeholder` noch `error` und zeigt eine leere Flaeche. Vor der Umsetzung festlegen: App-Icon, Stahltextur oder eigenes Symbol.
+**Die Ersatzdarstellung ist das App-Icon**, gedaempft auf 45 % Deckkraft, im Karussell mit dem Text „Foto fehlt" darunter, in der Thumbnail-Kachel ohne Text (dort waere er unlesbar; die Aussage traegt stattdessen die contentDescription). Festgelegt in [../F-004-montage/montage.md](../F-004-montage/montage.md), Abschnitt „Technische Hinweise"; umgesetzt am 2026-07-27.
+
+> **Nicht zu verwechseln mit US-006.9.** Ein Schritt ohne Fotos ist waehrend der Arbeit normal und zeigt einen gestrichelten Rahmen mit der Schrittnummer. Eine fehlende Datei heisst, dass etwas kaputt ist. Die beiden Faelle haengen auch technisch an verschiedenen Schichten — der Leer-Zustand an einer Zustandsentscheidung im Composable, die fehlende Datei am Ladezustand von Coil. Es gibt keinen Codepfad, auf dem sie sich vermischen koennen; ein Test haelt das fest.
+>
+> Eine **leere** Datei (0 Byte) zaehlt ebenfalls als fehlend. `FotoManager` legt solche Huellen vor dem Kamerastart an; bleibt eine nach einem Abbruch mitsamt Datenbankzeile stehen, ist sie ein kaputtes Foto.
 
 ---
 
@@ -615,8 +619,8 @@ Die Beschriftungen der Slot-Inhalte („ZURÜCK", „‹", „›", „RAUS", �
 
 ## Offene Fragen
 
-- **[OFFEN]** Ersatzdarstellung fuer eine fehlende Foto-Datei — siehe US-006.8.
-- **[OFFEN]** `README.md` dieses Ordners beschreibt Schnittstelle und Schritt-Navigation noch ohne den Entwurf (waagerechte Leiste, `FotoAktion`-Parameter, `-1` als Leer-Index). Bis er nachgezogen ist, gilt diese Datei.
+- Die Ersatzdarstellung fuer eine fehlende Foto-Datei ist **entschieden**: das App-Icon, gedaempft, mit dem Text „Foto fehlt" — festgelegt in [../F-004-montage/montage.md](../F-004-montage/montage.md), Abschnitt „Technische Hinweise", umgesetzt am 2026-07-27. Siehe US-006.8.
+- `README.md` dieses Ordners ist am 2026-07-27 gegen den gebauten Stand nachgezogen. Beide Dateien beschreiben dieselbe Schnittstelle; keine hat mehr Vorrang vor der anderen.
 - Die drei MVP-gebundenen Fragen (Symbol zusaetzlich zur Farbe, Pinch-Zoom im Vollbild, Filter bei sehr vielen Schritten) stehen unveraendert in [README.md](README.md#offene-fragen).
 
 ---

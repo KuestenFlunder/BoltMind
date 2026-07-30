@@ -51,14 +51,22 @@ class BrowserViewModel(
             repository.beobachteSchritteMitFotos(vorgangId).collect { alle ->
                 val sortiert = if (modus == BrowserModus.MONTAGE) alle.reversed() else alle
                 _uiState.update { s ->
-                    val index = if (s.laedt) startIndex(sortiert) else s.aktiverIndex
-                    s.copy(
+                    val ersteLadung = s.laedt
+                    val index = if (ersteLadung) startIndex(sortiert) else s.aktiverIndex
+                    val neu = s.copy(
                         laedt = false,
                         vorgang = vorgang,
                         schritte = sortiert,
                         aktiverIndex = index.coerceIn(0, (sortiert.size - 1).coerceAtLeast(0)),
                         eingebauteAnzahl = sortiert.count { it.schritt.eingebautBeiMontage }
                     )
+                    // Steigt der Mechaniker in eine bereits vollstaendige Montage
+                    // wieder ein, fuehrt der Weg direkt zum Abschluss -- es gibt
+                    // keinen offenen Schritt mehr, ueber den er dorthin kaeme
+                    // (montage.md, US-004.5). Nur beim ersten Laden: nach der
+                    // Rueckkehr per Back uebernimmt der Knopf "Zum Abschluss",
+                    // sonst liesse sich der Screen nie verlassen.
+                    if (ersteLadung && neu.alleEingebaut) neu.copy(fertig = true) else neu
                 }
                 zeitAktualisieren()
             }
@@ -129,6 +137,12 @@ class BrowserViewModel(
             else onSchrittGewaehlt(naechster)
         }
     }
+
+    /**
+     * Zurueck zum Abschluss-Screen, nachdem der Mechaniker ihn per Back
+     * verlassen hat. Navigiert nur -- archiviert wird ausschliesslich dort.
+     */
+    fun onZumAbschluss() = _uiState.update { it.copy(fertig = true) }
 
     fun onHaekchenZuruecknehmenBestaetigt() {
         val schritt = _uiState.value.aktiverSchritt?.schritt ?: return

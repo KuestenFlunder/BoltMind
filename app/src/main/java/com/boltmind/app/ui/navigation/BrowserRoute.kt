@@ -109,6 +109,7 @@ fun BrowserRoute(
                 )
             )
         },
+        onZumAbschluss = viewModel::onZumAbschluss,
         onVorherigerSchritt = viewModel::onVorherigerSchritt,
         onNaechsterSchritt = viewModel::onNaechsterSchritt,
         onFeierabendAnfragen = {

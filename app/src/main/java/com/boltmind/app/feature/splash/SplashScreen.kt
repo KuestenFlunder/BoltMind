@@ -134,9 +134,10 @@ fun SplashScreen(
     ) {
         // TODO: Der Entwurf legt hier eine Videoschleife (assets/splash-loop.mp4,
         //  Deckkraft .85, object-fit:cover, Z. 49). Die Datei liegt nicht vor und
-        //  liess sich nicht exportieren. Bis sie nachgereicht wird, traegt die
-        //  Stahltextur den Grund; der Verlauf darueber ist unveraendert der des
-        //  Entwurfs.
+        //  liess sich nicht exportieren. Bis sie nachgereicht wird, traegt eine
+        //  ruhige einfarbige Flaeche den Grund; der Verlauf darueber ist
+        //  unveraendert der des Entwurfs. Siehe docs/specs/F-007-splash.md,
+        //  Abschnitt "Offene Fragen".
         BoltRuhigerHintergrund()
         Box(Modifier.fillMaxSize().background(SplashSchleier))
 

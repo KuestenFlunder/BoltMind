@@ -24,7 +24,7 @@ Mechaniker, der einen neuen Reparaturauftrag beginnt und das Fahrzeug vor sich s
 - Foto wiederholen vor dem Starten (Aktion am bereits aufgenommenen Foto)
 - Abbruch ueber Back-Button (kein Vorgang wird angelegt)
 
-> **[OFFEN]** Die aktuelle Implementierung weicht davon ab: Sie nutzt CameraX mit app-eigener Kameraansicht und CAMERA-Permission. Die Umstellung auf die System-Kamera steht aus — Details in [anlegen.md](anlegen.md), Abschnitt "Technische Hinweise".
+Die Umstellung auf die System-Kamera ist seit 2026-07-27 umgesetzt: CameraX, die app-eigene Kameraansicht und die `CAMERA`-Permission sind entfernt, das Fahrzeugfoto entsteht über `ActivityResultContracts.TakePicture()` und einen `FileProvider`. Details in [anlegen.md](anlegen.md), Abschnitt "Technische Hinweise".
 
 ## Abhaengigkeiten
 

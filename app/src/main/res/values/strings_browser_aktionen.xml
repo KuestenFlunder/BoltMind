@@ -17,6 +17,9 @@
     <string name="montage_sitzt">SITZT!</string>
     <string name="montage_drin">DRIN</string>
     <string name="montage_raus">RAUS</string>
+    <!-- Erscheint nur, wenn jedes Teil abgehakt ist. Ohne ihn waere die
+         Rueckkehr vom Abschluss-Screen eine Sackgasse (montage.md, US-004.5). -->
+    <string name="montage_zum_abschluss">ABSCHLUSS</string>
     <string name="montage_fortschritt">%1$d VON %2$d DRIN</string>
 
     <!-- Timer -->

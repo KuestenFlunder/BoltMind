@@ -148,14 +148,15 @@ fun SchrittBrowser(
                 )
             }
 
-            // Dekorative Kugel hinter den Aktionskreisen.
+            // Dekorative Kugel hinter den Aktionskreisen. Sie dunkelt den
+            // Bildbereich ab, damit "SITZT!", "ZURUECK" und "RAUS" auch auf
+            // einem hellen Foto lesbar bleiben.
             Box(
                 Modifier
                     .align(Alignment.BottomEnd)
                     .size(BoltMindDimensions.kugelDurchmesser)
-                    .padding(0.dp)
                     .glas(
-                        GlasRezepte.kapsel,
+                        GlasRezepte.kugel,
                         androidx.compose.foundation.shape.CircleShape,
                         BoltMindDimensions.kugelDurchmesser / 2,
                         rund = true

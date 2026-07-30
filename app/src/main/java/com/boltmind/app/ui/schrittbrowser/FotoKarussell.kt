@@ -29,7 +29,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.boltmind.app.ui.components.FotoPlatzhalter
+import coil.compose.SubcomposeAsyncImage
 import com.boltmind.app.R
 import com.boltmind.app.data.model.SchrittFoto
 import com.boltmind.app.ui.components.BoltText
@@ -72,6 +75,7 @@ fun FotoKarussell(
         return
     }
 
+    val fehlendBeschreibung = stringResource(R.string.browser_foto_fehlt_beschreibung)
     val pagerZustand = rememberPagerState(
         initialPage = aktuellesFoto.coerceIn(0, fotos.lastIndex),
         pageCount = { fotos.size }
@@ -89,10 +93,20 @@ fun FotoKarussell(
     }
 
     HorizontalPager(state = pagerZustand, modifier = modifier) { seite ->
-        AsyncImage(
+        // SubcomposeAsyncImage statt AsyncImage: dessen `error`-Painter erbt den
+        // contentScale des Erfolgsbildes (hier Crop) und wuerde das quadratische
+        // App-Icon bildschirmfuellend beschneiden. Die Slot-API trennt das.
+        SubcomposeAsyncImage(
             model = File(fotos[seite].pfad),
             contentDescription = stringResource(R.string.browser_foto_beschreibung),
             contentScale = zuschnitt,
+            error = {
+                FotoPlatzhalter(
+                    Modifier.semantics {
+                        contentDescription = fehlendBeschreibung
+                    }
+                )
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .boltKlick(stauchung = 1f, onKlick = onFotoGetippt)

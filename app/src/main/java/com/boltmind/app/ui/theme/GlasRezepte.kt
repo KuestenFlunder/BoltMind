@@ -187,6 +187,25 @@ object GlasRezepte {
         randFarbe = BoltWeiss15
     )
 
+    /**
+     * Die dekorative Kugel hinter den Aktionskreisen des Browsers.
+     *
+     * **Randlos, mit eigener Farbe.** Sie trug versehentlich [kapsel], und das
+     * faellt nur in einem Zustand auf: ueber einem Foto dunkelt die Fuellung
+     * sichtbar ab, auf schwarzem Grund aber ist `BoltPanel55` die
+     * Hintergrundfarbe selbst bei 55 % -- unsichtbar. Uebrig blieb der
+     * 15-%-Rand als nackter 296dp-Kreis quer durch Fortschrittsanzeige und
+     * Label-Chips.
+     *
+     * Eine Kuppel hat keine Kante, deshalb `randBreite = 0`. [BoltKugelHell]
+     * war fuer genau diese Flaeche angelegt und bis dahin unbenutzt.
+     */
+    val kugel = GlasRezept.einfarbig(
+        fuellung = BoltKugelHell,
+        randFarbe = androidx.compose.ui.graphics.Color.Transparent,
+        randBreite = 0.dp
+    )
+
     /** Eingabefeld. Ohne Unschaerfe -- im Entwurf hat es keinen backdrop-filter. */
     val eingabe = GlasRezept.einfarbig(
         fuellung = BoltEingabeFlaeche,
