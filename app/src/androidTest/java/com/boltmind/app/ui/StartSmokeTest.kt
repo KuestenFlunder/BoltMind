@@ -20,6 +20,10 @@ import org.junit.runner.RunWith
  * Solange das nicht bewiesen ist, ist jede spaetere UI-Behauptung -- etwa "die
  * Mindesthoehe greift" -- unbelegt.
  *
+ * **Jeder Testname hier sagt genau, was der Test zusichert** (#125). Das
+ * Ueberspringen des Splash steht deshalb nicht mehr in dieser Klasse: es
+ * braucht eine von Hand gestellte Uhr und liegt in [SplashUeberspringenTest].
+ *
  * **Warum nur Splash und Uebersicht?** Der Schritt-Browser haelt zwei
  * Endlos-Animationen: den Atem-Puls des aktiven Thumbnails
  * (`ThumbnailLeiste.kt`) und den pulsierenden Wischhinweis
@@ -64,30 +68,31 @@ class StartSmokeTest {
         regel.onNodeWithText(text(R.string.uebersicht_tab_archiv)).assertExists()
     }
 
+    /**
+     * Der Wechsel auf den Archiv-Tab.
+     *
+     * Der Name sagt bewusst nur das: der Leerzustand des Archivs haengt am
+     * Datenbestand des Geraets und ist hier nicht zugesichert (#125). Geprueft
+     * wird stattdessen etwas, das den Wechsel wirklich belegt -- der FAB
+     * "NEUER AUFTRAG" steht laut `UebersichtScreen` nur ueber dem Offen-Tab und
+     * muss nach dem Wechsel verschwunden sein. Die frueher hier stehende
+     * Zusicherung ("der Offen-Tab existiert noch") war wirkungslos: die
+     * Tableiste rendert beide Tabs bedingungslos.
+     */
     @Test
-    fun splashLaesstSichUeberspringen() {
-        // Given: der Splash ist sichtbar
-        warteAufText(text(R.string.splash_claim))
-
-        // When: irgendwo auf die Flaeche getippt wird (US-007.1)
-        regel.onNodeWithText(text(R.string.splash_claim)).performClick()
-
-        // Then: die Uebersicht erscheint, ohne die vollen 2,1 s abzuwarten
-        warteAufText(text(R.string.uebersicht_tab_offen), timeoutMs = 3_000)
-    }
-
-    @Test
-    fun derWechselInsArchivZeigtDenLeerzustand() {
-        // Given: die Uebersicht steht
+    fun derArchivTabLaesstSichOeffnen() {
+        // Given: die Uebersicht steht auf dem Offen-Tab, der FAB ist da
         warteAufText(text(R.string.uebersicht_tab_offen))
+        regel.onNodeWithText(text(R.string.uebersicht_fab)).assertExists()
 
         // When: auf den Archiv-Tab gewechselt wird
         regel.onNodeWithText(text(R.string.uebersicht_tab_archiv)).performClick()
 
-        // Then: der Tab bleibt bedienbar und die App lebt noch. Ein
-        // Leerzustandstext wird hier bewusst nicht geprueft -- er haengt am
-        // Datenbestand des Geraets, und dieser Test soll das Harness belegen,
-        // nicht Inhalte.
-        regel.onNodeWithText(text(R.string.uebersicht_tab_offen)).assertExists()
+        // Then: der FAB ist weg -- der Wechsel hat wirklich stattgefunden
+        regel.waitUntil(5_000) {
+            regel.onAllNodes(hasText(text(R.string.uebersicht_fab)), useUnmergedTree = true)
+                .fetchSemanticsNodes().isEmpty()
+        }
+        regel.onNodeWithText(text(R.string.uebersicht_fab)).assertDoesNotExist()
     }
 }
