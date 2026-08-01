@@ -4,7 +4,7 @@
 
 Der Mechaniker steht vor dem Fahrzeug und will einen neuen Reparaturvorgang beginnen. Der Flow ist bewusst Foto-first: Zuerst wird das Fahrzeug fotografiert (visuelles Wiederfinden in der Uebersicht), dann werden die Auftragsdaten erfasst. Nur die Auftragsnummer ist Pflicht — alles andere soll den Mechaniker nicht aufhalten.
 
-Der Flow hat genau einen Weg vorwaerts: **„LOS GEHT'S"** legt den Vorgang **und** dessen Schritt 1 an und fuehrt unmittelbar in die Demontage (F-003). Er hat genau einen Weg zurueck: den System-Back-Button bzw. den Zurueck-Chip, der nichts anlegt. Ein versehentlich angelegter Vorgang wird in der Uebersicht (F-001) per Swipe geloescht.
+Der Flow hat genau einen Weg vorwaerts: **„LOS GEHT'S"** legt den Vorgang an und fuehrt unmittelbar in die Demontage (F-003); den ersten Schritt legt dort F-003 an. Er hat genau einen Weg zurueck: den System-Back-Button bzw. den Zurueck-Chip, der nichts anlegt. Ein versehentlich angelegter Vorgang wird in der Uebersicht (F-001) per Swipe geloescht.
 
 Farben, Schriften, Glasflaechen und Maße stehen in [../design-system.md](../design-system.md); diese Spec nennt nur Wortlaute und Verhalten.
 
@@ -60,13 +60,14 @@ Farben, Schriften, Glasflaechen und Maße stehen in [../design-system.md](../des
   **And** das Nummernfeld zeigt als Platzhalter (wörtlich) **„2026-0815"**, das Beschreibungsfeld (wörtlich) **„Bremsen vorne wechseln"**
   **And** „WAS IST ZU TUN?" bildet `Reparaturvorgang.beschreibung` ab und trägt keine Pflichtmarkierung
 
-##### AK 2: „LOS GEHT'S" legt Vorgang und Schritt 1 an
+##### AK 2: „LOS GEHT'S" legt den Vorgang an und übergibt an die Demontage
 
 - **Given** das Formular zeigt ein Fahrzeugfoto und eine ausgefüllte Auftragsnummer
   **When** der Mechaniker „LOS GEHT'S" antippt
   **Then** wird der Reparaturvorgang mit Fahrzeugfoto, Auftragsnummer und Beschreibung im Status OFFEN gespeichert
-  **And** in derselben Aktion wird sein erster `Schritt` mit `schrittNummer = 1` angelegt
+  **And** es wird **kein** `Schritt` angelegt — die Schritt-Anlage gehört vollständig F-003
   **And** die Schritt-Ansicht der Demontage (F-003) wird für diesen Vorgang geöffnet
+  **And** F-003 findet dort keinen offenen Schritt vor, legt daher Schritt 1 an und startet die System-Kamera automatisch (siehe [../F-003-demontage/workflow.md](../F-003-demontage/workflow.md), Entry-Transition)
 
 ##### AK 3: Der Anlage-Screen bleibt nicht im Rückwärtsstapel
 
@@ -152,14 +153,16 @@ Farben, Schriften, Glasflaechen und Maße stehen in [../design-system.md](../des
 - Room Entity: `Reparaturvorgang(id, fahrzeugFotoPfad, auftragsnummer, beschreibung, status, erstelltAm, aktualisiertAm)`
 - `beschreibung`: Nullable. Ein leer gelassenes Feld „WAS IST ZU TUN?" wird als `null` gespeichert, nicht als leerer Text
 - `aktualisiertAm`: Zeitstempel der letzten Änderung. F-001 sortiert danach und leitet daraus das Abschlussdatum archivierter Vorgänge ab. Ein eigener Archivierungs-Zeitstempel existiert **nicht**
-- „LOS GEHT'S" schreibt in einer Aktion `Reparaturvorgang` **und** `Schritt` (`schrittNummer = 1`, `gestartetAm`) und navigiert dann zur Schritt-Ansicht (F-003) mit `vorgangId`. Der Anlage-Screen wird dabei aus dem Rückwärtsstapel entfernt
+- „LOS GEHT'S" schreibt den `Reparaturvorgang` und navigiert dann zur Schritt-Ansicht (F-003) mit `vorgangId`. Der Anlage-Screen wird dabei aus dem Rückwärtsstapel entfernt. Den `Schritt` legt F-003 an — F-002 kennt die Schrittnummern-Logik nicht
 - Doppel-Tap-Schutz: „LOS GEHT'S" ist debounced (300ms, [../governance.md](../governance.md), Abschnitt "Debounce") und wirkt nach dem ersten erfolgreichen Anlegen nicht erneut
 - Abbruch vor dem Anlegen: die angelegte Zieldatei unter `photos/` sofort löschen. Verbleibende Dateien ohne DB-Referenz — geprüft gegen `SchrittFoto.pfad` und `Reparaturvorgang.fahrzeugFotoPfad` — räumt die Cleanup-Regel beim App-Start auf
 - Spätere Erweiterung: OCR-Scanner für die Auftragsnummer vom Auftragszettel
 
-### [OFFEN] Kamera-Autostart für Schritt 1
+### Kamera-Autostart für Schritt 1 (entschieden am 2026-08-01)
 
-Nach „LOS GEHT'S" landet der Mechaniker in der Schritt-Ansicht von Schritt 1 mit leerem Karussell und löst die Kamera dort selbst über „NOCH'N FOTO" aus. Der Design-Prototyp öffnet an dieser Stelle die Kamera für Schritt 1 automatisch (Transition „LOS GEHT'S" → Kamera). Welche der beiden Varianten gilt, ist zu entscheiden; die Akzeptanzkriterien der Schritt-Ansicht führen denselben Punkt (siehe [../F-003-demontage/views/schritt-ansicht.md](../F-003-demontage/views/schritt-ansicht.md), US-003.1 AK 1).
+**Die Kamera startet automatisch.** Nach „LOS GEHT'S" landet der Mechaniker nicht in einer leeren Maske, sondern direkt in der System-Kamera für Schritt 1 — so, wie es der Design-Prototyp zeichnet. Der frühere Zustand (leeres Karussell, Kamera erst über „NOCH'N FOTO") war eine Abweichung vom Soll und ist behoben.
+
+Zuständig dafür ist **F-003, nicht F-002**: der Autostart hängt nicht am Anlage-Flow, sondern an der Entry-Bedingung „kein offener Schritt vorhanden". Dieselbe Regel greift beim Wiedereinstieg über F-001 nach dem Feierabend. F-002 legt deshalb keinen Schritt mehr an; die Regel steht vollständig in [../F-003-demontage/workflow.md](../F-003-demontage/workflow.md).
 
 ## UI-Skizze
 
@@ -213,3 +216,4 @@ Nach „LOS GEHT'S" landet der Mechaniker in der Schritt-Ansicht von Schritt 1 m
 | Datum | Änderung |
 |---|---|
 | 2026-07-27 | Auf das Design-System nachgezogen: System-Kamera ist Ist-Zustand (CameraX-Warnungen entfallen), „LOS GEHT'S" legt Vorgang und Schritt 1 an und verlässt den Rückwärtsstapel (AK 2/AK 3), Wortlaute „NEUER AUFTRAG", „↺ NEU KNIPSEN", „AUFTRAGSNUMMER", „WAS IST ZU TUN?", „LOS GEHT'S", „Ohne Nummer geht's nicht." (erst nach einem Versuch) festgeschrieben, Platzhalter „2026-0815" / „Bremsen vorne wechseln". |
+| 2026-08-01 | `[OFFEN] Kamera-Autostart für Schritt 1` entschieden: die Kamera startet automatisch. Die Schritt-Anlage wandert dabei von F-002 zu F-003 (AK 2 umformuliert) — der Autostart hängt an der Entry-Bedingung „kein offener Schritt", nicht am Anlage-Flow, und gilt damit auch beim Wiedereinstieg über F-001. |

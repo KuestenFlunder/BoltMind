@@ -1,59 +1,50 @@
 package com.boltmind.app.ui.navigation
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.FileProvider
 import com.boltmind.app.R
-import com.boltmind.app.data.foto.FotoManager
 import com.boltmind.app.feature.browser.BrowserScreen
 import com.boltmind.app.feature.browser.BrowserViewModel
 import com.boltmind.app.feature.browser.SheetAktion
 import com.boltmind.app.feature.browser.SheetMarke
 import com.boltmind.app.feature.browser.SheetStil
 import com.boltmind.app.feature.browser.SheetZustand
+import com.boltmind.app.ui.components.KameraAnbindung
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 
 /**
  * Verbindet den Schritt-Browser mit Navigation und System-Kamera.
  *
- * Die Kamera laeuft ueber [ActivityResultContracts.TakePicture] und schreibt
- * direkt in die Zieldatei unter `photos/`. Es gibt kein temp-Verzeichnis und
- * keine app-eigene Bestaetigung -- die System-Kamera bestaetigt selbst.
+ * Die Kamera haengt an [KameraAnbindung] und schreibt direkt in die Zieldatei
+ * unter `photos/`. Es gibt kein temp-Verzeichnis und keine app-eigene
+ * Bestaetigung -- die System-Kamera bestaetigt selbst.
  */
 @Composable
 fun BrowserRoute(
     onVerlassen: () -> Unit,
     onMontageFertig: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: BrowserViewModel = koinViewModel(),
-    fotoManager: FotoManager = koinInject()
+    viewModel: BrowserViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
-    val kamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        if (ok) viewModel.onFotoAufgenommen() else viewModel.onKameraAbgebrochen()
-    }
-
-    fun starteKamera(ersetztFotoId: Long?) {
-        val ziel = fotoManager.erstelleZieldatei("schritt")
-        viewModel.aufnahmeAngemeldet(ziel.absolutePath, ersetztFotoId)
-        val uri = FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", ziel
-        )
-        runCatching { kamera.launch(uri) }.onFailure {
-            // Kein Kamera-Programm auf dem Geraet: die leere Huelle wieder wegraeumen.
-            viewModel.onKameraAbgebrochen()
-        }
-    }
+    // Die Kamera startet, was das ViewModel anfordert -- nicht, was ein Tap
+    // ausloest. Nur so steht der Schritt, fuer den aufgenommen wird, sicher schon
+    // in der Datenbank (F-003 workflow.md, "Reihenfolge beim Schritt-Start").
+    KameraAnbindung(
+        auftragsNummer = uiState.kameraAuftrag?.nummer,
+        zielPfad = uiState.kameraAuftrag?.zielPfad,
+        onFotoAufgenommen = { viewModel.onFotoAufgenommen() },
+        onAbgebrochen = viewModel::onKameraAbgebrochen,
+        // Kein Kamera-Programm auf dem Geraet: derselbe Weg wie ein Abbruch --
+        // die leere Huelle verschwindet, ein eben eroeffneter Schritt wird
+        // zurueckgenommen.
+        onKeineKameraApp = viewModel::onKameraAbgebrochen
+    )
 
     LaunchedEffect(uiState.fertig) {
         if (uiState.fertig) {
@@ -87,14 +78,11 @@ fun BrowserRoute(
         onVollbildSchliessen = viewModel::onVollbildSchliessen,
         onLabelUmgeschaltet = viewModel::onLabelUmgeschaltet,
         onTimerUmgeschaltet = viewModel::onTimerUmgeschaltet,
-        onNaechstesTeil = {
-            viewModel.onNaechstesTeil()
-            starteKamera(null)
-        },
-        onWeiteresFoto = { starteKamera(null) },
+        onNaechstesTeil = viewModel::onNaechstesTeil,
+        onWeiteresFoto = viewModel::onWeiteresFoto,
         // Wiederholen: erst die Kamera, das alte Foto verschwindet erst nach
         // bestaetigter Neuaufnahme (Governance).
-        onWiederholen = { starteKamera(uiState.aktiverSchritt?.fotos?.getOrNull(uiState.aktivesFoto)?.id) },
+        onWiederholen = viewModel::onWiederholen,
         onZumOffenenSchritt = viewModel::onZumOffenenSchritt,
         onEingebaut = viewModel::onEingebaut,
         onHaekchenAnfragen = {

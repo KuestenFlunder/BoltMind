@@ -7,6 +7,8 @@ import com.boltmind.app.data.repository.ReparaturRepository
 import com.boltmind.app.service.zeiterfassung.ReferenzTyp
 import com.boltmind.app.service.zeiterfassung.ZeiterfassungService
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -46,6 +48,7 @@ class BrowserFotoSteuerungTest {
 
     private companion object {
         const val SCHRITT_ID = 42L
+        const val FRISCHER_ID = 99L
         const val ALTES_FOTO_ID = 7L
         const val NEUER_PFAD = "/photos/schritt_neu.jpg"
         const val ALTER_PFAD = "/photos/schritt_alt.jpg"
@@ -187,6 +190,104 @@ class BrowserFotoSteuerungTest {
             // Then: nichts abzuschliessen, aber die Messung laeuft an
             verify(repository, never()).schrittAbschliessen(any())
             verify(zeiterfassung).starten(99L, ReferenzTyp.DEMONTAGE_SCHRITT)
+        }
+    }
+
+    /**
+     * Bricht die Kamera ab, die einen Schritt gerade erst eroeffnet hat, wird der
+     * Schritt-Start vollstaendig zurueckgenommen (workflow.md, "Rollback beim
+     * Abbruch am frischen Schritt").
+     *
+     * Der zweite Teil -- den Vorgaenger wieder zu oeffnen -- ist der wichtigere.
+     * Bliebe er abgeschlossen, haette der Vorgang danach **keinen** offenen
+     * Schritt mehr: der grosse Kreis zeigte "ZURUECK ZU" ins Leere und der
+     * Mechaniker kaeme nicht mehr weiter. Genau diese Sackgasse (#121) schliesst
+     * die Invariante aus, dass die Demontage immer genau einen offenen Schritt hat.
+     */
+    @Nested
+    @DisplayName("Rollback beim Abbruch am frischen Schritt")
+    inner class Rollback {
+
+        private val vorgaenger = Schritt(
+            id = SCHRITT_ID,
+            reparaturvorgangId = 1L,
+            schrittNummer = 4,
+            gestartetAm = T0,
+            abgeschlossenAm = T0.plusSeconds(60)
+        )
+
+        private val frischer = Schritt(
+            id = FRISCHER_ID,
+            reparaturvorgangId = 1L,
+            schrittNummer = 5,
+            gestartetAm = T0.plusSeconds(60)
+        )
+
+        @BeforeEach
+        fun gegeben() {
+            repository.stub {
+                onBlocking { findSchritt(FRISCHER_ID) } doReturn frischer
+                onBlocking { holeSchritte(1L) } doReturn listOf(vorgaenger, frischer)
+                onBlocking { holeFotos(FRISCHER_ID) } doReturn emptyList()
+            }
+        }
+
+        @Test
+        fun `loescht den fotolosen Schritt und oeffnet den Vorgaenger wieder`() = runTest {
+            // When: die Kamera, die Schritt 5 eroeffnet hat, bricht ab
+            val zurueckgerollt = steuerung.schrittStartZuruecknehmen(FRISCHER_ID)
+
+            // Then: Schritt 5 ist weg, Schritt 4 wieder offen -- die exakte
+            // Umkehrung des Schritt-Starts, inklusive der Zeitmessung
+            assertTrue(zurueckgerollt)
+            inOrder(repository, zeiterfassung) {
+                verify(zeiterfassung).stoppeFallsLaeuft(FRISCHER_ID, ReferenzTyp.DEMONTAGE_SCHRITT)
+                verify(repository).schrittVerwerfen(FRISCHER_ID)
+                verify(repository).schrittWiederOeffnen(SCHRITT_ID)
+                verify(zeiterfassung).starten(SCHRITT_ID, ReferenzTyp.DEMONTAGE_SCHRITT)
+            }
+        }
+
+        @Test
+        fun `laesst einen Schritt mit Fotos unangetastet`() = runTest {
+            // Given: der Mechaniker hat in dieser Runde bereits ein Foto gemacht
+            repository.stub { onBlocking { holeFotos(FRISCHER_ID) } doReturn listOf(ALTES_FOTO) }
+
+            // When: die Kamera bricht ab
+            val zurueckgerollt = steuerung.schrittStartZuruecknehmen(FRISCHER_ID)
+
+            // Then: nichts wird verworfen -- ein dokumentierter Schritt bleibt
+            assertFalse(zurueckgerollt)
+            verify(repository, never()).schrittVerwerfen(any())
+            verify(repository, never()).schrittWiederOeffnen(any())
+        }
+
+        @Test
+        fun `laesst den ersten Schritt stehen, wenn es keinen Vorgaenger gibt`() = runTest {
+            // Given: Schritt 1 eines frisch angelegten Vorgangs
+            repository.stub { onBlocking { holeSchritte(1L) } doReturn listOf(frischer) }
+
+            // When: die Kamera bricht ab
+            val zurueckgerollt = steuerung.schrittStartZuruecknehmen(FRISCHER_ID)
+
+            // Then: es gibt kein Ziel, auf das zurueckgerollt werden koennte.
+            // Der Schritt bleibt offen und leer -- "Beenden" verwirft ihn spaeter
+            assertFalse(zurueckgerollt)
+            verify(repository, never()).schrittVerwerfen(any())
+            verify(repository, never()).schrittWiederOeffnen(any())
+        }
+
+        @Test
+        fun `meldet nichts zurueck, wenn der Schritt gar nicht mehr existiert`() = runTest {
+            // Given: die Zeile ist zwischenzeitlich verschwunden
+            repository.stub { onBlocking { findSchritt(FRISCHER_ID) } doReturn null }
+
+            // When: die Kamera bricht ab
+            val zurueckgerollt = steuerung.schrittStartZuruecknehmen(FRISCHER_ID)
+
+            // Then: nichts zu tun, kein Absturz
+            assertFalse(zurueckgerollt)
+            verify(repository, never()).schrittVerwerfen(any())
         }
     }
 

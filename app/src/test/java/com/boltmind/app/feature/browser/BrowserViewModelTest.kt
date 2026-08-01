@@ -27,11 +27,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.stub
 import org.mockito.kotlin.verifyBlocking
-import org.mockito.kotlin.verifyNoInteractions
 import java.time.Duration
 import java.time.Instant
 
@@ -76,7 +77,15 @@ class BrowserViewModelTest {
             onBlocking { gesamtdauer(any(), any()) } doReturn Duration.ZERO
             onBlocking { laeuft(any(), any()) } doReturn false
         }
-        fotoSteuerung = mock()
+        fotoSteuerung = mock {
+            on { neueZieldatei() } doReturn ZIEL_PFAD
+            onBlocking { naechstesTeil(any(), anyOrNull()) } doReturn schritt(1).schritt
+        }
+    }
+
+    /** Legt fest, welchen Schritt die naechste Anlage liefert. */
+    private fun neuerSchrittIst(nummer: Int) = fotoSteuerung.stub {
+        onBlocking { naechstesTeil(any(), anyOrNull()) } doReturn schritt(nummer).schritt
     }
 
     @AfterEach
@@ -108,20 +117,25 @@ class BrowserViewModelTest {
         }
 
         @Test
-        fun `landet auf dem letzten Schritt, wenn keiner mehr offen ist`() {
-            // Given: alle Schritte sind abgeschlossen (nach "Beenden" wieder geoeffnet)
+        fun `folgt dem Schritt, den der Einstieg ohne offenen Schritt anlegt`() {
+            // Given: alle Schritte sind abgeschlossen, der Einstieg legt Schritt 4 an
+            neuerSchrittIst(4)
             val browser = browserFuer(
                 BrowserModus.DEMONTAGE,
                 listOf(schritt(1), schritt(2), schritt(3))
             )
 
-            // When: der Browser oeffnet
-            val zustand = browser.uiState.value
+            // When: der Flow meldet den neuen Schritt nach
+            schritteFlow.value =
+                listOf(schritt(1), schritt(2), schritt(3), schritt(4, offen = true))
+            abarbeiten()
 
-            // Then: der letzte Schritt -- und er gilt nicht als offener Schritt
-            assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
-            assertNull(zustand.offenerIndex)
-            assertFalse(zustand.betrachtetOffenenSchritt)
+            // Then: die Ansicht steht auf dem neuen Schritt, nicht auf dem letzten
+            // abgeschlossenen. Frueher blieb sie dort haengen -- ohne offenen
+            // Schritt zeigte der grosse Kreis "ZURUECK ZU 00" ins Leere (#121)
+            val zustand = browser.uiState.value
+            assertEquals(4, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertTrue(zustand.betrachtetOffenenSchritt)
         }
 
         @Test
@@ -293,8 +307,15 @@ class BrowserViewModelTest {
 
         @Test
         fun `reicht beim Beenden ohne offenen Schritt kein Ziel weiter`() {
-            // Given: alle Schritte sind abgeschlossen
-            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1), schritt(2)))
+            // Given: der offene Schritt verschwindet unter der Ansicht. Ueber den
+            // Einstieg ist dieser Zustand nicht mehr erreichbar -- der legt sofort
+            // einen Schritt an --, ueber eine Datenmeldung schon
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+            schritteFlow.value = listOf(schritt(1), schritt(2))
+            abarbeiten()
 
             // When: Feierabend
             browser.onFeierabendBestaetigt()
@@ -323,6 +344,236 @@ class BrowserViewModelTest {
             assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
             assertEquals(1, zustand.offenerIndex)
             assertFalse(zustand.betrachtetOffenenSchritt)
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Der Schritt beginnt mit der Kamera
+    // ------------------------------------------------------------------
+
+    /**
+     * Ein Schritt beginnt nie mit einer leeren Maske, sondern mit der Kamera --
+     * beim Einstieg ohne offenen Schritt und bei "Naechstes Teil"
+     * (schritt-ansicht.md AK 1b und US-003.2 AK 2).
+     *
+     * Die Reihenfolge ist dabei die eigentliche Regel: erst existiert der
+     * Schritt und ist der betrachtete, **dann** faehrt die Kamera an. Wer beides
+     * parallel ausloest, bekommt eine Kamera, die in eine Ansicht zurueckkehrt,
+     * welche noch auf dem eben abgeschlossenen Schritt steht.
+     */
+    @Nested
+    inner class `US-003_1 Der Schritt beginnt mit der Kamera` {
+
+        @Test
+        fun `legt beim leeren Vorgang einen Schritt an und fordert die Kamera an`() {
+            // Given/When: ein frisch aus F-002 uebergebener Vorgang ohne Schritte
+            neuerSchrittIst(1)
+            val browser = browserFuer(BrowserModus.DEMONTAGE, emptyList())
+
+            // Then: Schritt 1 entsteht hier, nicht in F-002, und die Kamera faehrt an
+            verifyBlocking(fotoSteuerung) { naechstesTeil(VORGANG_ID, null) }
+            val auftrag = browser.uiState.value.kameraAuftrag
+            assertNotNull(auftrag)
+            assertEquals(SCHRITT_ID_1, auftrag!!.zielSchrittId)
+            assertTrue(auftrag.eroeffnetSchritt)
+        }
+
+        @Test
+        fun `startet beim Wiedereinstieg nach Feierabend einen neuen Schritt`() {
+            // Given/When: alle Schritte sind abgeschlossen, der Mechaniker macht weiter
+            neuerSchrittIst(3)
+            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1), schritt(2)))
+
+            // Then: kein Nachschlage-Zustand ohne Weg nach vorn (#121), sondern
+            // ein neuer Schritt mit laufender Kamera
+            verifyBlocking(fotoSteuerung) { naechstesTeil(VORGANG_ID, null) }
+            assertEquals(SCHRITT_ID_3, browser.uiState.value.kameraAuftrag?.zielSchrittId)
+        }
+
+        @Test
+        fun `laesst einen offenen Schritt in Ruhe und fordert keine Kamera an`() {
+            // Given/When: der Mechaniker setzt auf seinem offenen Schritt auf
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+
+            // Then: fortsetzen heisst fortsetzen -- keine Anlage, keine Kamera (AK 1)
+            verifyBlocking(fotoSteuerung, never()) { naechstesTeil(any(), any()) }
+            assertNull(browser.uiState.value.kameraAuftrag)
+        }
+
+        @Test
+        fun `ruehrt Montage und Archiv nicht an`() {
+            // Given/When: beide lesen nur -- auch ohne offenen Schritt
+            val montage = browserFuer(BrowserModus.MONTAGE, listOf(schritt(1), schritt(2)))
+            val archiv = browserFuer(BrowserModus.ARCHIV, listOf(schritt(1), schritt(2)))
+
+            // Then: eine lesende Betriebsart legt niemals einen Schritt an
+            verifyBlocking(fotoSteuerung, never()) { naechstesTeil(any(), any()) }
+            assertNull(montage.uiState.value.kameraAuftrag)
+            assertNull(archiv.uiState.value.kameraAuftrag)
+        }
+
+        @Test
+        fun `laesst die Ansicht dem neuen Schritt folgen`() {
+            // Given: Schritt 2 ist offen und wird betrachtet
+            neuerSchrittIst(3)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+
+            // When: "Naechstes Teil", danach meldet der Flow die neue Liste nach
+            browser.onNaechstesTeil()
+            abarbeiten()
+            schritteFlow.value = listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            abarbeiten()
+
+            // Then: die Ansicht steht auf dem neuen Schritt. Bliebe sie stehen,
+            // waere der betrachtete Schritt der eben abgeschlossene und der
+            // grosse Kreis fiele auf "ZURUECK ZU" zurueck
+            val zustand = browser.uiState.value
+            assertEquals(3, zustand.aktiverSchritt?.schritt?.schrittNummer)
+            assertTrue(zustand.betrachtetOffenenSchritt)
+        }
+
+        @Test
+        fun `gibt den Sprung auf, sobald der Mechaniker selbst navigiert`() {
+            // Given: "Naechstes Teil" ist getippt, Schritt 3 also angelegt und als
+            // Sprungziel gemerkt -- die Liste kennt ihn aber noch nicht
+            neuerSchrittIst(3)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+            browser.onNaechstesTeil()
+            abarbeiten()
+
+            // When: der Mechaniker schlaegt in dem Moment Schritt 1 nach, danach
+            // meldet der Flow den neuen Schritt nach
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
+            schritteFlow.value = listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            abarbeiten()
+
+            // Then: die Ansicht bleibt, wo der Mechaniker sie hingestellt hat.
+            // Ein gemerkter Sprung darf ihn nicht nachtraeglich wegziehen -- das
+            // ist dieselbe Regel wie "haelt den betrachteten Schritt fest"
+            assertEquals(0, browser.uiState.value.aktiverIndex)
+            assertEquals(1, browser.uiState.value.aktiverSchritt?.schritt?.schrittNummer)
+        }
+
+        @Test
+        fun `zielt mit der Kamera auf den neuen Schritt, nicht auf den verlassenen`() {
+            // Given: Schritt 2 ist offen
+            neuerSchrittIst(3)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+
+            // When: "Naechstes Teil"
+            browser.onNaechstesTeil()
+            abarbeiten()
+
+            // Then: der Auftrag traegt die Id des neuen Schritts
+            val auftrag = browser.uiState.value.kameraAuftrag
+            assertNotNull(auftrag)
+            assertEquals(SCHRITT_ID_3, auftrag!!.zielSchrittId)
+            assertTrue(auftrag.eroeffnetSchritt)
+            assertNull(auftrag.ersetztFotoId)
+        }
+
+        @Test
+        fun `haengt das Foto an den Ziel-Schritt, auch wenn der Flow noch nicht nachgezogen hat`() {
+            // Given: "Naechstes Teil" ist getippt, die Liste kennt Schritt 3 noch nicht
+            neuerSchrittIst(3)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+            browser.onNaechstesTeil()
+            abarbeiten()
+
+            // When: die System-Kamera bestaetigt
+            browser.onFotoAufgenommen()
+            abarbeiten()
+
+            // Then: das Foto haengt am Ziel des Auftrags. Waere der betrachtete
+            // Schritt massgeblich, landete es am eben abgeschlossenen Schritt 2
+            verifyBlocking(fotoSteuerung) { fotoUebernehmen(SCHRITT_ID_3, ZIEL_PFAD) }
+            verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(SCHRITT_ID_2, ZIEL_PFAD) }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Rollback
+    // ------------------------------------------------------------------
+
+    @Nested
+    inner class `US-003_4 Abbruch am frischen Schritt rollt zurueck` {
+
+        @Test
+        fun `nimmt den Schritt-Start zurueck, wenn die eroeffnende Kamera abbricht`() {
+            // Given: "Naechstes Teil" hat Schritt 3 eroeffnet
+            neuerSchrittIst(3)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+            browser.onNaechstesTeil()
+            abarbeiten()
+
+            // When: der Mechaniker bricht die Kamera ab
+            browser.onKameraAbgebrochen()
+            abarbeiten()
+
+            // Then: leere Datei weg -- und der Schritt-Start zurueckgenommen
+            verifyBlocking(fotoSteuerung) { verwerfeDatei(ZIEL_PFAD) }
+            verifyBlocking(fotoSteuerung) { schrittStartZuruecknehmen(SCHRITT_ID_3) }
+        }
+
+        @Test
+        fun `laesst den Schritt stehen, wenn die Kamera aus Noch'n Foto kam`() {
+            // Given: der Mechaniker haengt ein weiteres Foto an seinen offenen Schritt
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(2, offen = true, fotos = listOf(foto(1))))
+            )
+            browser.onWeiteresFoto()
+            abarbeiten()
+
+            // When: er bricht ab
+            browser.onKameraAbgebrochen()
+            abarbeiten()
+
+            // Then: nur die leere Huelle verschwindet. Diese Kamera hat keinen
+            // Schritt eroeffnet, also gibt es auch nichts zurueckzunehmen
+            verifyBlocking(fotoSteuerung) { verwerfeDatei(ZIEL_PFAD) }
+            verifyBlocking(fotoSteuerung, never()) { schrittStartZuruecknehmen(any()) }
+        }
+
+        @Test
+        fun `nimmt nach einer geglueckten Aufnahme nichts mehr zurueck`() {
+            // Given: die eroeffnende Kamera hat geliefert
+            neuerSchrittIst(3)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+            browser.onNaechstesTeil()
+            abarbeiten()
+            browser.onFotoAufgenommen()
+            abarbeiten()
+
+            // When: doch noch eine Abbruchmeldung eintrudelt
+            browser.onKameraAbgebrochen()
+            abarbeiten()
+
+            // Then: der Auftrag ist erledigt, der Schritt bleibt bestehen
+            assertNull(browser.uiState.value.kameraAuftrag)
+            verifyBlocking(fotoSteuerung, never()) { schrittStartZuruecknehmen(any()) }
         }
     }
 
@@ -655,16 +906,20 @@ class BrowserViewModelTest {
 
         @Test
         fun `raeumt nur die leere Zieldatei weg und laesst das vorhandene Foto stehen`() {
-            // Given: "Wiederholen" wurde fuer das vorhandene Foto 42 gestartet
-            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
+            // Given: "Wiederholen" wurde fuer das sichtbare Foto gestartet
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1, offen = true, fotos = listOf(foto(42))))
+            )
+            browser.onWiederholen()
+            abarbeiten()
 
             // When: die System-Kamera bricht ab
             browser.onKameraAbgebrochen()
             abarbeiten()
 
             // Then: nur die leere Huelle verschwindet, das alte Foto bleibt unberuehrt
-            verifyBlocking(fotoSteuerung) { verwerfeDatei(NEUER_PFAD) }
+            verifyBlocking(fotoSteuerung) { verwerfeDatei(ZIEL_PFAD) }
             verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
             verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
         }
@@ -672,8 +927,12 @@ class BrowserViewModelTest {
         @Test
         fun `ignoriert eine nachtraegliche Erfolgsmeldung nach dem Abbruch`() {
             // Given: die Aufnahme wurde bereits abgebrochen
-            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1, offen = true, fotos = listOf(foto(42))))
+            )
+            browser.onWiederholen()
+            abarbeiten()
             browser.onKameraAbgebrochen()
             abarbeiten()
 
@@ -682,7 +941,7 @@ class BrowserViewModelTest {
             abarbeiten()
 
             // Then: nichts wird ersetzt oder angehaengt
-            assertNull(browser.offeneAufnahme)
+            assertNull(browser.uiState.value.kameraAuftrag)
             verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
             verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
         }
@@ -696,8 +955,9 @@ class BrowserViewModelTest {
             browser.onKameraAbgebrochen()
             abarbeiten()
 
-            // Then: keine Datei wird geloescht
-            verifyNoInteractions(fotoSteuerung)
+            // Then: keine Datei wird geloescht und kein Schritt zurueckgenommen
+            verifyBlocking(fotoSteuerung, never()) { verwerfeDatei(any()) }
+            verifyBlocking(fotoSteuerung, never()) { schrittStartZuruecknehmen(any()) }
         }
 
         @Test
@@ -707,23 +967,28 @@ class BrowserViewModelTest {
                 BrowserModus.DEMONTAGE,
                 listOf(schritt(1), schritt(2, offen = true))
             )
-            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = null)
+            browser.onWeiteresFoto()
+            abarbeiten()
 
             // When: die System-Kamera bestaetigt
             browser.onFotoAufgenommen()
             abarbeiten()
 
             // Then: das Foto haengt am betrachteten Schritt, nichts wird ersetzt
-            verifyBlocking(fotoSteuerung) { fotoUebernehmen(SCHRITT_ID_2, NEUER_PFAD) }
+            verifyBlocking(fotoSteuerung) { fotoUebernehmen(SCHRITT_ID_2, ZIEL_PFAD) }
             verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
-            assertNull(browser.offeneAufnahme)
+            assertNull(browser.uiState.value.kameraAuftrag)
         }
 
         @Test
         fun `ersetzt das alte Foto erst nach bestaetigter Neuaufnahme`() {
-            // Given: "Wiederholen" fuer Foto 42 ist angemeldet
-            val browser = browserFuer(BrowserModus.DEMONTAGE, listOf(schritt(1, offen = true)))
-            browser.aufnahmeAngemeldet(NEUER_PFAD, ersetztFotoId = 42)
+            // Given: "Wiederholen" fuer das sichtbare Foto 42 laeuft
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1, offen = true, fotos = listOf(foto(42))))
+            )
+            browser.onWiederholen()
+            abarbeiten()
             verifyBlocking(fotoSteuerung, never()) { fotoErsetzen(any(), any()) }
 
             // When: die System-Kamera bestaetigt
@@ -731,7 +996,7 @@ class BrowserViewModelTest {
             abarbeiten()
 
             // Then: jetzt erst wird ersetzt, und nichts angehaengt
-            verifyBlocking(fotoSteuerung) { fotoErsetzen(42, NEUER_PFAD) }
+            verifyBlocking(fotoSteuerung) { fotoErsetzen(42, ZIEL_PFAD) }
             verifyBlocking(fotoSteuerung, never()) { fotoUebernehmen(any(), any()) }
         }
     }
@@ -952,9 +1217,12 @@ class BrowserViewModelTest {
 
     private companion object {
         const val VORGANG_ID = 4L
-        const val NEUER_PFAD = "/photos/schritt_neu.jpg"
+
+        /** Was [BrowserFotoSteuerung.neueZieldatei] im Test liefert. */
+        const val ZIEL_PFAD = "/photos/schritt_ziel.jpg"
 
         /** [schritt] vergibt die ID als Schrittnummer mal zehn. */
+        const val SCHRITT_ID_1 = 10L
         const val SCHRITT_ID_2 = 20L
         const val SCHRITT_ID_3 = 30L
 

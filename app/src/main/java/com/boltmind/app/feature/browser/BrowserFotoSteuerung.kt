@@ -34,6 +34,36 @@ class BrowserFotoSteuerung(
         return neu
     }
 
+    /**
+     * Nimmt einen Schritt-Start vollstaendig zurueck und meldet, ob es dazu kam.
+     *
+     * Aufgerufen, wenn genau die Kamera abbricht, die den Schritt eroeffnet hat.
+     * Zurueckgerollt wird nur, wenn der Schritt kein einziges Foto hat und es
+     * einen Vorgaenger gibt, der wieder der offene werden kann -- ohne ihn haette
+     * der Vorgang danach keinen offenen Schritt mehr und der Mechaniker saesse
+     * fest (workflow.md, "Rollback beim Abbruch am frischen Schritt").
+     *
+     * Die Wirkung ist die exakte Umkehrung von [naechstesTeil], Zeitmessung
+     * eingeschlossen.
+     */
+    suspend fun schrittStartZuruecknehmen(schrittId: Long): Boolean {
+        val schritt = repository.findSchritt(schrittId) ?: return false
+        if (repository.holeFotos(schrittId).isNotEmpty()) return false
+        val vorgaenger = repository.holeSchritte(schritt.reparaturvorgangId)
+            .filter { it.schrittNummer < schritt.schrittNummer }
+            .maxByOrNull { it.schrittNummer }
+            ?: return false
+
+        zeiterfassung.stoppeFallsLaeuft(schrittId, ReferenzTyp.DEMONTAGE_SCHRITT)
+        repository.schrittVerwerfen(schrittId)
+        repository.schrittWiederOeffnen(vorgaenger.id)
+        zeiterfassung.starten(vorgaenger.id, ReferenzTyp.DEMONTAGE_SCHRITT)
+        return true
+    }
+
+    /** Die Datei, in die die System-Kamera als naechstes schreiben soll. */
+    fun neueZieldatei(): String = fotoManager.erstelleZieldatei("schritt").absolutePath
+
     /** Haengt ein frisch aufgenommenes Foto an den betrachteten Schritt. */
     suspend fun fotoUebernehmen(schrittId: Long, pfad: String) {
         fotoManager.entferneExifMetadaten(pfad)

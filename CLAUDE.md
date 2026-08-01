@@ -181,7 +181,7 @@ unterscheidet sich noch.
 |---|---|---|
 | **F-001** Übersicht | ✅ | Tabs, Vorgangsliste mit Dauer im Archiv, Leerzustände, FAB, Auswahl- und Lösch-Sheet. Vier-Stufen-Datumsregel. Archiv-Detailansicht ist der Browser im Modus ARCHIV. |
 | **F-002** Anlage | ✅ | System-Kamera, Pflicht-Auftragsnummer, Beschreibungsfeld, Direktstart in die Demontage. CameraX und `CAMERA`-Permission sind raus. |
-| **F-003** Demontage | ✅ | Browser im Modus DEMONTAGE. Am Emulator durchgeklickt. |
+| **F-003** Demontage | ✅ | Browser im Modus DEMONTAGE. Der Schritt beginnt mit der Kamera, nicht mit einer leeren Maske; ein Abbruch am frisch eröffneten Schritt rollt zurück. Am 2026-08-01 am Emulator gegen die Datenbank verifiziert. |
 | **F-004** Montage | ✅ | Modus MONTAGE plus Abschluss-Screen. Am 2026-07-27 mit gesetzter Datenbank durchgespielt: Wiedereinstieg, Abhaken, Häkchen zurücknehmen, Archivieren. |
 | **F-005** Zeiterfassung | ✅ | `ZeitMessung`, DAO, Service, Timer-Chip. Pausierbar — siehe unten. |
 | **F-006** Schritt-Browser | ✅ | `ui/schrittbrowser/`, zustandslos, drei Betriebsarten. |
@@ -190,7 +190,7 @@ unterscheidet sich noch.
 Der Timer ist von Hand pausierbar, und die Montage misst ebenfalls. Beides kippt eine
 zuvor bindende MVP-Antwort in `F-005/service.md`.
 
-**Tests:** 189 JVM-Tests (`./gradlew test`) plus 13 instrumentierte Tests
+**Tests:** 207 JVM-Tests (`./gradlew test`) plus 13 instrumentierte Tests
 (`./gradlew connectedDebugAndroidTest`) — vier Room-Migrationen und neun Compose-UI-Tests.
 Das UI-Test-Harness steht seit #104; die Konventionen und die Animations-Falle stehen in
 `docs/CODING_RULES.md`.
@@ -200,8 +200,15 @@ Das UI-Test-Harness steht seit #104; die Konventionen und die Animations-Falle s
 Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neuer.
 
 **Offen:** achtzehn Issues, neun je Milestone. **R5** ist Arbeit ohne Entscheidungsbedarf —
-darunter die Demontage-Sackgasse nach Feierabend (#121), die Glas-Effekt-Abweichungen (#120),
-die gestauchte Montage-Bedienzeile (#124) und die LOC-Grenze des `BrowserViewModel` (#126).
+darunter die Glas-Effekt-Abweichungen (#120), die gestauchte Montage-Bedienzeile (#124) und
+die LOC-Grenze des `BrowserViewModel` (#126, inzwischen 368 Zeilen). Die Demontage-Sackgasse
+nach Feierabend (#121) ist mit dem Kamera-Umbau vom 2026-08-01 erledigt: der Einstieg ohne
+offenen Schritt legt jetzt einen an — Issue noch zu schließen.
+
+**Neuer Befund vom 2026-08-01, noch ohne Issue:** die Android-Zurück-Geste verlässt die
+Demontage zur Übersicht, obwohl `workflow.md` US-003.6 „Beenden" als einzigen Ausstieg
+festlegt. Der einzige `BackHandler` sitzt im Vollbild (`SchrittBrowser.kt`), nicht auf
+Ebene der Schritt-Ansicht.
 **R6** sind Produktfragen, die eine Antwort brauchen, bevor Code entsteht — darunter das
 Splash-Video und die zwei Timer-Entscheidungen aus #94.
 
@@ -235,15 +242,9 @@ Arbeit, die in PR #98 ohne Issue entstand.
 - **Cleanup-Regel (governance.md):** beim App-Start werden Dateien in `photos/` gelöscht, auf die keine DB-Zeile verweist — geprüft gegen `SchrittFoto.pfad` **und** `Reparaturvorgang.fahrzeugFotoPfad`.
 - Foto-Qualität ist bei einer fremden Kamera-App **nicht steuerbar**: ca. 2–3 MB sind ein Erwartungswert, keine erzwingbare Vorgabe. Die App übernimmt die gelieferte Datei wie sie ist.
 
-**Ist-Zustand im Code — weicht ab:**
+**Ist-Zustand im Code:** entspricht dem Zielzustand. Beide Features nutzen die System-Kamera über `ActivityResultContracts.TakePicture()` + `FileProvider`; CameraX ist in keiner Gradle-Datei mehr, die `CAMERA`-Permission steht nicht im Manifest (dort nur ein Kommentar, warum sie fehlt). Die früher hier beschriebene Abweichung — CameraX in F-002, app-eigene Foto-Bestätigung in F-003 — ist erledigt (geprüft am 2026-08-01).
 
-| | F-002 Anlage | F-003 Demontage |
-|---|---|---|
-| Implementierung | **CameraX**, app-eigene Kameraansicht (`NeuerVorgangScreen.kt`) | System-Kamera, `ActivityResultContracts.TakePicture()` + `FileProvider` |
-| `CAMERA`-Permission | wird zur Laufzeit abgefragt, steht im Manifest | nicht nötig |
-| Nach dem Auslösen | Foto direkt ins Formular, „Bild wiederholen" | System-Bestätigung, **dann nochmal** App-Bestätigen/Wiederholen |
-
-`architecture.md` und `F-002/anlegen.md` kennzeichnen diese Abweichung inzwischen korrekt als Ist-Zustand. Umzustellen sind: CameraX und `CAMERA`-Permission raus (F-002), app-eigene Foto-Bestätigung raus (F-003).
+**Wer die Kamera startet:** in beiden Features das **ViewModel**, nicht die Route bzw. der Screen. Der Zustand trägt einen `KameraAuftrag`; die Route hängt einen `LaunchedEffect` daran. In F-003 trägt der Auftrag zusätzlich die **Ziel-Schritt-Id**, damit ein Foto nicht am betrachteten Schritt landet — der ist unmittelbar nach „NÄCHSTES TEIL" für einen Moment noch der eben abgeschlossene. Ein Tap darf die Kamera nie direkt starten: sonst läuft sie parallel zur Schritt-Anlage. Details in `docs/specs/F-003-demontage/workflow.md`, Abschnitt „Reihenfolge beim Schritt-Start".
 
 `FotoManager` kapselt das Dateihandling und hängt noch am alten Zyklus:
 - `photos/temp/` = unbestätigte Aufnahmen, wird bei App-Start via `BoltMindApplication.onCreate()` geleert — **entfällt im Zielzustand**
@@ -304,7 +305,7 @@ Bei Design-Entscheidungen in dieser Reihenfolge abwägen.
 ## Verbotene Patterns
 
 - Business-Logik in Composables
-- ViewModel > 200 LOC (gemessen: Browser 279, Uebersicht 146, NeuerVorgang 141, Abschluss 69 — `BrowserViewModel` reisst das Limit, weil es alle drei Betriebsarten bedient; offen als #126)
+- ViewModel > 200 LOC (gemessen am 2026-08-01: Browser 368, Uebersicht 146, NeuerVorgang 146, Abschluss 69 — `BrowserViewModel` reisst das Limit, weil es alle drei Betriebsarten bedient; offen als #126). Die Zahlen sind mit `wc -l` zu messen, nicht zu schaetzen
 - Synchrone DB-Calls auf Main-Thread
 - Wildcard-Imports
 - `GlobalScope`

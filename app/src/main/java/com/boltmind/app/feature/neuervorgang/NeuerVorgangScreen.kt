@@ -1,9 +1,6 @@
 package com.boltmind.app.feature.neuervorgang
 
-import android.content.ActivityNotFoundException
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,15 +29,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -50,13 +44,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.boltmind.app.R
 import com.boltmind.app.ui.components.BoltMeshHintergrund
 import com.boltmind.app.ui.components.BoltText
 import com.boltmind.app.ui.components.GlasAktion
 import com.boltmind.app.ui.components.GlasFlaeche
+import com.boltmind.app.ui.components.KameraAnbindung
 import com.boltmind.app.ui.components.boltKlick
 import com.boltmind.app.ui.theme.BoltEingabeFlaeche
 import com.boltmind.app.ui.theme.BoltFehler
@@ -141,9 +135,10 @@ fun NeuerVorgangScreen(
     var keineKameraApp by remember { mutableStateOf(false) }
 
     KameraAnbindung(
-        auftrag = uiState.kameraAuftrag,
+        auftragsNummer = uiState.kameraAuftrag?.nummer,
+        zielPfad = uiState.kameraAuftrag?.zielPfad,
         onFotoAufgenommen = onFotoAufgenommen,
-        onKameraAbgebrochen = onKameraAbgebrochen,
+        onAbgebrochen = onKameraAbgebrochen,
         onKeineKameraApp = { keineKameraApp = true }
     )
 
@@ -187,68 +182,6 @@ fun NeuerVorgangScreen(
 
         if (keineKameraApp) {
             KeineKameraHinweis(onSchliessen = onZurueck)
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Kamera
-// ---------------------------------------------------------------------------
-
-/**
- * Haengt die System-Kamera ein: `TakePicture` schreibt ueber den `FileProvider`
- * direkt in die vom ViewModel angelegte Zieldatei. Keine CAMERA-Permission, keine
- * app-eigene Bestaetigung.
- */
-@Composable
-private fun KameraAnbindung(
-    auftrag: KameraAuftrag?,
-    onFotoAufgenommen: (String) -> Unit,
-    onKameraAbgebrochen: () -> Unit,
-    onKeineKameraApp: () -> Unit
-) {
-    val kontext = LocalContext.current
-    val zielPfad by rememberUpdatedState(auftrag?.zielPfad)
-
-    /**
-     * Marke des zuletzt gestarteten Auftrags. Ohne sie wuerde ein
-     * Konfigurationswechsel waehrend der laufenden Aufnahme die Kamera ein zweites
-     * Mal oeffnen -- der Auftrag steht ja noch offen im Zustand.
-     *
-     * Die Marke traegt den Zielpfad und nicht nur die laufende Nummer: der Zaehler
-     * im ViewModel faengt nach einem Prozesstod wieder bei eins an, waehrend diese
-     * Marke den Prozesstod ueberlebt. Ein reiner Zahlenvergleich wuerde die erste
-     * Aufnahme danach stillschweigend verschlucken.
-     */
-    var zuletztGestartet by rememberSaveable { mutableStateOf<String?>(null) }
-
-    val starter = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { erfolgreich ->
-        val pfad = zielPfad
-        if (erfolgreich && pfad != null) onFotoAufgenommen(pfad) else onKameraAbgebrochen()
-    }
-
-    LaunchedEffect(auftrag) {
-        val offen = auftrag ?: return@LaunchedEffect
-        val marke = "${offen.nummer}@${offen.zielPfad}"
-        if (marke == zuletztGestartet) return@LaunchedEffect
-        zuletztGestartet = marke
-        val uri = FileProvider.getUriForFile(
-            kontext,
-            "${kontext.packageName}.fileprovider",
-            File(offen.zielPfad)
-        )
-        try {
-            starter.launch(uri)
-        } catch (_: ActivityNotFoundException) {
-            // Kein Kamera-Programm auf dem Geraet.
-            onKeineKameraApp()
-        } catch (_: SecurityException) {
-            // Deklariert die App die CAMERA-Berechtigung, ohne sie zu halten,
-            // verweigert das System ACTION_IMAGE_CAPTURE. Governance verbietet die
-            // Berechtigung -- der Fang hier haelt trotzdem den Absturz ab.
-            onKeineKameraApp()
         }
     }
 }

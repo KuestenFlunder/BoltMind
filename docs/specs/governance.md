@@ -101,7 +101,9 @@ Projektweit wird **ausschliesslich die System-Kamera** verwendet:
   3. Bricht der Nutzer die Kamera ab, bleibt das alte Foto vollstaendig und unveraendert erhalten (DB-Zeile, Datei, `reihenfolge`, Label).
 
   Grund: Quality Goal "Zuverlaessigkeit" — ein bereits aufgenommenes Foto darf durch einen Kamera-Abbruch nie verloren gehen. Ein "erst loeschen, dann Kamera starten" ist projektweit unzulaessig.
-- **Kamera-Abbruch:** Es wird keine DB-Zeile angelegt oder veraendert; geloescht wird ausschliesslich die fuer **diese** Aufnahme vorab erzeugte Zieldatei (siehe Abschnitt "Speicherort"). Beim "Wiederholen" bleiben die alte DB-Zeile und die alte Datei davon unberuehrt. Der Nutzer landet in der aufrufenden Ansicht.
+- **Kamera-Abbruch:** Es entsteht **kein Foto** — weder eine `SchrittFoto`-Zeile noch eine behaltene Datei. Geloescht wird ausschliesslich die fuer **diese** Aufnahme vorab erzeugte Zieldatei (siehe Abschnitt "Speicherort"). Vorhandene Fotos bleiben unberuehrt, beim "Wiederholen" also auch die alte Zeile und die alte Datei. Der Nutzer landet in der aufrufenden Ansicht.
+
+  **Reichweite dieser Regel:** Sie schuetzt **Fotos**. Sie sagt nichts darueber, was mit dem **Kontext** geschieht, den ein Feature eigens fuer diese Aufnahme angelegt hat. Oeffnet ein Feature die Kamera, um einen Kontext ueberhaupt erst zu eroeffnen — F-003 legt fuer "NÄCHSTES TEIL" einen neuen Schritt an —, darf es diese Anlage beim Abbruch wieder zuruecknehmen, solange dabei kein Foto verloren geht. Die Bedingungen dafuer gehoeren in die Feature-Spec, nicht hierher; fuer die Demontage stehen sie in [F-003-demontage/workflow.md](F-003-demontage/workflow.md), Abschnitt "Rollback beim Abbruch am frischen Schritt".
 
 Diese Regel gilt fuer alle Features ohne Ausnahme und ist deshalb hier verankert, nicht in einzelnen Feature-Specs.
 
