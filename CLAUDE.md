@@ -201,7 +201,7 @@ Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neue
 
 **Offen:** achtzehn Issues, neun je Milestone. **R5** ist Arbeit ohne Entscheidungsbedarf —
 darunter die Glas-Effekt-Abweichungen (#120), die gestauchte Montage-Bedienzeile (#124) und
-die LOC-Grenze des `BrowserViewModel` (#126, inzwischen 340 Zeilen). Die Demontage-Sackgasse
+die LOC-Grenze des `BrowserViewModel` (#126, inzwischen 368 Zeilen). Die Demontage-Sackgasse
 nach Feierabend (#121) ist mit dem Kamera-Umbau vom 2026-08-01 erledigt: der Einstieg ohne
 offenen Schritt legt jetzt einen an — Issue noch zu schließen.
 
@@ -305,7 +305,7 @@ Bei Design-Entscheidungen in dieser Reihenfolge abwägen.
 ## Verbotene Patterns
 
 - Business-Logik in Composables
-- ViewModel > 200 LOC (gemessen: Browser 279, Uebersicht 146, NeuerVorgang 141, Abschluss 69 — `BrowserViewModel` reisst das Limit, weil es alle drei Betriebsarten bedient; offen als #126)
+- ViewModel > 200 LOC (gemessen am 2026-08-01: Browser 368, Uebersicht 146, NeuerVorgang 146, Abschluss 69 — `BrowserViewModel` reisst das Limit, weil es alle drei Betriebsarten bedient; offen als #126). Die Zahlen sind mit `wc -l` zu messen, nicht zu schaetzen
 - Synchrone DB-Calls auf Main-Thread
 - Wildcard-Imports
 - `GlobalScope`

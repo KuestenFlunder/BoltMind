@@ -439,6 +439,32 @@ class BrowserViewModelTest {
         }
 
         @Test
+        fun `gibt den Sprung auf, sobald der Mechaniker selbst navigiert`() {
+            // Given: "Naechstes Teil" ist getippt, Schritt 3 also angelegt und als
+            // Sprungziel gemerkt -- die Liste kennt ihn aber noch nicht
+            neuerSchrittIst(3)
+            val browser = browserFuer(
+                BrowserModus.DEMONTAGE,
+                listOf(schritt(1), schritt(2, offen = true))
+            )
+            browser.onNaechstesTeil()
+            abarbeiten()
+
+            // When: der Mechaniker schlaegt in dem Moment Schritt 1 nach, danach
+            // meldet der Flow den neuen Schritt nach
+            browser.onSchrittGewaehlt(0)
+            abarbeiten()
+            schritteFlow.value = listOf(schritt(1), schritt(2), schritt(3, offen = true))
+            abarbeiten()
+
+            // Then: die Ansicht bleibt, wo der Mechaniker sie hingestellt hat.
+            // Ein gemerkter Sprung darf ihn nicht nachtraeglich wegziehen -- das
+            // ist dieselbe Regel wie "haelt den betrachteten Schritt fest"
+            assertEquals(0, browser.uiState.value.aktiverIndex)
+            assertEquals(1, browser.uiState.value.aktiverSchritt?.schritt?.schrittNummer)
+        }
+
+        @Test
         fun `zielt mit der Kamera auf den neuen Schritt, nicht auf den verlassenen`() {
             // Given: Schritt 2 ist offen
             neuerSchrittIst(3)

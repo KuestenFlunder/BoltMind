@@ -56,12 +56,15 @@ Immer wenn ein Schritt **beginnt** -- beim Entry ohne offenen Schritt und bei "N
 
 1. Den Vorgaenger abschliessen, falls es einen offenen gibt (`abgeschlossenAm` = jetzt).
 2. Den neuen `Schritt` anlegen und seine Zeitmessung starten (F-005).
-3. **Den betrachteten Schritt auf den neuen Schritt setzen.**
-4. Erst jetzt die System-Kamera starten, mit der Id des neuen Schritts als Ziel.
+3. Erst jetzt die System-Kamera starten, mit der Id des neuen Schritts als Ziel.
 
-Punkt 3 vor Punkt 4 ist keine Kosmetik. Startet die Kamera parallel zur Schritt-Anlage, kehrt sie in eine Ansicht zurueck, die noch auf dem alten -- inzwischen abgeschlossenen -- Schritt steht: das Foto landet am falschen Schritt, und die Aktionszeile faellt auf ihre zweite Auspraegung zurueck ("Zurueck zu Schritt N"), obwohl der Mechaniker gerade vorwaerts gegangen ist.
+Punkt 2 vor Punkt 3 ist keine Kosmetik. Startet die Kamera parallel zur Schritt-Anlage, gibt es bei ihrer Rueckkehr keinen verlaesslichen Schritt, an den das Foto gehoert -- es landete am zuletzt betrachteten, und der ist in diesem Moment der eben abgeschlossene.
 
-**Das Ziel der Aufnahme ist die Schritt-Id, die beim Kamera-Start feststand** -- nicht der Schritt, der bei der Rueckkehr gerade betrachtet wird. Beides faellt im Normalfall zusammen; die Id festzuhalten macht die Zuordnung unabhaengig davon, was waehrend der Aufnahme sonst noch passiert.
+**Das Ziel der Aufnahme ist die Schritt-Id, die beim Kamera-Start feststand** -- nicht der Schritt, der bei der Rueckkehr gerade betrachtet wird. Die Id festzuhalten macht die Zuordnung unabhaengig davon, was waehrend der Aufnahme sonst noch passiert.
+
+**Der betrachtete Schritt zieht getrennt davon nach.** Er wechselt nicht im selben Atemzug auf den neuen Schritt, sondern sobald dieser ueber die Datenmeldung ankommt. Das ist bewusst ein eigener Weg und keine Reihenfolge-Bedingung: die Zuordnung des Fotos haengt an der festgehaltenen Id, nicht daran, was die Ansicht gerade zeigt.
+
+**Navigiert der Mechaniker in der Zwischenzeit selbst** -- er tippt in dem Moment ein Thumbnail an --, wird der vorgemerkte Wechsel **verworfen**. Wer selbst navigiert, hat das letzte Wort; ihn eine Sekunde spaeter von einer Datenmeldung wegziehen zu lassen, waere derselbe Fehler wie ein Sprung beim Eintreffen eines Fotos (US-006.4).
 
 ## Rollback beim Abbruch am frischen Schritt
 

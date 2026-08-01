@@ -1,15 +1,11 @@
 package com.boltmind.app.ui.navigation
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.FileProvider
 import com.boltmind.app.R
 import com.boltmind.app.feature.browser.BrowserScreen
 import com.boltmind.app.feature.browser.BrowserViewModel
@@ -17,15 +13,15 @@ import com.boltmind.app.feature.browser.SheetAktion
 import com.boltmind.app.feature.browser.SheetMarke
 import com.boltmind.app.feature.browser.SheetStil
 import com.boltmind.app.feature.browser.SheetZustand
+import com.boltmind.app.ui.components.KameraAnbindung
 import org.koin.androidx.compose.koinViewModel
-import java.io.File
 
 /**
  * Verbindet den Schritt-Browser mit Navigation und System-Kamera.
  *
- * Die Kamera laeuft ueber [ActivityResultContracts.TakePicture] und schreibt
- * direkt in die Zieldatei unter `photos/`. Es gibt kein temp-Verzeichnis und
- * keine app-eigene Bestaetigung -- die System-Kamera bestaetigt selbst.
+ * Die Kamera haengt an [KameraAnbindung] und schreibt direkt in die Zieldatei
+ * unter `photos/`. Es gibt kein temp-Verzeichnis und keine app-eigene
+ * Bestaetigung -- die System-Kamera bestaetigt selbst.
  */
 @Composable
 fun BrowserRoute(
@@ -35,28 +31,20 @@ fun BrowserRoute(
     viewModel: BrowserViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-
-    val kamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        if (ok) viewModel.onFotoAufgenommen() else viewModel.onKameraAbgebrochen()
-    }
 
     // Die Kamera startet, was das ViewModel anfordert -- nicht, was ein Tap
     // ausloest. Nur so steht der Schritt, fuer den aufgenommen wird, sicher schon
     // in der Datenbank (F-003 workflow.md, "Reihenfolge beim Schritt-Start").
-    // Der Auftrag traegt eine laufende Nummer, damit zwei Auftraege mit demselben
-    // Pfad nicht als derselbe Effekt durchgehen.
-    LaunchedEffect(uiState.kameraAuftrag?.nummer) {
-        val auftrag = uiState.kameraAuftrag ?: return@LaunchedEffect
-        val uri = FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", File(auftrag.zielPfad)
-        )
-        runCatching { kamera.launch(uri) }.onFailure {
-            // Kein Kamera-Programm auf dem Geraet: der Abbruch raeumt die leere
-            // Huelle weg und nimmt einen eben eroeffneten Schritt zurueck.
-            viewModel.onKameraAbgebrochen()
-        }
-    }
+    KameraAnbindung(
+        auftragsNummer = uiState.kameraAuftrag?.nummer,
+        zielPfad = uiState.kameraAuftrag?.zielPfad,
+        onFotoAufgenommen = { viewModel.onFotoAufgenommen() },
+        onAbgebrochen = viewModel::onKameraAbgebrochen,
+        // Kein Kamera-Programm auf dem Geraet: derselbe Weg wie ein Abbruch --
+        // die leere Huelle verschwindet, ein eben eroeffneter Schritt wird
+        // zurueckgenommen.
+        onKeineKameraApp = viewModel::onKameraAbgebrochen
+    )
 
     LaunchedEffect(uiState.fertig) {
         if (uiState.fertig) {

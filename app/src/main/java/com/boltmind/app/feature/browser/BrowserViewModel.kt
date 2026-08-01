@@ -124,7 +124,14 @@ class BrowserViewModel(
 
     // --- Navigation im Browser ------------------------------------------------
 
+    /**
+     * Setzt den betrachteten Schritt. Ein noch offener Sprung wird dabei
+     * aufgegeben: wer selbst navigiert, hat das letzte Wort. Sonst zoege die
+     * naechste Datenmeldung den Mechaniker aus dem Schritt heraus, den er sich
+     * gerade herausgesucht hat.
+     */
     fun onSchrittGewaehlt(index: Int) {
+        folgeSchrittId = null
         _uiState.update {
             it.copy(aktiverIndex = index, aktivesFoto = 0, zeigeWischHinweis = false)
         }
@@ -271,11 +278,17 @@ class BrowserViewModel(
      * Beginnt einen Schritt -- der gemeinsame Weg von "Naechstes Teil" und vom
      * Einstieg ohne offenen Schritt.
      *
-     * Die Reihenfolge ist die Regel: erst existiert der Schritt und ist der
-     * betrachtete, **dann** faehrt die Kamera an (workflow.md, "Reihenfolge beim
-     * Schritt-Start"). Startete die Kamera parallel zur Anlage, kaeme sie in eine
-     * Ansicht zurueck, die noch auf dem eben abgeschlossenen Schritt steht -- das
-     * Foto landete dort, und der grosse Kreis fiele auf "ZURUECK ZU" zurueck.
+     * Die Reihenfolge ist die Regel: der Schritt existiert, **bevor** die Kamera
+     * anfaehrt (workflow.md, "Reihenfolge beim Schritt-Start"). Startete sie
+     * parallel zur Anlage, gaebe es beim Ruecklauf keinen verlaesslichen Schritt,
+     * an den das Foto gehoert.
+     *
+     * Der **betrachtete** Schritt zieht dagegen erst nach, wenn der neue Schritt
+     * ueber den Flow ankommt -- das ist ein eigener Weg ueber [folgeSchrittId] und
+     * [folgeIndex], nicht Teil dieser Funktion. Genau deshalb haelt der
+     * Kamera-Auftrag seine eigene `zielSchrittId` fest, statt sich auf
+     * `aktiverIndex` zu verlassen: der zeigt in diesem Moment noch auf den eben
+     * abgeschlossenen Schritt.
      */
     private fun schrittStarten() {
         val zustand = _uiState.value
