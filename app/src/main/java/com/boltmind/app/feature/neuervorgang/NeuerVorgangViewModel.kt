@@ -96,8 +96,14 @@ class NeuerVorgangViewModel(
     }
 
     /**
-     * "LOS GEHT'S": ohne Auftragsnummer nur die Fehlerzeile, sonst Vorgang und
-     * Schritt 1 anlegen und weiter in die Demontage.
+     * "LOS GEHT'S": ohne Auftragsnummer nur die Fehlerzeile, sonst den Vorgang
+     * anlegen und weiter in die Demontage.
+     *
+     * **Kein Schritt.** Den legt F-003 an, sobald der Browser keinen offenen
+     * Schritt vorfindet -- und startet in derselben Bewegung die Kamera. Legte
+     * F-002 den Schritt hier an, saehe der Browser einen offenen Schritt, hielte
+     * das fuer eine Fortsetzung und zeigte dem Mechaniker eine leere Maske
+     * (F-002 anlegen.md AK 2).
      */
     fun onStartenGetippt() {
         val zustand = _uiState.value
@@ -117,7 +123,6 @@ class NeuerVorgangViewModel(
                     beschreibung = zustand.beschreibung.trim().ifEmpty { null }
                 )
             )
-            repository.schrittAnlegen(vorgangId)
             _uiState.update { it.copy(gestarteterVorgangId = vorgangId, nummerFehlt = false) }
         }
     }

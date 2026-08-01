@@ -7,6 +7,33 @@ import com.boltmind.app.ui.navigation.BrowserModus
 import com.boltmind.app.ui.schrittbrowser.BrowserBetriebsart
 import com.boltmind.app.ui.schrittbrowser.SchrittBrowserZustand
 
+/**
+ * Ein offener Kamera-Auftrag.
+ *
+ * Das ViewModel legt die Zieldatei an und reicht sie hier hoch; die Route haengt
+ * ihren Launcher daran. Dass der Auftrag im State steht statt in der Route,
+ * loest ein Reihenfolgeproblem: die Kamera kann erst starten, wenn der Schritt,
+ * fuer den sie aufnimmt, wirklich existiert.
+ *
+ * [zielSchrittId] ist der Schritt, an den das Foto gehoert -- festgehalten beim
+ * Start der Kamera, nicht beim Ruecklauf. Sonst landet ein Foto am betrachteten
+ * Schritt, und der ist nach "Naechstes Teil" fuer einen Moment noch der eben
+ * abgeschlossene.
+ *
+ * [nummer] zaehlt mit, damit zwei aufeinanderfolgende Auftraege unterscheidbar
+ * bleiben, auch wenn sie in dieselbe Millisekunde fallen.
+ */
+@Immutable
+data class KameraAuftrag(
+    val nummer: Int,
+    val zielPfad: String,
+    val zielSchrittId: Long,
+    /** Gesetzt bei "Wiederholen": dieses Foto wird nach der Aufnahme ersetzt. */
+    val ersetztFotoId: Long? = null,
+    /** Diese Kamera-Runde hat den Schritt eroeffnet -- ihr Abbruch nimmt ihn zurueck. */
+    val eroeffnetSchritt: Boolean = false
+)
+
 /** Ein Bottom-Sheet mit Titel, Text und bis zu drei Aktionen. */
 @Immutable
 data class SheetZustand(
@@ -42,6 +69,9 @@ data class BrowserUiState(
     val vollbild: Boolean = false,
     val zeigeWischHinweis: Boolean = true,
     val sheet: SheetZustand? = null,
+
+    /** Nicht null, solange eine Aufnahme aussteht. */
+    val kameraAuftrag: KameraAuftrag? = null,
 
     /** Sekunden des betrachteten Schritts, laufend hochgezaehlt. */
     val schrittSekunden: Long = 0,

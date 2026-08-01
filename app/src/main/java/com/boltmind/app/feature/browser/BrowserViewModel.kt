@@ -45,14 +45,34 @@ class BrowserViewModel(
         get() = if (modus == BrowserModus.MONTAGE) ReferenzTyp.MONTAGE_SCHRITT
         else ReferenzTyp.DEMONTAGE_SCHRITT
 
+    /**
+     * Der Schritt, auf den die Ansicht springen soll, sobald er in der Liste
+     * auftaucht. Gesetzt beim Schritt-Start, weil der neue Schritt zu diesem
+     * Zeitpunkt schon eine Id hat, aber noch nicht in der beobachteten Liste
+     * steht.
+     */
+    private var folgeSchrittId: Long? = null
+
+    private var auftragsZaehler = 0
+
     init {
         viewModelScope.launch {
             val vorgang = repository.findVorgangById(vorgangId)
             repository.beobachteSchritteMitFotos(vorgangId).collect { alle ->
                 val sortiert = if (modus == BrowserModus.MONTAGE) alle.reversed() else alle
+                var starteSchritt = false
                 _uiState.update { s ->
                     val ersteLadung = s.laedt
-                    val index = if (ersteLadung) startIndex(sortiert) else s.aktiverIndex
+                    // Die Demontage laesst keinen Vorgang ohne offenen Schritt
+                    // zurueck: gibt es keinen, beginnt hier einer -- beim frisch
+                    // aus F-002 uebergebenen Vorgang genauso wie beim
+                    // Wiedereinstieg nach dem Feierabend.
+                    starteSchritt = ersteLadung && modus == BrowserModus.DEMONTAGE &&
+                        sortiert.none { it.schritt.abgeschlossenAm == null }
+                    val index = when {
+                        ersteLadung -> startIndex(sortiert)
+                        else -> folgeIndex(sortiert) ?: s.aktiverIndex
+                    }
                     val neu = s.copy(
                         laedt = false,
                         vorgang = vorgang,
@@ -68,10 +88,24 @@ class BrowserViewModel(
                     // sonst liesse sich der Screen nie verlassen.
                     if (ersteLadung && neu.alleEingebaut) neu.copy(fertig = true) else neu
                 }
+                if (starteSchritt) schrittStarten()
                 zeitAktualisieren()
             }
         }
         starteTicker()
+    }
+
+    /**
+     * Wohin die Ansicht springt, sobald der eben angelegte Schritt in der Liste
+     * ankommt. Danach ist der Sprung erledigt und die Ansicht folgt wieder dem
+     * Mechaniker -- ein Foto, das spaeter eintrifft, zieht sie nicht erneut mit.
+     */
+    private fun folgeIndex(schritte: List<SchrittMitFotos>): Int? {
+        val ziel = folgeSchrittId ?: return null
+        val index = schritte.indexOfFirst { it.schritt.id == ziel }
+        if (index < 0) return null
+        folgeSchrittId = null
+        return index
     }
 
     /**
@@ -214,40 +248,85 @@ class BrowserViewModel(
 
     // --- Kamera und Schritte (Demontage) ---------------------------------------
 
-    /**
-     * Der Pfad, unter dem die System-Kamera gerade schreibt, und wofuer.
-     * Bricht sie ab, raeumt [onKameraAbgebrochen] die leere Huelle weg.
-     */
-    var offeneAufnahme: OffeneAufnahme? = null
-        private set
+    /** Ein weiteres Foto am betrachteten Schritt. */
+    fun onWeiteresFoto() {
+        val schrittId = _uiState.value.aktiverSchritt?.schritt?.id ?: return
+        kameraAnfordern(schrittId)
+    }
 
-    fun aufnahmeAngemeldet(pfad: String, ersetztFotoId: Long?) {
-        offeneAufnahme = OffeneAufnahme(pfad, ersetztFotoId)
+    /**
+     * "Wiederholen" am sichtbaren Foto. Geloescht wird nichts -- gemerkt wird nur,
+     * welches Foto die Aufnahme ersetzen soll (Governance, "Kamera").
+     */
+    fun onWiederholen() {
+        val zustand = _uiState.value
+        val schrittId = zustand.aktiverSchritt?.schritt?.id ?: return
+        val foto = zustand.aktiverSchritt?.fotos?.getOrNull(zustand.aktivesFoto) ?: return
+        kameraAnfordern(schrittId, ersetztFotoId = foto.id)
+    }
+
+    fun onNaechstesTeil() = schrittStarten()
+
+    /**
+     * Beginnt einen Schritt -- der gemeinsame Weg von "Naechstes Teil" und vom
+     * Einstieg ohne offenen Schritt.
+     *
+     * Die Reihenfolge ist die Regel: erst existiert der Schritt und ist der
+     * betrachtete, **dann** faehrt die Kamera an (workflow.md, "Reihenfolge beim
+     * Schritt-Start"). Startete die Kamera parallel zur Anlage, kaeme sie in eine
+     * Ansicht zurueck, die noch auf dem eben abgeschlossenen Schritt steht -- das
+     * Foto landete dort, und der grosse Kreis fiele auf "ZURUECK ZU" zurueck.
+     */
+    private fun schrittStarten() {
+        val zustand = _uiState.value
+        val offen = zustand.offenerIndex?.let { zustand.schritte.getOrNull(it)?.schritt }
+        viewModelScope.launch {
+            val neu = fotos.naechstesTeil(vorgangId, offen)
+            folgeSchrittId = neu.id
+            kameraAnfordern(neu.id, eroeffnetSchritt = true)
+        }
+    }
+
+    private fun kameraAnfordern(
+        zielSchrittId: Long,
+        ersetztFotoId: Long? = null,
+        eroeffnetSchritt: Boolean = false
+    ) {
+        auftragsZaehler++
+        val auftrag = KameraAuftrag(
+            nummer = auftragsZaehler,
+            zielPfad = fotos.neueZieldatei(),
+            zielSchrittId = zielSchrittId,
+            ersetztFotoId = ersetztFotoId,
+            eroeffnetSchritt = eroeffnetSchritt
+        )
+        _uiState.update { it.copy(kameraAuftrag = auftrag) }
     }
 
     fun onFotoAufgenommen() {
-        val aufnahme = offeneAufnahme ?: return
-        offeneAufnahme = null
-        val schrittId = _uiState.value.aktiverSchritt?.schritt?.id ?: return
+        val auftrag = _uiState.value.kameraAuftrag ?: return
+        _uiState.update { it.copy(kameraAuftrag = null) }
         viewModelScope.launch {
-            if (aufnahme.ersetztFotoId != null) {
-                fotos.fotoErsetzen(aufnahme.ersetztFotoId, aufnahme.pfad)
+            if (auftrag.ersetztFotoId != null) {
+                fotos.fotoErsetzen(auftrag.ersetztFotoId, auftrag.zielPfad)
             } else {
-                fotos.fotoUebernehmen(schrittId, aufnahme.pfad)
+                fotos.fotoUebernehmen(auftrag.zielSchrittId, auftrag.zielPfad)
             }
         }
     }
 
-    /** Kamera abgebrochen. Ein vorhandenes Foto bleibt in jedem Fall unangetastet. */
+    /**
+     * Kamera abgebrochen. Ein vorhandenes Foto bleibt in jedem Fall unangetastet;
+     * hat diese Runde den Schritt eroeffnet und blieb er leer, wird der
+     * Schritt-Start zurueckgenommen.
+     */
     fun onKameraAbgebrochen() {
-        offeneAufnahme?.let { fotos.verwerfeDatei(it.pfad) }
-        offeneAufnahme = null
-    }
-
-    fun onNaechstesTeil() {
-        val offen = _uiState.value.offenerIndex
-            ?.let { _uiState.value.schritte.getOrNull(it)?.schritt }
-        viewModelScope.launch { fotos.naechstesTeil(vorgangId, offen) }
+        val auftrag = _uiState.value.kameraAuftrag ?: return
+        _uiState.update { it.copy(kameraAuftrag = null) }
+        viewModelScope.launch {
+            fotos.verwerfeDatei(auftrag.zielPfad)
+            if (auftrag.eroeffnetSchritt) fotos.schrittStartZuruecknehmen(auftrag.zielSchrittId)
+        }
     }
 
     /** Springt vom nachgeschlagenen Schritt zurueck zum offenen. */
@@ -268,9 +347,6 @@ class BrowserViewModel(
     fun onKameraFehltBestaetigt() = _uiState.update { it.copy(kameraFehlt = false) }
 
     fun onNavigationAbgeschlossen() = _uiState.update { it.copy(verlassen = false, fertig = false) }
-
-    /** Eine angemeldete, noch nicht bestaetigte Aufnahme. */
-    data class OffeneAufnahme(val pfad: String, val ersetztFotoId: Long?)
 
     override fun onCleared() {
         ticker?.cancel()

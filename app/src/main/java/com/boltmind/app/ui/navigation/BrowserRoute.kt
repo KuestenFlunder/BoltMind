@@ -11,7 +11,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.FileProvider
 import com.boltmind.app.R
-import com.boltmind.app.data.foto.FotoManager
 import com.boltmind.app.feature.browser.BrowserScreen
 import com.boltmind.app.feature.browser.BrowserViewModel
 import com.boltmind.app.feature.browser.SheetAktion
@@ -19,7 +18,7 @@ import com.boltmind.app.feature.browser.SheetMarke
 import com.boltmind.app.feature.browser.SheetStil
 import com.boltmind.app.feature.browser.SheetZustand
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
+import java.io.File
 
 /**
  * Verbindet den Schritt-Browser mit Navigation und System-Kamera.
@@ -33,8 +32,7 @@ fun BrowserRoute(
     onVerlassen: () -> Unit,
     onMontageFertig: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: BrowserViewModel = koinViewModel(),
-    fotoManager: FotoManager = koinInject()
+    viewModel: BrowserViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -43,14 +41,19 @@ fun BrowserRoute(
         if (ok) viewModel.onFotoAufgenommen() else viewModel.onKameraAbgebrochen()
     }
 
-    fun starteKamera(ersetztFotoId: Long?) {
-        val ziel = fotoManager.erstelleZieldatei("schritt")
-        viewModel.aufnahmeAngemeldet(ziel.absolutePath, ersetztFotoId)
+    // Die Kamera startet, was das ViewModel anfordert -- nicht, was ein Tap
+    // ausloest. Nur so steht der Schritt, fuer den aufgenommen wird, sicher schon
+    // in der Datenbank (F-003 workflow.md, "Reihenfolge beim Schritt-Start").
+    // Der Auftrag traegt eine laufende Nummer, damit zwei Auftraege mit demselben
+    // Pfad nicht als derselbe Effekt durchgehen.
+    LaunchedEffect(uiState.kameraAuftrag?.nummer) {
+        val auftrag = uiState.kameraAuftrag ?: return@LaunchedEffect
         val uri = FileProvider.getUriForFile(
-            context, "${context.packageName}.fileprovider", ziel
+            context, "${context.packageName}.fileprovider", File(auftrag.zielPfad)
         )
         runCatching { kamera.launch(uri) }.onFailure {
-            // Kein Kamera-Programm auf dem Geraet: die leere Huelle wieder wegraeumen.
+            // Kein Kamera-Programm auf dem Geraet: der Abbruch raeumt die leere
+            // Huelle weg und nimmt einen eben eroeffneten Schritt zurueck.
             viewModel.onKameraAbgebrochen()
         }
     }
@@ -87,14 +90,11 @@ fun BrowserRoute(
         onVollbildSchliessen = viewModel::onVollbildSchliessen,
         onLabelUmgeschaltet = viewModel::onLabelUmgeschaltet,
         onTimerUmgeschaltet = viewModel::onTimerUmgeschaltet,
-        onNaechstesTeil = {
-            viewModel.onNaechstesTeil()
-            starteKamera(null)
-        },
-        onWeiteresFoto = { starteKamera(null) },
+        onNaechstesTeil = viewModel::onNaechstesTeil,
+        onWeiteresFoto = viewModel::onWeiteresFoto,
         // Wiederholen: erst die Kamera, das alte Foto verschwindet erst nach
         // bestaetigter Neuaufnahme (Governance).
-        onWiederholen = { starteKamera(uiState.aktiverSchritt?.fotos?.getOrNull(uiState.aktivesFoto)?.id) },
+        onWiederholen = viewModel::onWiederholen,
         onZumOffenenSchritt = viewModel::onZumOffenenSchritt,
         onEingebaut = viewModel::onEingebaut,
         onHaekchenAnfragen = {

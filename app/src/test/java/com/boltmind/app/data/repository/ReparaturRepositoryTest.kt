@@ -605,6 +605,7 @@ class ReparaturRepositoryTest {
             listOf(
                 eintrag("schrittAnlegen") { it.schrittAnlegen(VORGANG_ID) },
                 eintrag("schrittAbschliessen") { it.schrittAbschliessen(SCHRITT_ID) },
+                eintrag("schrittWiederOeffnen") { it.schrittWiederOeffnen(SCHRITT_ID) },
                 eintrag("schrittVerwerfen") { it.schrittVerwerfen(SCHRITT_ID) },
                 eintrag("setzeEingebaut") { it.setzeEingebaut(SCHRITT_ID, eingebaut = true) },
                 eintrag("fotoAnhaengen") { it.fotoAnhaengen(SCHRITT_ID, "/photos/neu.jpg") },

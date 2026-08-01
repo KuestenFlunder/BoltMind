@@ -133,6 +133,20 @@ class ReparaturRepository(
     }
 
     /**
+     * Macht einen Schritt wieder zum offenen Schritt.
+     *
+     * Gegenstueck zu [schrittAbschliessen], gebraucht beim Rollback eines
+     * abgebrochenen Schritt-Starts: der eben angelegte Schritt verschwindet und
+     * sein Vorgaenger muss wieder der offene sein, sonst hat der Vorgang gar
+     * keinen offenen Schritt mehr (F-003 workflow.md, "Rollback beim Abbruch am
+     * frischen Schritt").
+     */
+    suspend fun schrittWiederOeffnen(schrittId: Long) {
+        val vorgangId = schrittDao.findeVorgangId(schrittId)
+        beruehrend(vorgangId) { schrittDao.setzeAbschluss(schrittId, null) }
+    }
+
+    /**
      * Verwirft einen Schritt vollstaendig. Wird beim "Beenden" eines offenen Schritts
      * ohne Fotos benutzt: sonst bliebe ein leeres Thumbnail zurueck und eine
      * Schrittnummer waere verbrannt.
