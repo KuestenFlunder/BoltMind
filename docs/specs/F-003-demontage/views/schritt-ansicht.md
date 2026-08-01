@@ -38,24 +38,24 @@ Sie liegen unten rechts nebeneinander, von links nach rechts:
 |---|---|---|---|---|
 | klein | 60dp | (woertlich) **„↺"** | nur wenn der betrachtete Schritt mindestens ein Foto hat | „Wiederholen" am sichtbaren Foto |
 | mittel | 86dp | (woertlich) **„NOCH'N FOTO"** | immer | System-Kamera fuer ein weiteres Foto am **betrachteten** Schritt |
-| gross | 124dp | zweistellige Nummer plus (woertlich) **„NÄCHSTES"** bzw. (woertlich) **„ZURÜCK ZU"** | immer | siehe unten |
+| gross | 124dp | zweistellige Nummer plus (woertlich) **„NÄCHSTES TEIL"** bzw. (woertlich) **„ZURÜCK ZU"** | immer | siehe unten |
 
 Eine Aktionszeile oder -leiste gibt es nicht; die Rundbuttons sind die Bedienung.
 
-### Der grosse Rundbutton: „NÄCHSTES nn" oder „ZURÜCK ZU nn"
+### Der grosse Rundbutton: „NÄCHSTES TEIL nn" oder „ZURÜCK ZU nn"
 
 Der grosse Kreis behaelt Groesse und Position, wechselt aber Bedeutung, Beschriftung und Flaeche, je nachdem ob der betrachtete Schritt der offene ist:
 
 | Betrachteter Schritt | Kreis | Flaeche | `nn` |
 |---|---|---|---|
-| der offene Schritt N | „NÄCHSTES nn" | orange | die Nummer, die der naechste Schritt bekaeme (hoechste vergebene Nummer + 1) |
+| der offene Schritt N | „NÄCHSTES TEIL nn" | orange | die Nummer, die der naechste Schritt bekaeme (hoechste vergebene Nummer + 1) |
 | ein abgeschlossener Schritt M | „ZURÜCK ZU nn" | neutral | die Nummer des offenen Schritts N |
 
-**Begruendung (design-system.md, K-07):** Waere der Kreis immer „NÄCHSTES", haengt ein Fehltipp beim Nachschlagen eines alten Schritts eine Schrittnummer an, die moeglicherweise schon auf einem physischen Etikett klebt. Die Nummer ist die Korrelation zum Ablageort und wird nie umnummeriert.
+**Begruendung (design-system.md, K-07):** Waere der Kreis immer „NÄCHSTES TEIL", haengt ein Fehltipp beim Nachschlagen eines alten Schritts eine Schrittnummer an, die moeglicherweise schon auf einem physischen Etikett klebt. Die Nummer ist die Korrelation zum Ablageort und wird nie umnummeriert.
 
 Zusammen mit dem Kreis verschwindet am abgeschlossenen Schritt auch der Chip „FEIERABEND": beide Aktionen wirken auf den offenen Schritt, den der Mechaniker in diesem Moment nicht vor sich hat.
 
-> **[OFFEN]** Hat der Vorgang gar keinen offenen Schritt — alle Schritte sind abgeschlossen und der Mechaniker steigt ueber „Weiter demontieren" (F-001) wieder ein —, hat „ZURÜCK ZU nn" kein Ziel und „NÄCHSTES nn" erscheint nicht. Ob in diesem Fall beim Einstieg ein neuer Schritt angelegt wird (so beschreibt es [../workflow.md](../workflow.md), Abschnitt „Entry-Bedingungen") oder der Kreis „NÄCHSTES nn" zeigt, ist zu entscheiden.
+**Ein Zustand ohne offenen Schritt kommt nicht vor** (entschieden am 2026-08-01). Steigt der Mechaniker ueber „Weiter demontieren" (F-001) wieder ein und sind alle Schritte abgeschlossen, legt die Entry-Transition sofort einen neuen Schritt an und startet die System-Kamera ([../workflow.md](../workflow.md), Abschnitt „Reihenfolge beim Schritt-Start"). Der Kreis zeigt daher immer eine der beiden Auspraegungen dieser Tabelle; ein zielloses „ZURÜCK ZU 00" gibt es nicht. Die Invariante dahinter: solange die Demontage laeuft, hat der Vorgang genau einen offenen Schritt.
 
 ### Zwei Bedienelement-Gruppen
 
@@ -83,19 +83,27 @@ Verbindlich:
 
 #### Akzeptanzkriterien
 
-##### AK 1: Einstieg in den Flow
+##### AK 1: Einstieg mit offenem Schritt — ohne Kamera
 
 - **Given** ein Reparaturvorgang ist im Status OFFEN und hat einen Schritt mit `abgeschlossenAm = null`
-  **When** der Mechaniker den Demontage-Flow betritt (aus der Uebersicht oder direkt nach der Anlage in F-002)
+  **When** der Mechaniker den Demontage-Flow betritt
   **Then** zeigt die Schritt-Ansicht diesen offenen Schritt mit dessen Fotos
   **And** die System-Kamera wird beim Einstieg **nicht** automatisch gestartet — der Mechaniker loest sie ueber „NOCH'N FOTO" aus
   **And** hat der Schritt noch kein Foto, zeigt der Karussell-Bereich den Leer-Zustand aus F-006 (US-006.9)
 
-> **[OFFEN]** Derselbe Punkt wie in [../../F-002-vorgang-anlegen/anlegen.md](../../F-002-vorgang-anlegen/anlegen.md), Abschnitt „[OFFEN] Kamera-Autostart fuer Schritt 1": der Design-Prototyp startet die Kamera direkt nach „LOS GEHT'S" fuer Schritt 1, der gebaute Flow nicht. Zu entscheiden.
+##### AK 1b: Einstieg ohne offenen Schritt — die Kamera beginnt
+
+*(Entschieden am 2026-08-01; loest den frueheren `[OFFEN]`-Punkt „Kamera-Autostart fuer Schritt 1" zusammen mit [../../F-002-vorgang-anlegen/anlegen.md](../../F-002-vorgang-anlegen/anlegen.md).)*
+
+- **Given** ein Reparaturvorgang ist im Status OFFEN und hat **keinen** Schritt mit `abgeschlossenAm = null` — entweder weil er frisch aus F-002 kommt und noch gar keinen Schritt hat, oder weil nach dem Feierabend alle Schritte abgeschlossen sind
+  **When** der Mechaniker den Demontage-Flow betritt
+  **Then** wird ein neuer Schritt angelegt (`schrittNummer` = hoechste vergebene Nummer + 1) und ist der betrachtete Schritt
+  **And** die System-Kamera startet **automatisch** fuer diesen Schritt — es erscheint keine leere Maske, die erst „NOCH'N FOTO" verlangt
+  **And** nach bestaetigter Aufnahme zeigt die Schritt-Ansicht den neuen Schritt mit diesem Foto
 
 ##### AK 2: Foto bestaetigt — sofort persistiert
 
-- **Given** die System-Kamera wurde fuer ein **neues** Foto geoeffnet („NOCH'N FOTO" oder Schritt-Start ueber „NÄCHSTES nn", **nicht** „↺")
+- **Given** die System-Kamera wurde fuer ein **neues** Foto geoeffnet („NOCH'N FOTO" oder Schritt-Start ueber „NÄCHSTES TEIL nn", **nicht** „↺")
   **When** der Mechaniker die Aufnahme in der System-Kamera bestaetigt
   **Then** ist das neue Foto als letztes im Karussell des Schritts sichtbar — es bekommt `reihenfolge` = Anzahl der bisherigen Fotos dieses Schritts
   **And** das Label „BAUTEIL" ist gesetzt, „ÜBERSICHT" und „ABLAGEORT" nicht
@@ -106,11 +114,21 @@ Verbindlich:
 
 ##### AK 3: System-Kamera wird abgebrochen
 
-- **Given** die System-Kamera wurde fuer ein **neues** Foto geoeffnet (**nicht** „↺")
+- **Given** die System-Kamera wurde ueber „NOCH'N FOTO" fuer einen Schritt geoeffnet, der bereits mindestens ein Foto hat (**nicht** „↺")
   **When** der Mechaniker die Aufnahme abbricht (Back-Taste oder Abbrechen)
   **Then** wird kein Foto zum Schritt hinzugefuegt und keine Datei behalten
-  **And** die Schritt-Ansicht wird angezeigt
-  **And** hat der Schritt noch kein Foto, zeigt der Karussell-Bereich den Leer-Zustand aus F-006 (US-006.9)
+  **And** die Schritt-Ansicht zeigt unveraendert denselben Schritt mit seinen bisherigen Fotos
+
+##### AK 3b: Abbruch am frisch eroeffneten Schritt rollt zurueck
+
+- **Given** die System-Kamera wurde vom **Schritt-Start** geoeffnet („NÄCHSTES TEIL nn" oder der Einstieg aus AK 1b) und der eben angelegte Schritt hat kein Foto
+  **When** der Mechaniker die Aufnahme abbricht (Back-Taste oder Abbrechen)
+  **Then** wird der eben angelegte Schritt geloescht und seine Nummer wieder frei
+  **And** der Vorgaenger ist wieder der offene und der betrachtete Schritt, mit seinen Fotos
+  **And** der grosse Kreis ist wieder orange und traegt „NÄCHSTES TEIL" mit derselben Nummer wie vor dem Tap
+  **And** existiert kein Vorgaenger (Schritt 1 eines neuen Vorgangs), bleibt dieser Schritt offen und leer stehen; der Karussell-Bereich zeigt den Leer-Zustand aus F-006 (US-006.9)
+
+  *(Wirkung und Begruendung stehen vollstaendig in [../workflow.md](../workflow.md), Abschnitt „Rollback beim Abbruch am frischen Schritt".)*
 
 ##### AK 4: Keine Kamera-App verfuegbar
 
@@ -188,19 +206,21 @@ Verbindlich:
 
 - **Given** der Demontage-Flow ist aktiv und die Ansicht zeigt den offenen Schritt N mit mindestens einem Foto
   **When** die Schritt-Ansicht angezeigt wird
-  **Then** sind unten rechts genau drei Rundbuttons sichtbar: „↺", „NOCH'N FOTO" und der orange Kreis mit der Nummer N+1 und dem Wort „NÄCHSTES"
+  **Then** sind unten rechts genau drei Rundbuttons sichtbar: „↺", „NOCH'N FOTO" und der orange Kreis mit der Nummer N+1 und den Worten „NÄCHSTES TEIL"
   **And** oben rechts ist der Chip „FEIERABEND" sichtbar
   **And** die drei Label-Chips sind sichtbar
   **And** die Thumbnail-Leiste zeigt alle Schritte des Vorgangs
 
-##### AK 2: „NÄCHSTES nn"
+##### AK 2: „NÄCHSTES TEIL nn"
 
 - **Given** die Schritt-Ansicht zeigt den offenen Schritt N
-  **When** der Mechaniker den orangen Kreis „NÄCHSTES nn" antippt
+  **When** der Mechaniker den orangen Kreis „NÄCHSTES TEIL nn" antippt
   **Then** wird `abgeschlossenAm` am Schritt N gesetzt
   **And** ein neuer `Schritt` mit `schrittNummer` = N+1 und `gestartetAm` wird angelegt
+  **And** der betrachtete Schritt wechselt auf N+1, **bevor** die Kamera startet — nicht erst bei ihrer Rueckkehr ([../workflow.md](../workflow.md), Abschnitt „Reihenfolge beim Schritt-Start")
   **And** die System-Kamera startet automatisch fuer den neuen Schritt
-  **And** nach der Rueckkehr zeigt die Ansicht den neuen Schritt, und der Kreis traegt jetzt die Nummer N+2
+  **And** nach bestaetigter Aufnahme haengt das Foto an Schritt N+1, die Ansicht zeigt Schritt N+1, und der Kreis traegt „NÄCHSTES TEIL" mit der Nummer N+2
+  **And** der Kreis wechselt zu keinem Zeitpunkt auf „ZURÜCK ZU" — der Mechaniker ist vorwaerts gegangen, nicht in einen alten Schritt gesprungen
 
 ##### AK 3: Debounce
 
@@ -223,7 +243,7 @@ Verbindlich:
 - **Given** die Schritt-Ansicht zeigt den abgeschlossenen Schritt 2, waehrend Schritt 5 offen ist
   **When** der Mechaniker den Kreis „ZURÜCK ZU 05" antippt
   **Then** zeigt die Schritt-Ansicht wieder Schritt 5 mit dessen Fotos
-  **And** der Kreis ist wieder orange und traegt „NÄCHSTES 06", der Chip „FEIERABEND" ist wieder sichtbar
+  **And** der Kreis ist wieder orange und traegt „NÄCHSTES TEIL 06", der Chip „FEIERABEND" ist wieder sichtbar
   **And** es wurde kein Schritt abgeschlossen, angelegt oder geloescht
 
 ##### AK 6: Foto-Aktionen bleiben am betrachteten Schritt
@@ -321,10 +341,10 @@ Die Messung selbst gehoert dem Service F-005 ([../../F-005-zeiterfassung/service
   **And** der angezeigte Wert bleibt stehen und geht nicht verloren
   **And** ein erneutes Starten setzt die Zaehlung fort, statt bei `00:00` zu beginnen
 
-##### AK 4: „NÄCHSTES nn" zieht die Messung mit
+##### AK 4: „NÄCHSTES TEIL nn" zieht die Messung mit
 
 - **Given** die Zeitmessung fuer den offenen Schritt N laeuft
-  **When** der Mechaniker „NÄCHSTES nn" antippt
+  **When** der Mechaniker „NÄCHSTES TEIL nn" antippt
   **Then** wird die Messung an Schritt N gestoppt
   **And** fuer den neu angelegten Schritt N+1 laeuft die Messung automatisch
 
@@ -358,17 +378,18 @@ Die Messung selbst gehoert dem Service F-005 ([../../F-005-zeiterfassung/service
 
 | Aktion | DB-Operation |
 |--------|-------------|
-| Schritt beginnt („NÄCHSTES nn", oder Schritt 1 durch F-002) | Neuen `Schritt` anlegen: `reparaturvorgangId`, `schrittNummer`, `gestartetAm` |
-| Foto in der System-Kamera bestaetigt — Kamera kam aus „NOCH'N FOTO" oder aus „NÄCHSTES nn" | Neues `SchrittFoto`: `schrittId` des **betrachteten** Schritts, `pfad`, `reihenfolge` = Anzahl bisheriger Fotos dieses Schritts (0-basiert, also hinten angehaengt), `istBauteil = true`, `istUebersicht = false`, `istAblageort = false`, `aufgenommenAm` |
+| Schritt beginnt („NÄCHSTES TEIL nn", oder der Einstieg ohne offenen Schritt) | Neuen `Schritt` anlegen: `reparaturvorgangId`, `schrittNummer`, `gestartetAm`. Bei „NÄCHSTES TEIL nn" zusaetzlich `abgeschlossenAm` am Vorgaenger setzen |
+| Foto in der System-Kamera bestaetigt — Kamera kam aus „NOCH'N FOTO" oder aus „NÄCHSTES TEIL nn" | Neues `SchrittFoto`: `schrittId` des **beim Kamera-Start festgehaltenen Ziel-Schritts**, `pfad`, `reihenfolge` = Anzahl bisheriger Fotos dieses Schritts (0-basiert, also hinten angehaengt), `istBauteil = true`, `istUebersicht = false`, `istAblageort = false`, `aufgenommenAm` |
 | Foto in der System-Kamera bestaetigt — Kamera kam aus **„↺"** | **Erst jetzt** wird ersetzt, in einer Operation: neues `SchrittFoto` mit denselben Feldern, aber `reihenfolge` = `p` (die `reihenfolge` des ersetzten Fotos); die alte `SchrittFoto`-Zeile und die alte Datei werden geloescht. Die uebrigen Fotos behalten ihre `reihenfolge` |
-| System-Kamera abgebrochen / keine Kamera-App | Kein DB-Write. Vorbereitete Zieldatei loeschen. Kam die Kamera aus „↺", bleiben das alte Foto und seine Datei unveraendert erhalten |
+| System-Kamera abgebrochen / keine Kamera-App — Schritt hat Fotos, oder die Kamera kam aus „NOCH'N FOTO" bzw. „↺" | Kein DB-Write. Vorbereitete Zieldatei loeschen. Kam die Kamera aus „↺", bleiben das alte Foto und seine Datei unveraendert erhalten |
+| System-Kamera abgebrochen / keine Kamera-App — Kamera kam vom **Schritt-Start** und der Schritt ist fotolos | **Rollback:** den eben angelegten `Schritt` loeschen und am Vorgaenger `abgeschlossenAm` auf `null` zuruecksetzen. Zieldatei loeschen. Ohne Vorgaenger bleibt der Schritt bestehen |
 | Label-Chip umgeschaltet | Update auf dem `SchrittFoto` des sichtbaren Fotos (`istBauteil` / `istUebersicht` / `istAblageort`) |
 | „↺" angetippt | **Kein DB-Write beim Tap.** Gemerkt werden nur die `SchrittFoto`-Id und `p` = deren `reihenfolge`; ersetzt wird erst nach erfolgreicher Neuaufnahme |
 | „NOCH'N FOTO" angetippt | Kein DB-Write beim Tap |
 | Karussell wischen / Foto in Vollbild oeffnen | Kein DB-Write |
 | Thumbnail eines anderen Schritts antippen (F-006) | Kein DB-Write. Fotos des gewaehlten Schritts werden geladen |
 | „ZURÜCK ZU nn" | Kein DB-Write. Fotos des offenen Schritts werden geladen |
-| „NÄCHSTES nn" | `abgeschlossenAm` am offenen Schritt setzen **und** neuen `Schritt` (N+1) anlegen |
+| „NÄCHSTES TEIL nn" | `abgeschlossenAm` am offenen Schritt setzen **und** neuen `Schritt` (N+1) anlegen |
 | „JA, FEIERABEND" | Wirkung und DB-Operation stehen bei US-003.5 in [../workflow.md](../workflow.md) |
 | Timer-Chip angetippt | Kein Schreibvorgang an `Schritt` oder `SchrittFoto`. Der Service F-005 legt in seiner eigenen Tabelle eine `ZeitMessung` an bzw. schliesst die offene |
 
@@ -389,11 +410,11 @@ Die Messung selbst gehoert dem Service F-005 ([../../F-005-zeiterfassung/service
 
 - **System-Kamera:** `ActivityResultContracts.TakePicture()` + `FileProvider` — kein CameraX, keine `CAMERA`-Permission
 - **Zieldatei:** Wird vor dem Intent in `photos/` angelegt und als FileProvider-URI uebergeben. Kein `photos/temp/`, kein Verschiebe-Schritt nach der Aufnahme
-- **Auto-Start:** Der Kamera-Intent wird beim Anlegen eines Schritts ueber „NÄCHSTES nn" automatisch ausgeloest. Beim Betreten des Flows wird er **nicht** ausgeloest (US-003.1 AK 1)
+- **Auto-Start:** Der Kamera-Intent wird beim Anlegen eines Schritts ueber „NÄCHSTES TEIL nn" automatisch ausgeloest. Beim Betreten des Flows wird er **nicht** ausgeloest (US-003.1 AK 1)
 - **EXIF:** Metadaten werden nach der Rueckkehr aus der System-Kamera entfernt, bevor die `SchrittFoto`-Zeile geschrieben wird
 - **F-006-Einbettung:** Foto-Karussell, Thumbnail-Leiste, Label-Chips, Foto-Indikator und Vollbild-Ansicht kommen als Komponenten aus F-006 (bearbeitbarer Modus). Die Bedienelemente „Zurueck"/„Weiter" (F-006 US-006.10) werden **nicht** angedockt. Kopfzeile, Timer-Chip und die Rundbuttons haengt F-003 in die dafuer vorgesehenen Slots
 - **Anzeige-Reihenfolge:** F-003 uebergibt die Schritte des Vorgangs **aufsteigend nach `schrittNummer`**
-- **Betrachteter vs. offener Schritt:** Das ViewModel haelt beides getrennt. Der **betrachtete** Schritt steuert Anzeige, Foto-Aktionen, „NOCH'N FOTO" und den Timer-Chip; der **offene** Schritt (`abgeschlossenAm = null`) ist Ziel von „NÄCHSTES nn" und „FEIERABEND". Sind beide identisch, ist der grosse Kreis orange und „FEIERABEND" sichtbar, sonst zeigt der Kreis „ZURÜCK ZU nn" und „FEIERABEND" entfaellt
+- **Betrachteter vs. offener Schritt:** Das ViewModel haelt beides getrennt. Der **betrachtete** Schritt steuert Anzeige, Foto-Aktionen, „NOCH'N FOTO" und den Timer-Chip; der **offene** Schritt (`abgeschlossenAm = null`) ist Ziel von „NÄCHSTES TEIL nn" und „FEIERABEND". Sind beide identisch, ist der grosse Kreis orange und „FEIERABEND" sichtbar, sonst zeigt der Kreis „ZURÜCK ZU nn" und „FEIERABEND" entfaellt
 - **Sichtbares Foto:** Die Karussell-Position ist der State, an dem Label-Chips und „↺" haengen. Sie wird im ViewModel gehalten und mit dem von F-006 gemeldeten sichtbaren Foto synchron gehalten
 - **Zeiterfassung:** ueber das Interface aus F-005 mit `referenzId = Schritt.id` und dem Referenztyp des Demontage-Schritts. Die Timer-Daten liegen in der eigenen Tabelle des Service-Features, nie am `Schritt` (Governance: keine Dual-Purpose-Felder)
 - **State Hoisting:** Der Screen erhaelt State (Schrittnummer, Fotoliste mit Labels, Karussell-Position, Schrittliste fuer die Thumbnail-Leiste, Index des betrachteten Schritts, Nummer des offenen Schritts, Timer-Stand) und Callbacks vom ViewModel
@@ -402,4 +423,4 @@ Die Messung selbst gehoert dem Service F-005 ([../../F-005-zeiterfassung/service
 
 | Datum | Aenderung |
 |---|---|
-| 2026-07-27 | Auf das Design-System nachgezogen: drei Rundbuttons („↺" 60dp, „NOCH'N FOTO" 86dp, grosser Kreis 124dp) statt einer Aktionszeile; der grosse Kreis zeigt „NÄCHSTES nn" nur am offenen Schritt und sonst neutral „ZURÜCK ZU nn" (K-07), „FEIERABEND" verschwindet dabei; „Beenden" heisst in der Oberflaeche „FEIERABEND" und fragt ueber ein Bottom-Sheet nach (K-08); Schrittnummer als 118sp-Ziffer oben links; „Zurueck"/„Weiter" aus F-006 werden nicht angedockt (K-05); neue US-003.7 fuer den Timer-Chip (K-03, K-04); Kamera-Autostart nur noch bei „NÄCHSTES nn". |
+| 2026-07-27 | Auf das Design-System nachgezogen: drei Rundbuttons („↺" 60dp, „NOCH'N FOTO" 86dp, grosser Kreis 124dp) statt einer Aktionszeile; der grosse Kreis zeigt „NÄCHSTES TEIL nn" nur am offenen Schritt und sonst neutral „ZURÜCK ZU nn" (K-07), „FEIERABEND" verschwindet dabei; „Beenden" heisst in der Oberflaeche „FEIERABEND" und fragt ueber ein Bottom-Sheet nach (K-08); Schrittnummer als 118sp-Ziffer oben links; „Zurueck"/„Weiter" aus F-006 werden nicht angedockt (K-05); neue US-003.7 fuer den Timer-Chip (K-03, K-04); Kamera-Autostart nur noch bei „NÄCHSTES TEIL nn". |

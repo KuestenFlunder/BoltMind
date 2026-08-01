@@ -306,10 +306,12 @@ Weitere Punkte:
 flowchart TD
     A["Flow starten"] -->|kein offener Schritt| N["Schritt N anlegen<br/>gestartetAm setzen"]
     A -->|offener Schritt vorhanden| SA
-    N -->|Kamera-Autostart| K["System-Kamera<br/>Intent"]
-    K -->|Foto bestaetigt| P["SchrittFoto anlegen<br/>Label Bauteil"]
+    N -->|Ansicht folgt, dann Kamera| K["System-Kamera<br/>Intent"]
+    K -->|Foto bestaetigt| P["SchrittFoto am Ziel-Schritt<br/>Label Bauteil"]
     P --> SA["Schritt-Ansicht<br/>offener Schritt N"]
-    K -->|Abgebrochen| SA
+    K -->|"Abgebrochen, Schritt hat Fotos"| SA
+    K -->|"Abgebrochen, Schritt fotolos"| RB["Rollback: Schritt loeschen<br/>Vorgaenger wieder oeffnen"]
+    RB --> SA
     K -->|Keine Kamera-App| SA
     SA -->|Label-Checkbox| L["SchrittFoto aktualisieren"]
     L --> SA
@@ -324,8 +326,8 @@ flowchart TD
     SM -->|Weiteres Foto| K
     SM -->|Zurueck zu Schritt N| SA
     SM -->|Thumbnail Schritt M2| SM
-    SA -->|Naechster Schritt| NX["Schritt N abschliessen<br/>Schritt N plus 1 anlegen"]
-    NX -->|Kamera-Autostart| K
+    SA -->|Naechstes Teil| NX["Schritt N abschliessen<br/>Schritt N plus 1 anlegen"]
+    NX -->|Ansicht folgt, dann Kamera| K
     SA -->|Beenden| E["Schritt N abschliessen<br/>ohne Fotos verwerfen"]
     E --> U["Uebersicht F-001"]
 ```

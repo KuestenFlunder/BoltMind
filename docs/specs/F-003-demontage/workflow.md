@@ -15,12 +15,13 @@
 
 | Von | Event | Nach | Bedingung | DB-Aktion |
 |-----|-------|------|-----------|-----------|
-| -- (Entry) | Flow starten | `KAMERA` | Reparaturvorgang ist OFFEN, kein offener Schritt vorhanden | `Schritt` anlegen: `schrittNummer` = hoechste Nummer + 1, `gestartetAm` = jetzt. Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
+| -- (Entry) | Flow starten | `KAMERA` | Reparaturvorgang ist OFFEN, kein offener Schritt vorhanden -- gilt gleichermassen fuer den frisch angelegten Vorgang aus F-002 (der **keinen** Schritt mitbringt) und fuer den Wiedereinstieg ueber F-001, nachdem alle Schritte abgeschlossen sind | `Schritt` anlegen: `schrittNummer` = hoechste Nummer + 1, `gestartetAm` = jetzt. Der betrachtete Schritt ist dieser neue Schritt. Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
 | -- (Entry) | Flow fortsetzen | `SCHRITT_ANSICHT` | Es existiert ein Schritt mit `abgeschlossenAm = null` | Keine (bestehender Schritt wird geladen) |
 | `KAMERA` | Foto in der System-Kamera bestaetigt | `SCHRITT_ANSICHT` | Die Kamera kam aus dem Schritt-Start oder aus "Weiteres Foto" | `SchrittFoto` anlegen: `schrittId` des Schritts, der die Kamera gestartet hat (nach einem Sprung der betrachtete, sonst der offene Schritt), `pfad`, `reihenfolge` = Anzahl bisheriger Fotos des Schritts (0-basiert, also hinten angehaengt), `istBauteil = true`, `istUebersicht = false`, `istAblageort = false`, `aufgenommenAm` = jetzt. Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
 | `KAMERA` | Foto in der System-Kamera bestaetigt | `SCHRITT_ANSICHT` | Die Kamera kam aus **"Wiederholen"** | **Jetzt erst** wird ersetzt, in einer Operation: neues `SchrittFoto` mit denselben Feldern wie oben, aber `reihenfolge` = `p` (die `reihenfolge` des ersetzten Fotos); die alte `SchrittFoto`-Zeile und die alte Datei werden geloescht. Die uebrigen Fotos behalten ihre `reihenfolge` -- es wird weder umnummeriert noch hinten angehaengt (Foto-Flow Logik Punkt 7). Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
-| `KAMERA` | Abgebrochen | `SCHRITT_ANSICHT` | -- | Keine. Angelegte Zieldatei wird geloescht, kein `SchrittFoto`. Kam die Kamera aus "Wiederholen", bleibt das alte Foto unveraendert erhalten |
-| `KAMERA` | Keine Kamera-App gefunden | `SCHRITT_ANSICHT` | -- | Keine. Hinweis-Dialog "Keine Kamera-App gefunden". Kam die Kamera aus "Wiederholen", bleibt das alte Foto unveraendert erhalten |
+| `KAMERA` | Abgebrochen | `SCHRITT_ANSICHT` | Die Kamera kam aus "Weiteres Foto" oder "Wiederholen", oder der Schritt hat bereits Fotos | Keine. Angelegte Zieldatei wird geloescht, kein `SchrittFoto`. Kam die Kamera aus "Wiederholen", bleibt das alte Foto unveraendert erhalten |
+| `KAMERA` | Abgebrochen | `SCHRITT_ANSICHT` (Vorgaenger N) | Die Kamera kam aus dem **Schritt-Start** (Entry oder "Naechster Schritt") und der eben angelegte Schritt N+1 hat **kein Foto** | **Rollback**, siehe Abschnitt "Rollback beim Abbruch am frischen Schritt": Schritt N+1 loeschen, Schritt N wieder oeffnen (`abgeschlossenAm = null`). Zieldatei loeschen. Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
+| `KAMERA` | Keine Kamera-App gefunden | `SCHRITT_ANSICHT` | -- | Wie "Abgebrochen", einschliesslich Rollback. Zusaetzlich Hinweis-Dialog "Keine Kamera-App gefunden" |
 | `SCHRITT_ANSICHT` | Label-Checkbox umgeschaltet | `SCHRITT_ANSICHT` | Debounce 300ms, mind. 1 Foto sichtbar | `SchrittFoto` des sichtbaren Fotos updaten: `istBauteil` / `istUebersicht` / `istAblageort`. Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
 | `SCHRITT_ANSICHT` | Foto im Karussell gewischt | `SCHRITT_ANSICHT` | -- | Keine (Checkboxen zeigen die Flags des neu sichtbaren Fotos) |
 | `SCHRITT_ANSICHT` | "Wiederholen" am sichtbaren Foto | `KAMERA` | Debounce 300ms, mind. 1 Foto sichtbar | **Keine.** Das alte Foto und seine Datei bleiben unveraendert; gemerkt werden nur die `SchrittFoto`-Id und `p` = deren `reihenfolge` fuer die Ersetzung nach erfolgreicher Aufnahme (Governance-Regel "Kamera", siehe [../governance.md](../governance.md)) |
@@ -31,7 +32,7 @@
 | `SCHRITT_ANSICHT` (abgeschlossener Schritt M sichtbar) | "Zurueck zu Schritt N" | `SCHRITT_ANSICHT` (offener Schritt N) | Debounce 300ms | Keine -- reiner State-Wechsel im ViewModel |
 | `SCHRITT_ANSICHT` | Foto antippen (Vollbild, F-006) | `SCHRITT_ANSICHT` (Vollbild offen) | -- | Keine |
 | `SCHRITT_ANSICHT` (Vollbild offen, F-006) | Schliessen-Element oder Android-Zurueck-Taste | `SCHRITT_ANSICHT` (Vollbild geschlossen) | -- | Keine -- das Vollbild konsumiert die Back-Geste zuerst |
-| `SCHRITT_ANSICHT` (offener Schritt N sichtbar) | "Naechster Schritt" | `KAMERA` | Debounce 300ms; der Button ist nur sichtbar, wenn der betrachtete Schritt der offene ist | `abgeschlossenAm` = jetzt am Schritt N setzen **und** neuen `Schritt` N+1 anlegen (`schrittNummer` = N+1, `gestartetAm` = jetzt). Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
+| `SCHRITT_ANSICHT` (offener Schritt N sichtbar) | "Naechster Schritt" | `KAMERA` | Debounce 300ms; der Button ist nur sichtbar, wenn der betrachtete Schritt der offene ist | `abgeschlossenAm` = jetzt am Schritt N setzen **und** neuen `Schritt` N+1 anlegen (`schrittNummer` = N+1, `gestartetAm` = jetzt). **Der betrachtete Schritt wechselt dabei auf N+1**, bevor die Kamera startet -- siehe Abschnitt "Reihenfolge beim Schritt-Start". Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
 | `SCHRITT_ANSICHT` (offener Schritt N sichtbar, mind. 1 Foto) | "Beenden" | Uebersicht (F-001) | Debounce 300ms; der Button ist nur sichtbar, wenn der betrachtete Schritt der offene ist | `abgeschlossenAm` = jetzt am Schritt N setzen. Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
 | `SCHRITT_ANSICHT` (offener Schritt N sichtbar, **ohne Fotos**) | "Beenden" | Uebersicht (F-001) | Debounce 300ms | Schritt N **loeschen** statt abschliessen; die Nummer N wird beim naechsten Flow-Start erneut vergeben. Zusaetzlich `Reparaturvorgang.aktualisiertAm` = jetzt |
 | `SCHRITT_ANSICHT` | Android-Zurueck-Taste (kein Vollbild offen) | `SCHRITT_ANSICHT` | -- | Keine -- der Flow wird nicht verlassen (US-003.6) |
@@ -49,21 +50,59 @@ Damit bezieht sich jede sichtbare Aktion immer auf den Schritt, den der Mechanik
 
 **Getrennt davon: die Schritt-Navigation von F-006.** Die Aktionszeile ist **nicht** die einzige Bedienelement-Gruppe der Schritt-Ansicht. Thumbnail-Leiste sowie "Zurueck" und "Weiter" (F-006 US-006.2 und US-006.10) sind in allen drei F-006-Modi komponiert und daher auch in der Demontage **immer sichtbar**; an den Raendern der Anzeige-Reihenfolge sind sie lediglich deaktiviert. Sie wechseln nur den betrachteten Schritt und schreiben nichts in die DB. Die Abgrenzung zu den Schritt-Aktionen -- insbesondere "Weiter" gegenueber "Naechster Schritt" und "Zurueck" gegenueber "Zurueck zu Schritt N" -- ist in [views/schritt-ansicht.md](views/schritt-ansicht.md), Abschnitt "Zwei Bedienelement-Gruppen", verbindlich festgelegt.
 
+## Reihenfolge beim Schritt-Start
+
+Immer wenn ein Schritt **beginnt** -- beim Entry ohne offenen Schritt und bei "Naechster Schritt" -- gilt diese Reihenfolge verbindlich:
+
+1. Den Vorgaenger abschliessen, falls es einen offenen gibt (`abgeschlossenAm` = jetzt).
+2. Den neuen `Schritt` anlegen und seine Zeitmessung starten (F-005).
+3. **Den betrachteten Schritt auf den neuen Schritt setzen.**
+4. Erst jetzt die System-Kamera starten, mit der Id des neuen Schritts als Ziel.
+
+Punkt 3 vor Punkt 4 ist keine Kosmetik. Startet die Kamera parallel zur Schritt-Anlage, kehrt sie in eine Ansicht zurueck, die noch auf dem alten -- inzwischen abgeschlossenen -- Schritt steht: das Foto landet am falschen Schritt, und die Aktionszeile faellt auf ihre zweite Auspraegung zurueck ("Zurueck zu Schritt N"), obwohl der Mechaniker gerade vorwaerts gegangen ist.
+
+**Das Ziel der Aufnahme ist die Schritt-Id, die beim Kamera-Start feststand** -- nicht der Schritt, der bei der Rueckkehr gerade betrachtet wird. Beides faellt im Normalfall zusammen; die Id festzuhalten macht die Zuordnung unabhaengig davon, was waehrend der Aufnahme sonst noch passiert.
+
+## Rollback beim Abbruch am frischen Schritt
+
+Bricht der Mechaniker die Kamera ab, die **den Schritt eroeffnet hat**, und hat dieser Schritt kein einziges Foto, wird der Schritt-Start vollstaendig zurueckgenommen:
+
+- Der eben angelegte Schritt N+1 wird **geloescht**. Seine Nummer wird damit wieder frei und beim naechsten Schritt-Start erneut vergeben.
+- Der Vorgaenger N wird **wieder geoeffnet** (`abgeschlossenAm` zurueck auf `null`) und ist danach wieder der betrachtete Schritt.
+- Die Zeitmessung des verworfenen Schritts wird gestoppt; die des wieder geoeffneten Schritts laeuft weiter wie vor dem Tap.
+
+**Warum geloescht statt stehengelassen:** Weil die Kamera den Schritt eroeffnet, ist ihr Abbruch die einzige Moeglichkeit, "doch nicht" zu sagen. Ein leerer Schritt, der dabei zurueckbliebe, waere kein bewusst uebersprungener Schritt, sondern Muell -- er verbraucht eine Nummer, erscheint als leeres Thumbnail und schiebt die Nummerierung aller folgenden Teile um eins. Ohne Foto ist zu diesem Zeitpunkt auch nichts dokumentiert, das eine Nummer tragen koennte.
+
+**Warum der Vorgaenger wieder geoeffnet wird:** "Naechster Schritt" hat ihn abgeschlossen. Bliebe er abgeschlossen, haette der Vorgang nach dem Rollback **keinen** offenen Schritt mehr -- die Aktionszeile zeigte "Zurueck zu Schritt N" ins Leere und der Mechaniker kaeme nicht mehr weiter. Das Rollback stellt damit die Invariante wieder her, die den ganzen Flow traegt:
+
+> **Invariante:** Solange die Demontage laeuft, hat der Vorgang genau einen offenen Schritt.
+
+**Zwei Faelle, in denen nicht zurueckgerollt wird:**
+
+| Fall | Verhalten |
+|---|---|
+| Der Schritt hat bereits Fotos ("Weiteres Foto" abgebrochen, oder Abbruch nach einer geglueckten Aufnahme) | Es wird nichts geloescht und nichts wieder geoeffnet. Nur die leere Zieldatei verschwindet |
+| Es gibt keinen Vorgaenger (Schritt 1 eines neuen Vorgangs) | Schritt 1 bleibt leer und offen stehen -- es gibt kein Ziel, auf das zurueckgerollt werden koennte. Der Mechaniker holt die Aufnahme per "Weiteres Foto" nach oder verlaesst den Flow ueber "Beenden", das den fotolosen Schritt ohnehin verwirft |
+
 ## Navigations-Diagramm
 
 ```
 [Entry: Flow starten]
-  -> kein offener Schritt vorhanden -> Schritt N anlegen -> System-Kamera (automatisch)
-  -> offener Schritt vorhanden      -> Schritt-Ansicht (offener Schritt N)
+  -> kein offener Schritt vorhanden -> Schritt N anlegen, Ansicht auf N -> System-Kamera (automatisch)
+     (gilt fuer den neuen Vorgang aus F-002 und fuer den Wiedereinstieg nach Feierabend)
+  -> offener Schritt vorhanden      -> Schritt-Ansicht (offener Schritt N), keine Kamera
 
 System-Kamera (transient, kein App-Screen)
-  -> [Foto bestaetigt] -> Datei in photos/, SchrittFoto anlegen (Label Bauteil) -> Schritt-Ansicht
+  -> [Foto bestaetigt] -> Datei in photos/, SchrittFoto am Ziel-Schritt anlegen  -> Schritt-Ansicht
+                          (Label Bauteil; Ziel ist die beim Kamera-Start
+                           festgehaltene Schritt-Id)
                           (kam sie aus "Wiederholen": neues Foto auf Position p,
                            danach altes SchrittFoto + alte Datei loeschen)
   -> [Abgebrochen]     -> Zieldatei verwerfen, keine DB-Zeile                   -> Schritt-Ansicht
                           (kam sie aus "Wiederholen": altes Foto bleibt erhalten)
-  -> [Keine Kamera-App]-> Hinweis-Dialog                                        -> Schritt-Ansicht
-                          (kam sie aus "Wiederholen": altes Foto bleibt erhalten)
+                          (kam sie aus dem Schritt-Start und der Schritt ist
+                           fotolos: Rollback -> Schritt-Ansicht (Vorgaenger N))
+  -> [Keine Kamera-App]-> Hinweis-Dialog, sonst wie [Abgebrochen]               -> Schritt-Ansicht
 
 Schritt-Ansicht, offener Schritt N sichtbar
   -> [Label-Checkbox]        -> SchrittFoto-Update (sofort)          -> Schritt-Ansicht
@@ -74,7 +113,8 @@ Schritt-Ansicht, offener Schritt N sichtbar
   -> [Thumbnail Schritt M]   -> kein DB-Write                        -> Schritt-Ansicht (Schritt M)
   -> [F-006 "Zurueck"]       -> kein DB-Write                        -> Schritt-Ansicht (Schritt N-1)
   -> [F-006 "Weiter"]        -> deaktiviert (N ist der letzte Schritt der Anzeige-Reihenfolge)
-  -> [Naechster Schritt]     -> abgeschlossenAm(N), Schritt N+1      -> System-Kamera
+  -> [Naechster Schritt]     -> abgeschlossenAm(N), Schritt N+1,
+                                Ansicht folgt auf N+1                 -> System-Kamera (Schritt N+1)
   -> [Beenden]               -> abgeschlossenAm(N) bzw. Schritt N loeschen, falls ohne Fotos
                                                                       -> Uebersicht (F-001)
 
@@ -121,7 +161,7 @@ Die Schrittnummer wird **nicht** inkrementiert bei:
 - Sprung zu einem anderen Schritt ueber die Thumbnail-Leiste (F-006)
 - "Zurueck zu Schritt N" (Rueckkehr zum offenen Schritt nach einem Sprung)
 - "Beenden" (kein neuer Schritt). Wird dabei ein Schritt ohne Fotos verworfen, sinkt die naechste vergebene Nummer wieder auf dessen Nummer
-- Abbruch der System-Kamera
+- Abbruch der System-Kamera. Eroeffnete diese Kamera-Runde den Schritt und blieb er fotolos, wird der Schritt sogar zurueckgenommen -- die Nummer sinkt wieder auf seine (Abschnitt "Rollback beim Abbruch am frischen Schritt")
 
 ### Aus US-003.4 AK 3: Schrittnummer bei neuem Vorgang
 
@@ -136,6 +176,22 @@ Die Schrittnummer wird **nicht** inkrementiert bei:
   **When** der Mechaniker "Naechster Schritt" antippt
   **Then** wird ein Schritt mit `schrittNummer = 4` angelegt
   **And** nach Rueckkehr aus der System-Kamera zeigt die Schritt-Ansicht "Schritt 4"
+
+### Aus US-003.4 AK 7: Rollback nimmt die Nummer wieder zurueck
+
+- **Given** die Schritt-Ansicht zeigt den offenen Schritt 4 mit einem Foto
+  **When** der Mechaniker "Naechster Schritt" antippt und die System-Kamera dann abbricht
+  **Then** ist Schritt 5 wieder geloescht und Schritt 4 wieder offen
+  **And** die Schritt-Ansicht zeigt Schritt 4 mit seinem Foto
+  **And** die Aktionszeile bietet erneut "Naechster Schritt" an, beschriftet mit der Nummer 5
+
+### Aus US-003.4 AK 8: Ohne Vorgaenger wird nicht zurueckgerollt
+
+- **Given** ein neuer Reparaturvorgang ohne Schritte wird geoeffnet, Schritt 1 wird angelegt und die System-Kamera startet
+  **When** der Mechaniker die Kamera abbricht
+  **Then** bleibt Schritt 1 offen und ohne Fotos bestehen
+  **And** die Schritt-Ansicht zeigt Schritt 1 im Leer-Zustand des Karussells (F-006 US-006.9)
+  **And** es wird kein Schritt geloescht -- es gibt keinen Vorgaenger, auf den zurueckgerollt werden koennte
 
 ### Aus US-003.4 AK 5: Keine Inkrementierung bei weiterem Foto
 
@@ -184,7 +240,8 @@ Die beiden Timestamps markieren jetzt die **Klammer um den gesamten Schritt** in
 - **`aktualisiertAm`:** Jeder dieser Schreibvorgaenge zieht `Reparaturvorgang.aktualisiertAm` mit (projektweite Invariante, siehe [../governance.md](../governance.md))
 - **Abschluss:** `abgeschlossenAm` wird bei "Naechster Schritt" bzw. "Beenden" sofort geschrieben
 - **Leerer Schritt beim Beenden:** Hat der offene Schritt beim "Beenden" **kein einziges Foto** (Kamera abgebrochen, keine Kamera-App), wird er **geloescht** statt abgeschlossen. Sonst bliebe ein Schritt ohne Fotos in der DB, erschiene als leeres Thumbnail und wuerde eine Schrittnummer verbrauchen, die der Mechaniker bereits auf ein physisches Label geschrieben haben koennte. Die Nummer wird beim naechsten Flow-Start erneut vergeben
-- **Leerer Schritt bei "Naechster Schritt":** Wird **nicht** verworfen. Der Mechaniker geht hier bewusst weiter und kann den Schritt spaeter per Thumbnail-Sprung und "Weiteres Foto" nachtragen
+- **Leerer Schritt nach abgebrochenem Schritt-Start:** Wird **verworfen**, und der Vorgaenger wird wieder geoeffnet (Abschnitt "Rollback beim Abbruch am frischen Schritt"). Diese Regel ersetzt die frueher hier stehende Gegenregel ("wird nicht verworfen, der Mechaniker geht bewusst weiter"). Deren Begruendung setzte voraus, dass die Kamera **nicht** von selbst aufgeht -- dann war das Weitergehen eine eigene Entscheidung und der leere Schritt ein bewusst uebersprungener. Seit die Kamera den Schritt eroeffnet, ist ihr Abbruch das Gegenteil davon: ein "doch nicht"
+- **Nachtragen bleibt moeglich:** Ein Schritt, der ein Foto bekommen hat und spaeter ergaenzt werden soll, wird per Thumbnail-Sprung und "Weiteres Foto" nachgetragen. Verworfen wird ausschliesslich der Schritt, der **nie** eines hatte
 - **Unterbrechung:** Ein Schritt ohne `abgeschlossenAm` wird beim naechsten Start erkannt und fortgesetzt
 - **Orphaned Schritte:** Unterbrochene Schritte bleiben in der DB und werden beim Fortsetzen weiterbearbeitet (kein Loeschen). Verworfen wird ausschliesslich der fotolose Schritt beim "Beenden"
 - **Orphaned Dateien:** Dateien in `photos/`, auf die keine DB-Zeile verweist, fallen unter die projektweite Cleanup-Regel (siehe [../governance.md](../governance.md))
@@ -222,7 +279,7 @@ Die Akzeptanzkriterien dieser Story sind auf zwei Abschnitte verteilt: AK 1 und 
 
 Der Demontage-Flow wird gestartet:
 - Aus der Vorgangs-Uebersicht (F-001): Der Mechaniker tippt auf den Vorgang. Hat der Vorgang noch keinen Schritt, oeffnet sich der Demontage-Flow direkt; ab dem ersten Schritt erscheint der Auswahl-Dialog und der Mechaniker waehlt **"Weiter demontieren"**. Dialog und Beschriftung gehoeren F-001 (US-001.2) -- F-003 uebernimmt den dortigen Wortlaut unveraendert
-- Direkt nach Vorgang-Anlage (F-002): Automatischer Uebergang in den Demontage-Flow
+- Direkt nach Vorgang-Anlage (F-002): Automatischer Uebergang in den Demontage-Flow. F-002 bringt **keinen** Schritt mit -- der Vorgang ist leer, die Entry-Transition "Flow starten" greift, Schritt 1 entsteht hier und die System-Kamera startet automatisch
 
 ### Aus US-003.4 AK 6: Fortsetzung nach Unterbrechung
 
@@ -251,7 +308,7 @@ Der Demontage-Flow wird gestartet:
 |----------------------|----------------------|--------------------------|
 | `KAMERA` (System-Kamera im Vordergrund, kein Foto bestaetigt) | `Schritt` in DB (`abgeschlossenAm = null`), alle vorher aufgenommenen Fotos als `SchrittFoto` -- bei einer laufenden "Wiederholen"-Runde also auch das noch nicht ersetzte alte Foto; vorbereitete Zieldatei ohne DB-Zeile | Schritt-Ansicht fuer den **offenen** Schritt, mit unveraendertem Foto-Bestand. Die verwaiste Zieldatei faellt unter die Cleanup-Regel in [../governance.md](../governance.md) |
 | `SCHRITT_ANSICHT` | `Schritt` in DB (`abgeschlossenAm = null`), alle Fotos und Labels persistiert. Der **betrachtete** Schritt wird nicht persistiert | Schritt-Ansicht fuer den **offenen** Schritt (`abgeschlossenAm = null`), Karussell zeigt dessen Fotos in ihrer `reihenfolge` |
-| Direkt nach "Naechster Schritt" (Schritt N+1 noch ohne Foto) | Schritt N abgeschlossen, Schritt N+1 offen ohne Fotos | Schritt-Ansicht fuer Schritt N+1 (Karussell im Leer-Zustand, F-006 US-006.9) |
+| Direkt nach "Naechster Schritt" (Schritt N+1 noch ohne Foto) | Schritt N abgeschlossen, Schritt N+1 offen ohne Fotos | Schritt-Ansicht fuer Schritt N+1 (Karussell im Leer-Zustand, F-006 US-006.9). **Kein Rollback:** ein Prozess-Tod ist kein Abbruch -- die App hat nie ein Abbruch-Ergebnis der Kamera gesehen und darf einen Schritt nicht auf Verdacht loeschen. Der Mechaniker holt die Aufnahme per "Weiteres Foto" nach |
 | Direkt nach "Beenden" | Alle Schritte abgeschlossen; ein fotoloser letzter Schritt wurde dabei verworfen | Beim Fortsetzen wird ein neuer Schritt angelegt und die System-Kamera startet automatisch |
 
 **Der betrachtete Schritt ueberlebt eine Unterbrechung nicht.** Ein Sprung ueber die Thumbnail-Leiste oder ueber "Zurueck"/"Weiter" ist ein reiner ViewModel-State und wird bewusst **nicht** persistiert. Schliesst der Mechaniker die App, waehrend er Schritt 2 betrachtet und Schritt 5 offen ist, zeigt die Schritt-Ansicht nach dem Neustart **Schritt 5** -- also denselben Zustand wie die Entry-Transition "Flow fortsetzen". Begruendung: Der Mechaniker nimmt seine Arbeit dort wieder auf, wo sie unfertig ist; ein Wiedereinstieg mitten in einer abgeschlossenen Dokumentation wuerde ihn ueberraschen. Zu Schritt 2 kommt er mit einem Tap zurueck.
