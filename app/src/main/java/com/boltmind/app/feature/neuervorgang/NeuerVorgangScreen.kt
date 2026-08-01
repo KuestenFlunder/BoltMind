@@ -44,10 +44,11 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.boltmind.app.R
 import com.boltmind.app.ui.components.BoltMeshHintergrund
 import com.boltmind.app.ui.components.BoltText
+import com.boltmind.app.ui.components.FotoPlatzhalter
 import com.boltmind.app.ui.components.GlasAktion
 import com.boltmind.app.ui.components.GlasFlaeche
 import com.boltmind.app.ui.components.KameraAnbindung
@@ -62,18 +63,18 @@ import com.boltmind.app.ui.theme.BoltRahmenDunkel
 import com.boltmind.app.ui.theme.BoltScrim
 import com.boltmind.app.ui.theme.BoltTextGedaempft
 import com.boltmind.app.ui.theme.BoltTextHell
+import com.boltmind.app.ui.theme.BoltTextPrimaer as BoltTextFarbe
 import com.boltmind.app.ui.theme.BoltTextSchwaecher
 import com.boltmind.app.ui.theme.BoltTextSekundaer
 import com.boltmind.app.ui.theme.BoltTextWeiss
 import com.boltmind.app.ui.theme.BoltTypo
-import com.boltmind.app.ui.theme.GlasRezepte
 import com.boltmind.app.ui.theme.GlasBuehne
+import com.boltmind.app.ui.theme.GlasRezepte
 import com.boltmind.app.ui.theme.barlow
 import com.boltmind.app.ui.theme.barlowCondensed
 import com.boltmind.app.ui.theme.glas
-import org.koin.androidx.compose.koinViewModel
 import java.io.File
-import com.boltmind.app.ui.theme.BoltTextPrimaer as BoltTextFarbe
+import org.koin.androidx.compose.koinViewModel
 
 // ============================================================================
 // F-002 "Neuer Auftrag" -- Prototyp Zeile 145-182.
@@ -244,12 +245,23 @@ private fun Fahrzeugfoto(
             .border(BoltMindDimensions.rahmenDuenn, BoltRahmenDunkel, form)
     ) {
         if (fotoPfad == null) {
+            // Noch nicht fotografiert -- das ist der Normalfall vor der Aufnahme
+            // und sieht bewusst anders aus als eine verlorene Datei.
             Box(Modifier.fillMaxSize().background(BoltEingabeFlaeche))
         } else {
-            AsyncImage(
+            val fehlendBeschreibung = stringResource(R.string.foto_fehlt_beschreibung)
+            SubcomposeAsyncImage(
                 model = File(fotoPfad),
                 contentDescription = stringResource(R.string.nv_fahrzeugfoto_beschreibung),
                 contentScale = ContentScale.Crop,
+                error = {
+                    // 196dp hoch -- hier ist Platz fuer die Beschriftung.
+                    FotoPlatzhalter(
+                        modifier = Modifier.semantics {
+                            contentDescription = fehlendBeschreibung
+                        }
+                    )
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }

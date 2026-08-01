@@ -1,5 +1,16 @@
 <resources>
     <string name="app_name">BoltMind</string>
+
+    <!--
+      Fehlende Foto-Datei. Kein `browser_`-Praefix: governance.md, Abschnitt
+      "Fehlende Dateien", gilt projektweit, und seit #118 haengt der Platzhalter
+      auch an der Vorgangskarte, im Auswahl-Sheet und im Anlage-Formular.
+      Nicht zu verwechseln mit `browser_keine_fotos`: das ist der Normalfall
+      waehrend der Arbeit, das hier ist ein Defekt.
+    -->
+    <string name="foto_fehlt">Foto fehlt</string>
+    <string name="foto_fehlt_beschreibung">Foto fehlt — Datei nicht gefunden</string>
+
     <string name="foto_platzhalter">Kein Foto vorhanden</string>
     <string name="fahrzeugfoto">Fahrzeugfoto</string>
     <string name="neuer_vorgang">Neuer Vorgang</string>

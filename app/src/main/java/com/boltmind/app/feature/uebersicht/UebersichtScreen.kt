@@ -22,14 +22,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.boltmind.app.R
 import com.boltmind.app.ui.components.BoltMeshHintergrund
 import com.boltmind.app.ui.components.BoltSheet
 import com.boltmind.app.ui.components.BoltSheetStil
 import com.boltmind.app.ui.components.BoltText
+import com.boltmind.app.ui.components.FotoPlatzhalter
 import com.boltmind.app.ui.components.SheetAktion
 import com.boltmind.app.ui.components.boltKlick
 import com.boltmind.app.ui.theme.BoltAufOrange
@@ -290,11 +293,27 @@ private fun VorgangKarteZeile(
                 .size(BoltMindDimensions.vorgangFoto)
                 .background(BoltHintergrund, RoundedCornerShape(BoltMindDimensions.radiusStandard))
         ) {
+            // Kein Foto und verschwundenes Foto sind zwei verschiedene Dinge.
+            // Ist der Pfad null, hat nie eines existiert -- dann bleibt die
+            // Flaeche leer wie bisher. Ist er gesetzt und die Datei weg, ist
+            // etwas kaputt, und governance.md verlangt den Platzhalter.
             karte.fahrzeugFotoPfad?.let { pfad ->
-                AsyncImage(
+                val fehlendBeschreibung = stringResource(R.string.foto_fehlt_beschreibung)
+                SubcomposeAsyncImage(
                     model = File(pfad),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    error = {
+                        // 96dp: fuer Text zu klein, die Aussage traegt die
+                        // contentDescription fuer Sprachausgabe und Test.
+                        FotoPlatzhalter(
+                            modifier = Modifier.semantics {
+                                contentDescription = fehlendBeschreibung
+                            },
+                            symbolGroesse = BoltMindDimensions.vorgangFoto * 0.5f,
+                            mitBeschriftung = false
+                        )
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
             }

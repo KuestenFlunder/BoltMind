@@ -16,16 +16,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import com.boltmind.app.R
 import com.boltmind.app.ui.theme.BoltGefahrRand
 import com.boltmind.app.ui.theme.BoltMindDimensions
 import com.boltmind.app.ui.theme.BoltScrim
-import com.boltmind.app.ui.theme.BoltTextPrimaer
 import com.boltmind.app.ui.theme.BoltTextHell
 import com.boltmind.app.ui.theme.BoltTextMini
+import com.boltmind.app.ui.theme.BoltTextPrimaer
 import com.boltmind.app.ui.theme.BoltTextWeiss
 import com.boltmind.app.ui.theme.BoltTypo
 import com.boltmind.app.ui.theme.BoltWeiss28
@@ -102,13 +107,25 @@ fun BoltSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (fotoPfad != null) {
-                    AsyncImage(
+                    val fehlendBeschreibung = stringResource(R.string.foto_fehlt_beschreibung)
+                    SubcomposeAsyncImage(
                         model = File(fotoPfad),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
+                        error = {
+                            // 68dp -- wie auf der Vorgangskarte ohne Beschriftung.
+                            FotoPlatzhalter(
+                                modifier = Modifier.semantics {
+                                    contentDescription = fehlendBeschreibung
+                                },
+                                symbolGroesse = BoltMindDimensions.sheetFoto * 0.5f,
+                                mitBeschriftung = false
+                            )
+                        },
                         modifier = Modifier
                             .size(BoltMindDimensions.sheetFoto)
-                            .background(Color.Black, RoundedCornerShape(BoltMindDimensions.radiusXl))
+                            .clip(RoundedCornerShape(BoltMindDimensions.radiusXl))
+                            .background(Color.Black)
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {

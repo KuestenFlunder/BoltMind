@@ -79,13 +79,14 @@ fun ThumbnailLeiste(
     BoxWithConstraints(modifier) {
         val proKachel = BoltMindDimensions.thumbAktiv + BoltMindDimensions.thumbAbstand
         val passend = (maxHeight / proKachel).toInt().coerceAtLeast(1)
-        val sichtbar = minOf(BoltMindDimensions.THUMB_FENSTER, passend, schritte.size)
 
-        // Fenster so schieben, dass der aktive Schritt moeglichst mittig liegt.
-        val start = (aktiverIndex - (sichtbar - 1) / 2)
-            .coerceIn(0, (schritte.size - sichtbar).coerceAtLeast(0))
-        val ueberOben = start
-        val ueberUnten = (schritte.size - start - sichtbar).coerceAtLeast(0)
+        // Gemessen wird hier, gerechnet in thumbnailFenster -- die Indexrechnung
+        // ist damit ohne Geraet pruefbar (#119).
+        val fenster = thumbnailFenster(
+            anzahl = schritte.size,
+            aktiverIndex = aktiverIndex,
+            hoechstens = minOf(BoltMindDimensions.THUMB_FENSTER, passend)
+        )
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -95,8 +96,8 @@ fun ThumbnailLeiste(
                 Alignment.CenterVertically
             )
         ) {
-            if (ueberOben > 0) UeberlaufZaehler(ueberOben, obenPfeil = true)
-            for (i in start until start + sichtbar) {
+            if (fenster.ueberOben > 0) UeberlaufZaehler(fenster.ueberOben, obenPfeil = true)
+            for (i in fenster.start until fenster.start + fenster.sichtbar) {
                 Thumbnail(
                     schritt = schritte[i],
                     aktiv = i == aktiverIndex,
@@ -104,7 +105,7 @@ fun ThumbnailLeiste(
                     onKlick = { onSchrittGewaehlt(i) }
                 )
             }
-            if (ueberUnten > 0) UeberlaufZaehler(ueberUnten, obenPfeil = false)
+            if (fenster.ueberUnten > 0) UeberlaufZaehler(fenster.ueberUnten, obenPfeil = false)
         }
     }
 }
@@ -135,7 +136,7 @@ private fun Thumbnail(
     val radius = if (aktiv) BoltMindDimensions.radiusThumbAktiv else BoltMindDimensions.radiusStandard
     val erledigt = zeigeErledigt && schritt.schritt.eingebautBeiMontage
     val mehrFotos = schritt.fotos.size > 1
-    val fehlendBeschreibung = stringResource(R.string.browser_foto_fehlt_beschreibung)
+    val fehlendBeschreibung = stringResource(R.string.foto_fehlt_beschreibung)
 
     // Der aktive Schritt atmet -- im Entwurf ein pulsierender Aussenschein.
     val puls = rememberInfiniteTransition(label = "thumbAtem")
