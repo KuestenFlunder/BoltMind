@@ -108,6 +108,34 @@ Ein Rezept besteht aus Füllung (Farbe oder Verlauf), Randfarbe und -breite, opt
 Lichtkante (`inset 0 1px 0`) und einer Liste von Leuchten. Leuchten werden über
 `setShadowLayer` gezeichnet, damit sie über die Fläche hinausreichen.
 
+### Drei Regeln für die Übersetzung von `box-shadow`
+
+Alle drei stammen aus #120, wo jede einzeln übersehen worden war. Sie verschieben das Bild
+nur graduell und sind deshalb im Nachhinein schwer zu benennen — als Regel dagegen sind sie
+eindeutig.
+
+1. **Weichzeichnung und Ausbreitung nicht vertauschen.** In `box-shadow: 0 0 0 1px` ist der
+   dritte Wert die Weichzeichnung (0), der vierte die Ausbreitung (1px). Als
+   `Leuchten(farbe, radius = 0.dp, ausbreitung = 1.dp)` ergibt das den gemeinten 1dp-Ring;
+   andersherum entsteht eine nahezu harte Scheibe in Buttongröße, von der nur ein dünner
+   Saum herausschaut. `GlasRezepteTest` hält die Regel fest.
+
+2. **Der eigene Umriss wird aus den Leuchten ausgestanzt.** CSS lässt einen `box-shadow`
+   nicht unter der Border-Box durchscheinen, `setShadowLayer` malt dagegen eine gefüllte
+   Scheibe. Da alle Glas-Füllungen halbtransparent sind (`GO-V` liegt bei 38 % und 28 %),
+   schienen bei „NÄCHSTES" vier gestapelte Scheiben durch den Button — er war deutlich
+   satter als im Entwurf. Gemeint ist eine Glasscheibe, die den Hintergrund durchlässt,
+   mit hellem Ring und Bloom nach außen.
+
+3. **Die Lichtkante folgt der Form.** An einer runden Fläche ist `inset 0 1px 0` ein Bogen
+   entlang der oberen Innenkante, kein Rechteck an der Oberkante der umschließenden Box:
+   dort hat der Kreis die Breite 0, und nach dem `clip(CircleShape)` bliebe nichts übrig.
+
+Ebenfalls von dort: **`Modifier.alpha` gehört nicht vor `Modifier.glas`.** Für Werte
+ungleich 1 ist es intern `graphicsLayer(alpha = …, clip = true)` und beschnitt deaktivierte
+Rundbuttons rechteckig auf ihre Bounds, Leuchten inklusive. `boltKlick` benutzt deshalb
+`graphicsLayer`, das per Default nicht beschneidet. `Modifier.scale` war nie betroffen.
+
 ---
 
 ## 5. Hintergründe

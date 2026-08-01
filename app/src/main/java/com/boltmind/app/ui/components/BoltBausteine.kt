@@ -21,10 +21,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -62,7 +62,13 @@ fun Modifier.boltKlick(
 
     return this
         .scale(skalierung)
-        .alpha(if (aktiv) 1f else 0.4f)
+        // graphicsLayer statt Modifier.alpha: Letzteres ist fuer a != 1f intern
+        // `graphicsLayer(alpha = a, clip = true)`. Da es vor `.glas(...)` haengt,
+        // beschnitt es bei `aktiv = false` das gesamte Glas samt Leuchten
+        // rechteckig auf die Buttonbounds -- sichtbar an deaktivierten
+        // Vor/Zurueck-Kreisen (#120). `graphicsLayer` beschneidet per Default
+        // nicht. `Modifier.scale` war davon nie betroffen, es setzt clip = false.
+        .graphicsLayer { alpha = if (aktiv) 1f else 0.4f }
         .clickable(
             interactionSource = quelle,
             indication = null,

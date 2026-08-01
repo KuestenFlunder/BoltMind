@@ -111,7 +111,7 @@ object GlasRezepte {
         randFarbe = BoltGlasOrangeVollRand,
         innenGlanz = BoltWeiss45,
         leuchten = listOf(
-            Leuchten(BoltGlasOrangeRing, 1.dp),
+            Leuchten(BoltGlasOrangeRing, radius = 0.dp, ausbreitung = 1.dp),
             Leuchten(BoltLeuchtOrange50, 20.dp),
             Leuchten(BoltLeuchtOrange28, 56.dp),
             Leuchten(BoltLeuchtOrange50, 30.dp, versatzY = 10.dp, ausbreitung = (-6).dp)
@@ -124,7 +124,7 @@ object GlasRezepte {
         randFarbe = BoltGlasOrangeArchivRand,
         innenGlanz = BoltWeiss40,
         leuchten = listOf(
-            Leuchten(BoltGlasOrangeRing, 1.dp),
+            Leuchten(BoltGlasOrangeRing, radius = 0.dp, ausbreitung = 1.dp),
             Leuchten(BoltLeuchtOrange50, 20.dp),
             Leuchten(BoltLeuchtOrange28, 56.dp),
             Leuchten(BoltLeuchtOrange45, 26.dp, versatzY = 10.dp, ausbreitung = (-8).dp)
@@ -138,7 +138,7 @@ object GlasRezepte {
         randBreite = BoltMindDimensions.rahmenStark,
         innenGlanz = BoltWeiss30,
         leuchten = listOf(
-            Leuchten(BoltLeuchtOrange35, 1.dp),
+            Leuchten(BoltLeuchtOrange35, radius = 0.dp, ausbreitung = 1.dp),
             Leuchten(BoltLeuchtOrange45, 18.dp)
         )
     )
@@ -151,7 +151,7 @@ object GlasRezepte {
         randFarbe = BoltGlasGruenVollRand,
         innenGlanz = BoltWeiss45,
         leuchten = listOf(
-            Leuchten(BoltGlasGruenRing, 1.dp),
+            Leuchten(BoltGlasGruenRing, radius = 0.dp, ausbreitung = 1.dp),
             Leuchten(BoltLeuchtGruen45, 20.dp),
             Leuchten(BoltLeuchtGruen25, 56.dp),
             Leuchten(BoltLeuchtGruen45, 30.dp, versatzY = 10.dp, ausbreitung = (-6).dp)
