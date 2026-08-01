@@ -402,7 +402,7 @@ Ein Schritt ohne Fotos ist waehrend der Arbeit ein gueltiger Zustand: der Schrit
 **moechte ich** dort, wo es zum Ablauf passt, mit einem Tap zum benachbarten Schritt wechseln
 **damit** ich mich der Reihe nach durch die Dokumentation arbeiten kann, ohne die richtige Kachel treffen zu muessen.
 
-Vor/Zurueck ist eine **Andockstelle**, kein fester Bestandteil des Browsers: der Consumer haengt die Bedienelemente in `bedienkreise` ein und entscheidet, welche es gibt (siehe Tabelle „Betriebsarten"). Der Browser stellt dafuer `istErster` und `istLetzter` bereit, damit die Grenzpruefung nicht dreimal neu entsteht. Den Index schreibt der Consumer fort.
+Vor/Zurueck ist eine **Andockstelle**, kein fester Bestandteil des Browsers: der Consumer haengt die Bedienelemente in `bedienkreise` ein und entscheidet, welche es gibt (siehe Tabelle „Betriebsarten"). Er schreibt den Index fort und prueft auch selbst, wann er am Rand steht — der Browser gibt dafuer keine Flags heraus (#127). Die Pruefung ist eine Zeile je Rand; sie beim Browser zu fuehren haette eine Kopplung eingezogen, die die Eigentums-Entscheidung vom 2026-07-31 gerade aufgeloest hat.
 
 #### Akzeptanzkriterien
 
@@ -522,8 +522,7 @@ data class SchrittBrowserZustand(
     val fotoIndex: Int          // auf die tatsaechliche Fotozahl geklemmt
     val sichtbaresFoto: SchrittFoto?
     val hatFotos: Boolean
-    val istErster: Boolean
-    val istLetzter: Boolean
+    // keine Grenzflags: die Randpruefung gehoert dem Consumer (#127)
 }
 
 @Immutable
@@ -553,7 +552,7 @@ fun SchrittBrowser(
 
 | Situation | Darstellung |
 |---|---|
-| `schritte` leer | keine Leiste, Leer-Zustand im Bildbereich, `istErster` und `istLetzter` beide `true` |
+| `schritte` leer | keine Leiste, Leer-Zustand im Bildbereich; `aktiverSchritt` ist `null` |
 | Schritt ohne Fotos | Leer-Zustand, keine Label-Spalte, Zaehler „KEIN FOTO"; Leiste unveraendert nutzbar |
 | Index ausserhalb des Bereichs | wie der jeweilige Leer-Zustand, kein Absturz, keine Rueckmeldung |
 

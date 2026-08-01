@@ -13,8 +13,11 @@ import com.boltmind.app.ui.theme.BoltOrange
 /**
  * Die Betriebsart des Schritt-Browsers.
  *
- * Der Browser besitzt die Schritt-Navigation vollstaendig -- Thumbnail-Sprung
- * und Vor/Zurueck. Was er darueber hinaus anbietet, entscheidet der Modus.
+ * Dem Browser gehoert der **Thumbnail-Sprung**, dem Consumer **Vor/Zurueck**
+ * (entschieden am 2026-07-31). Die drei Betriebsarten haben an derselben Stelle
+ * verschiedene Bedienelemente -- die Demontage hat gar kein Vor/Zurueck, die
+ * Montage nur "ZURÜCK", das Archiv zwei Pfeile -- und haengen sie in den Slot
+ * `bedienkreise`. Was der Browser darueber hinaus anbietet, entscheidet der Modus.
  *
  * Spec: docs/specs/F-006-schritt-browser/browser.md
  */
@@ -86,9 +89,9 @@ data class SchrittBrowserZustand(
 
     val hatFotos: Boolean get() = fotos.isNotEmpty()
 
-    val istErster: Boolean get() = aktiverIndex <= 0
-
-    val istLetzter: Boolean get() = aktiverIndex >= schritte.lastIndex
+    // Bewusst ohne istErster/istLetzter: Vor/Zurueck gehoert seit dem
+    // 2026-07-31 dem Consumer, und damit auch dessen Randpruefung. Sie steht
+    // einmal in BrowserUiState als istErsterSchritt/istLetzterSchritt (#127).
 }
 
 /**
