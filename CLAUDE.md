@@ -190,27 +190,32 @@ unterscheidet sich noch.
 Der Timer ist von Hand pausierbar, und die Montage misst ebenfalls. Beides kippt eine
 zuvor bindende MVP-Antwort in `F-005/service.md`.
 
-**Tests:** 207 JVM-Tests (`./gradlew test`) plus 13 instrumentierte Tests
-(`./gradlew connectedDebugAndroidTest`) — vier Room-Migrationen und neun Compose-UI-Tests.
+**Tests:** 271 JVM-Tests (`./gradlew test`) plus 24 instrumentierte Tests
+(`./gradlew connectedDebugAndroidTest`) — vier Room-Migrationen und zwanzig Compose-UI-Tests.
 Das UI-Test-Harness steht seit #104; die Konventionen und die Animations-Falle stehen in
-`docs/CODING_RULES.md`.
+`docs/CODING_RULES.md`. Stand 2026-08-02, gemessen und nicht geschätzt.
 
 **Emulator:** AVD `boltmind36` (Android 16, arm64). Starten mit
 `emulator -avd boltmind36 -gpu host`, danach `./gradlew installDebug`. Für ein echtes
 Gerät ändert sich nur das Ziel — USB-Debugging genügt, Android 12 oder neuer.
 
-**Offen:** achtzehn Issues, neun je Milestone. **R5** ist Arbeit ohne Entscheidungsbedarf —
-darunter die Glas-Effekt-Abweichungen (#120), die gestauchte Montage-Bedienzeile (#124) und
-die LOC-Grenze des `BrowserViewModel` (#126, inzwischen 368 Zeilen). Die Demontage-Sackgasse
-nach Feierabend (#121) ist mit dem Kamera-Umbau vom 2026-08-01 erledigt: der Einstieg ohne
-offenen Schritt legt jetzt einen an — Issue noch zu schließen.
+**Offen (Stand 2026-08-02):** neun Issues, alle in **R6**. Es sind Produktfragen, die eine
+Antwort brauchen, bevor Code entsteht — darunter das Splash-Video, die drei Punkte der
+Übersicht und die zwei Timer-Entscheidungen aus #94.
+
+**R5 ist abgearbeitet.** Die acht Issues #118–#127 sind auf `feature/R5/absicherung-nachzug`
+umgesetzt: Platzhalter projektweit, Fensterrechnung als reine Funktion, tote Drawables und
+doppelte Grenzflags entfernt, zwei irreführende Smoke-Test-Namen repariert, die Montage-
+Bedienzeile bricht um statt zu stauchen, die vier Glas-Abweichungen sind nachgezogen, und die
+LOC-Grenze wird jetzt von `ViewModelGroesseTest` gemessen statt von Hand gepflegt.
+#111 und #121 waren bereits durch den Kamera-Umbau vom 2026-08-01 erledigt und sind
+geschlossen.
 
 **Neuer Befund vom 2026-08-01, noch ohne Issue:** die Android-Zurück-Geste verlässt die
 Demontage zur Übersicht, obwohl `workflow.md` US-003.6 „Beenden" als einzigen Ausstieg
 festlegt. Der einzige `BackHandler` sitzt im Vollbild (`SchrittBrowser.kt`), nicht auf
-Ebene der Schritt-Ansicht.
-**R6** sind Produktfragen, die eine Antwort brauchen, bevor Code entsteht — darunter das
-Splash-Video und die zwei Timer-Entscheidungen aus #94.
+Ebene der Schritt-Ansicht. Für die Montage steht dieselbe Frage als `[OFFEN]` in
+`montage.md` und als #113; für die Demontage gibt es bislang weder Marker noch Issue.
 
 Der Issue-Nachzug ist erledigt: #76–#96 wurden gegen den gebauten Stand geprüft, fünf
 rückwirkende Issues (#99–#103) schließen die Lücken der Kette Spec → Issue → Test für
