@@ -305,7 +305,11 @@ Bei Design-Entscheidungen in dieser Reihenfolge abwägen.
 ## Verbotene Patterns
 
 - Business-Logik in Composables
-- ViewModel > 200 LOC (gemessen am 2026-08-01: Browser 368, Uebersicht 146, NeuerVorgang 146, Abschluss 69 — `BrowserViewModel` reisst das Limit, weil es alle drei Betriebsarten bedient; offen als #126). Die Zahlen sind mit `wc -l` zu messen, nicht zu schaetzen
+- ViewModel > 200 LOC. Die Zahlen sind mit `wc -l` zu messen, nicht zu schaetzen — und seit #126 misst sie `ViewModelGroesseTest` bei jedem `./gradlew test`, statt sie hier von Hand zu pflegen. Genau das war das Problem: die Zahlen an dieser Stelle nannten ein halbes Jahr lang ein `DemontageViewModel`, das es nicht mehr gibt, waehrend der Browser unbemerkt von 265 auf 368 Zeilen wuchs.
+
+  **Eine begruendete Ausnahme: `BrowserViewModel`, gedeckelt bei 380** (gemessen am 2026-08-02: 366 roh, 234 ohne Kommentare und Leerzeilen). Es bedient Demontage, Montage und Archiv, weil der Entwurf dafuer **einen** Screen mit drei Betriebsarten vorsieht — `docs/CODING_RULES.md` haelt diese Entscheidung fest, und ein einziger `BrowserViewModelTest` deckt entsprechend alle drei ab. Zwei Verantwortungen sind ausgelagert (`BrowserFotoSteuerung` fuer Foto- und Schrittaktionen, `BrowserZeitsteuerung` fuer die Zeiterfassung); was bleibt, sind Zustandsuebergaenge. Sie weiter aufzuteilen hiesse, den Zustand auf mehrere Halter zu verteilen — und genau das soll die Regel verhindern.
+
+  Der Deckel ist die Bedingung der Ausnahme: wer ihn reisst, hat eine neue Verantwortung gefunden und baut dafuer einen Mitarbeiter, statt die Zahl zu erhoehen.
 - Synchrone DB-Calls auf Main-Thread
 - Wildcard-Imports
 - `GlobalScope`

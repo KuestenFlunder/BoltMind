@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.boltmind.app.data.model.SchrittFoto
 import com.boltmind.app.data.model.SchrittMitFotos
 import com.boltmind.app.data.repository.ReparaturRepository
-import com.boltmind.app.service.zeiterfassung.ReferenzTyp
 import com.boltmind.app.service.zeiterfassung.ZeiterfassungService
 import com.boltmind.app.ui.navigation.BrowserModus
 import com.boltmind.app.ui.schrittbrowser.LabelArt
@@ -29,21 +28,24 @@ import kotlinx.coroutines.launch
 class BrowserViewModel(
     zustand: SavedStateHandle,
     private val repository: ReparaturRepository,
-    private val zeiterfassung: ZeiterfassungService,
+    zeiterfassung: ZeiterfassungService,
     private val fotos: BrowserFotoSteuerung
 ) : ViewModel() {
 
     private val vorgangId: Long = checkNotNull(zustand["vorgangId"])
     private val modus: BrowserModus = BrowserModus.ausName(zustand["modus"])
 
+    /**
+     * Die Zeiterfassung haengt am Modus, und den kennt erst der Konstruktor --
+     * deshalb hier gebaut und nicht von Koin gereicht. Fuer die Tests bleibt die
+     * Signatur des ViewModels dadurch unveraendert.
+     */
+    private val zeit = BrowserZeitsteuerung(repository, zeiterfassung, modus)
+
     private val _uiState = MutableStateFlow(BrowserUiState(modus = modus))
     val uiState: StateFlow<BrowserUiState> = _uiState.asStateFlow()
 
     private var ticker: Job? = null
-
-    private val referenzTyp: String
-        get() = if (modus == BrowserModus.MONTAGE) ReferenzTyp.MONTAGE_SCHRITT
-        else ReferenzTyp.DEMONTAGE_SCHRITT
 
     /**
      * Der Schritt, auf den die Ansicht springen soll, sobald er in der Liste
@@ -171,7 +173,7 @@ class BrowserViewModel(
         val schritt = _uiState.value.aktiverSchritt?.schritt ?: return
         viewModelScope.launch {
             repository.setzeEingebaut(schritt.id, true)
-            zeiterfassung.stoppeFallsLaeuft(schritt.id, referenzTyp)
+            zeit.stoppeSchritt(schritt.id)
             val naechster = _uiState.value.schritte
                 .indexOfFirst { !it.schritt.eingebautBeiMontage && it.schritt.id != schritt.id }
             if (naechster < 0) _uiState.update { it.copy(fertig = true) }
@@ -199,7 +201,7 @@ class BrowserViewModel(
 
     fun onVerlassenBestaetigt() {
         viewModelScope.launch {
-            zeiterfassung.stoppeAlleOffenen()
+            zeit.stoppeAlle()
             _uiState.update { it.copy(sheet = null, verlassen = true) }
         }
     }
@@ -209,7 +211,7 @@ class BrowserViewModel(
     fun onTimerUmgeschaltet() {
         val schritt = _uiState.value.aktiverSchritt?.schritt ?: return
         viewModelScope.launch {
-            zeiterfassung.umschalten(schritt.id, referenzTyp)
+            zeit.umschalten(schritt.id)
             zeitAktualisieren()
         }
     }
@@ -239,17 +241,13 @@ class BrowserViewModel(
     }
 
     private suspend fun zeitAktualisieren() {
-        val s = _uiState.value
-        val schritt = s.aktiverSchritt?.schritt
-        val schrittSek = schritt
-            ?.let { zeiterfassung.gesamtdauer(it.id, referenzTyp).seconds } ?: 0L
-        val laeuft = schritt?.let { zeiterfassung.laeuft(it.id, referenzTyp) } ?: false
-        val gesamt = repository.holeSchrittIds(vorgangId).sumOf { id ->
-            zeiterfassung.gesamtdauer(id, ReferenzTyp.DEMONTAGE_SCHRITT).seconds +
-                zeiterfassung.gesamtdauer(id, ReferenzTyp.MONTAGE_SCHRITT).seconds
-        }
+        val stand = zeit.stand(vorgangId, _uiState.value.aktiverSchritt?.schritt?.id)
         _uiState.update {
-            it.copy(schrittSekunden = schrittSek, timerLaeuft = laeuft, gesamtSekunden = gesamt)
+            it.copy(
+                schrittSekunden = stand.schrittSekunden,
+                timerLaeuft = stand.laeuft,
+                gesamtSekunden = stand.gesamtSekunden
+            )
         }
     }
 
@@ -352,7 +350,7 @@ class BrowserViewModel(
             ?.let { _uiState.value.schritte.getOrNull(it)?.schritt }
         viewModelScope.launch {
             fotos.beenden(offen)
-            zeiterfassung.stoppeAlleOffenen()
+            zeit.stoppeAlle()
             _uiState.update { it.copy(sheet = null, verlassen = true) }
         }
     }
