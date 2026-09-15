@@ -17,7 +17,7 @@ Eine wiederverwendbare, zustandslose Komponente mit klarem Interface:
 - **Label-Anzeige** am aktuell sichtbaren Foto (Bauteil / Uebersicht / Ablageort) — in allen Betriebsarten sichtbar, aenderbar nur in `BEARBEITBAR`. Hat der Schritt kein Foto, gibt es nichts zu beschriften und die Label-Spalte entfaellt.
 - Vier **Slots**, in die der Consumer seine eigenen Bedienelemente einhaengt: `kopfzeile`, `ueberLabels`, `unterLabels`, `bedienkreise`.
 
-**Vor/Zurueck ist ein Slot-Element und gehoert dem Consumer.** Der Browser rendert dafuer kein eigenes Bedienelement; er stellt nur `istErster` und `istLetzter` bereit, damit die Randpruefung nicht dreimal neu entsteht. Der Grund ist der Entwurf: die drei Betriebsarten haben unterschiedliche Button-Saetze an derselben Stelle (Demontage „NOCH'N FOTO" und „NÄCHSTES nn", Montage „RAUS", „ZURÜCK" und „SITZT!", Archiv zwei schlichte Pfeile). Ein einheitliches Vor/Zurueck aus dem Browser haette daneben gestanden statt darin.
+**Vor/Zurueck ist ein Slot-Element und gehoert dem Consumer** — samt seiner Randpruefung. Der Browser rendert dafuer kein eigenes Bedienelement und stellt auch keine Grenzflags bereit (#127). Der Grund ist der Entwurf: die drei Betriebsarten haben unterschiedliche Button-Saetze an derselben Stelle (Demontage „NOCH'N FOTO" und „NÄCHSTES nn", Montage „RAUS", „ZURÜCK" und „SITZT!", Archiv zwei schlichte Pfeile). Ein einheitliches Vor/Zurueck aus dem Browser haette daneben gestanden statt darin.
 
 Der Thumbnail-Sprung ist damit das einzige Bedienelement fuer den Schritt-Wechsel, das der Browser selbst rendert. Frueher diskutierte Alternativen (Kreis-Kette in F-004, Nummernfeld-Dialog in F-003) sind hinfaellig; einen Sprung-Dialog mit Nummerneingabe gibt es nicht.
 
@@ -45,7 +45,6 @@ Mechaniker in der Werkstatt — beim Dokumentieren (Demontage), beim Zusammenbau
 - Label-Anzeige am sichtbaren Foto in allen Betriebsarten; bedienbar nur in `BEARBEITBAR`
 - Drei Betriebsarten: `BEARBEITBAR`, `LESEND_MIT_AKTIONEN`, `NUR_LESEN`
 - Platzhalter-Bild bei fehlender Foto-Datei, davon unterschiedener Leer-Zustand ohne Fotos
-- Grenzflags `istErster` / `istLetzter` fuer die Vor/Zurueck-Elemente des Consumers
 
 ## Betriebsarten
 
@@ -117,7 +116,7 @@ Details siehe [browser.md](browser.md).
 |---|---|---|
 | Thumbnail-Leiste rendern, Fenster berechnen, Ueberlauf anzeigen | Ja | -- |
 | Sprung zu einem Schritt per Thumbnail melden | Ja | -- |
-| Grenzflags `istErster` / `istLetzter` bereitstellen | Ja | -- |
+| Randpruefung fuer Vor/Zurueck (`istErster` / `istLetzter`) | -- | Consumer, zusammen mit dem Bedienelement |
 | Foto-Karussell und Vollbild-Anzeige | Ja | -- |
 | Label des sichtbaren Fotos anzeigen (alle Betriebsarten) und Aenderung melden (nur `BEARBEITBAR`) | Ja | -- |
 | Kategorie eines Schritts fuer den Farbstreifen ableiten | Ja | -- |
@@ -147,7 +146,7 @@ Details siehe [browser.md](browser.md).
 
 Alle drei Consumer bringen ihre **Vor/Zurueck-Elemente selbst** mit und haengen sie in den Slot `bedienkreise`. Der Thumbnail-Sprung dagegen kommt aus F-006.
 
-Fuer die Randpruefung bietet der Browser `istErster` und `istLetzter` an. **Gebaut ist es anders:** der Browser-Screen prueft mit eigenen Feldern (`istErsterSchritt` / `istLetzterSchritt` auf `BrowserUiState`), die Flags des Browsers haben null Aufrufstellen. Die Doppelung ist bekannt und als #127 notiert.
+**Die Randpruefung kommt mit.** Wer das Bedienelement rendert, entscheidet auch, wann es inaktiv ist; der Browser gibt dafuer nichts vor. Gebaut ist das in `BrowserUiState` als `istErsterSchritt` / `istLetzterSchritt`. Die frueher hier zugesagten Browser-Flags gab es zwar im Code, aber ohne eine einzige Aufrufstelle — sie sind mit #127 entfallen.
 
 ## Abhaengigkeiten
 

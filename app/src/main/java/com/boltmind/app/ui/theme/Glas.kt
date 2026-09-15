@@ -19,14 +19,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -169,39 +177,74 @@ private fun Modifier.hintergrundUnschaerfe(shape: Shape): Modifier {
         }
 }
 
-/** Zeichnet die Leuchten hinter der Flaeche. Nutzt `setShadowLayer`, damit das
- *  Leuchten ueber die Grenzen der Flaeche hinausreicht. */
+/** Der Umriss der Flaeche selbst -- fuer den Ausschnitt aus den Leuchten. */
+private fun DrawScope.eigenerUmriss(eckRadius: Float, rund: Boolean): Path = Path().apply {
+    if (rund) {
+        val d = size.minDimension
+        addOval(
+            Rect(
+                offset = Offset((size.width - d) / 2f, (size.height - d) / 2f),
+                size = Size(d, d)
+            )
+        )
+    } else {
+        addRoundRect(
+            RoundRect(
+                rect = Rect(Offset.Zero, size),
+                cornerRadius = CornerRadius(eckRadius, eckRadius)
+            )
+        )
+    }
+}
+
+/**
+ * Zeichnet die Leuchten hinter der Flaeche. Nutzt `setShadowLayer`, damit das
+ * Leuchten ueber die Grenzen der Flaeche hinausreicht.
+ *
+ * **Der eigene Umriss wird ausgestanzt** (#120). CSS laesst einen `box-shadow`
+ * nicht unter der Border-Box durchscheinen; `setShadowLayer` dagegen malt eine
+ * gefuellte Scheibe. Da alle Glas-Fuellungen halbtransparent sind, schien die
+ * Scheibe durch den Button hindurch -- bei `orangeVoll` stapelten sich vier
+ * davon unter einem 124dp-Kreis, und er wurde spuerbar heller und satter als im
+ * Entwurf.
+ *
+ * Leuchten mit negativer Ausbreitung liegen ganz innerhalb des Umrisses; von
+ * ihnen bleibt nur, was der Versatz nach aussen schiebt. Genau so verhaelt sich
+ * CSS auch.
+ */
 private fun DrawScope.zeichneLeuchten(
     leuchten: List<Leuchten>,
     eckRadius: Float,
     rund: Boolean
 ) {
     if (leuchten.isEmpty()) return
-    drawIntoCanvas { canvas ->
-        leuchten.forEach { l ->
-            val paint = Paint()
-            val fw = paint.asFrameworkPaint()
-            fw.color = android.graphics.Color.TRANSPARENT
-            fw.setShadowLayer(
-                l.radius.toPx().coerceAtLeast(0.1f),
-                0f,
-                l.versatzY.toPx(),
-                l.farbe.toArgb()
-            )
-            val a = l.ausbreitung.toPx()
-            if (rund) {
-                canvas.drawCircle(
-                    androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
-                    size.minDimension / 2f + a,
-                    paint
+    clipPath(eigenerUmriss(eckRadius, rund), ClipOp.Difference) {
+        drawIntoCanvas { canvas ->
+            leuchten.forEach { l ->
+                val paint = Paint()
+                val fw = paint.asFrameworkPaint()
+                fw.color = android.graphics.Color.TRANSPARENT
+                fw.setShadowLayer(
+                    l.radius.toPx().coerceAtLeast(0.1f),
+                    0f,
+                    l.versatzY.toPx(),
+                    l.farbe.toArgb()
                 )
-            } else {
-                canvas.drawRoundRect(
-                    -a, -a, size.width + a, size.height + a,
-                    eckRadius, eckRadius, paint
-                )
+                val a = l.ausbreitung.toPx()
+                if (rund) {
+                    canvas.drawCircle(
+                        Offset(size.width / 2f, size.height / 2f),
+                        size.minDimension / 2f + a,
+                        paint
+                    )
+                } else {
+                    canvas.drawRoundRect(
+                        -a, -a, size.width + a, size.height + a,
+                        eckRadius, eckRadius, paint
+                    )
+                }
+                fw.clearShadowLayer()
             }
-            fw.clearShadowLayer()
         }
     }
 }
@@ -236,13 +279,34 @@ fun Modifier.glas(
     }
     rezept.innenGlanz?.let { glanz ->
         m = m.drawBehind {
-            // inset 0 1px 0: eine dp hohe Lichtkante direkt unter der Oberkante
             val h = 1.dp.toPx()
-            drawRect(
-                color = glanz,
-                topLeft = androidx.compose.ui.geometry.Offset(0f, 0f),
-                size = androidx.compose.ui.geometry.Size(size.width, h)
-            )
+            if (rund) {
+                // Als Rechteck an der Oberkante war die Lichtkante an einem
+                // Rundbutton wirkungslos (#120): dort, wo sie lag, hat der Kreis
+                // die Breite 0, und nach dem clip(CircleShape) blieb praktisch
+                // nichts uebrig. `inset 0 1px 0` zeichnet an einer runden Form
+                // eine Sichel entlang der oberen Innenkante -- hier als 1dp
+                // starker Bogen ueber die obere Haelfte genaehert. Die Sichel des
+                // Entwurfs laeuft zu den Seiten hin aus; der Bogen tut das nicht,
+                // was bei einer Staerke von 1dp nicht auffaellt.
+                val d = size.minDimension - h
+                drawArc(
+                    color = glanz,
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset((size.width - d) / 2f, (size.height - d) / 2f),
+                    size = Size(d, d),
+                    style = Stroke(width = h)
+                )
+            } else {
+                // inset 0 1px 0: eine dp hohe Lichtkante direkt unter der Oberkante
+                drawRect(
+                    color = glanz,
+                    topLeft = Offset(0f, 0f),
+                    size = Size(size.width, h)
+                )
+            }
         }
     }
     return m

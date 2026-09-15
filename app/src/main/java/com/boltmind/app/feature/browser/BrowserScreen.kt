@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -327,8 +329,9 @@ private fun ArchivPlakette() {
  * Die Aktionskreise unten rechts. Welche erscheinen, entscheidet der Modus --
  * und in der Demontage zusaetzlich, ob der betrachtete Schritt der offene ist.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Bedienkreise(
+internal fun Bedienkreise(
     uiState: BrowserUiState,
     onNaechstesTeil: () -> Unit,
     onWeiteresFoto: () -> Unit,
@@ -342,9 +345,28 @@ private fun Bedienkreise(
     onFeierabendAnfragen: () -> Unit
 ) {
     Box(Modifier.padding(end = 22.dp, bottom = 24.dp)) {
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(BoltMindDimensions.touchAbstandMin)
+        // FlowRow statt Row: in der Montage stehen bei `alleEingebaut` vier
+        // Kreise nebeneinander -- 60 + 86 + 86 + 124 plus drei Abstaende von 8
+        // sind 380 dp, mit dem Endabstand 402. Auf einem 360-dp-Geraet passte
+        // das nicht, und weil `Rundbutton` `.size(...)` setzt und nicht
+        // `requiredSize`, bekam der zuletzt gemessene groesste Kreis den Rest:
+        // der Hauptknopf wurde zur Ellipse von 81,5 dp (#124).
+        //
+        // Umbrechen statt schrumpfen ist die Antwort auf Quality Goal 1. Ein
+        // kleinerer ABSCHLUSS-Kreis haette nicht gereicht (376 dp), und "RAUS
+        // ausblenden" haette den einzigen zugesicherten Ausstieg genommen --
+        // die Wirkung der Zurueck-Geste ist in der Montage noch offen (#113).
+        //
+        // Auf breiten Geraeten aendert sich nichts: passt die Zeile, bleibt sie
+        // einzeilig. Bricht sie um, faellt der grosse Kreis auf die untere
+        // Zeile und liegt damit am naechsten zum Daumen.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(
+                BoltMindDimensions.touchAbstandMin,
+                Alignment.End
+            ),
+            verticalArrangement = Arrangement.spacedBy(BoltMindDimensions.touchAbstandMin),
+            itemVerticalAlignment = Alignment.Bottom
         ) {
             when {
                 uiState.istDemontage -> {

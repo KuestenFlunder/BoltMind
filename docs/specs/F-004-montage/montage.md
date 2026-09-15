@@ -314,6 +314,14 @@ Drei Festlegungen dazu:
 
 Der Zustand ist aus den Daten abgeleitet (`alleEingebaut`), nicht gespeichert: Sobald eine Markierung zurückgenommen wird, verschwindet der Knopf von selbst.
 
+**Die Bedienzeile bricht um, statt zu schrumpfen** (entschieden am 2026-08-02, #124). Mit dem vierten Kreis misst die Zeile 60 + 86 + 86 + 124 dp plus drei Abstände von 8 und den Endabstand von 22 — zusammen 402 dp. Auf einem 360 dp breiten Gerät passt das nicht. Gemessen wurde dort ein Hauptknopf von 81,5 dp statt 124: `Rundbutton` setzt `.size(…)` und nicht `requiredSize`, und der zuletzt gemessene, größte Kreis bekommt in einer `Row` den Rest.
+
+Die Zeile ist deshalb eine `FlowRow`. Passt sie, bleibt sie einzeilig und sieht aus wie bisher; passt sie nicht, rutscht der große Kreis auf eine zweite Zeile und liegt damit am nächsten zum Daumen. Die Reihenfolge „RAUS, ZURÜCK, ABSCHLUSS, großer Kreis" bleibt in beiden Fällen erhalten.
+
+Zwei Alternativen wurden verworfen: ein kleinerer ABSCHLUSS-Kreis hätte mit 376 dp immer noch nicht gereicht, und „RAUS" in diesem Zustand auszublenden hätte den einzigen zugesicherten Ausstieg genommen — was die Android-Zurück-Geste in der Montage tut, ist noch offen (siehe unten, `[OFFEN]` zur Zurück-Geste).
+
+**Kein Bedienelement darf seine Größe aus `Dimensions.kt` unterschreiten.** Das ist Quality Goal 1: mit Handschuhen zählt die Trefferfläche mehr als die Zeilenzahl.
+
 Der Ausstieg aus dem Flow ohne Archivierung gehört US-004.6.
 
 ---

@@ -66,7 +66,7 @@ fun FotoPlatzhalter(
         )
         if (mitBeschriftung) {
             BoltText(
-                text = stringResource(R.string.browser_foto_fehlt),
+                text = stringResource(R.string.foto_fehlt),
                 stil = BoltTypo.vorgangTitel,
                 farbe = BoltTextSchwaecher
             )

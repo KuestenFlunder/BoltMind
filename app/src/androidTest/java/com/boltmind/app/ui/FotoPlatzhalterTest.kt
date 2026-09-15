@@ -78,7 +78,7 @@ class FotoPlatzhalterTest {
         // statt sofort behaupten.
         regel.waitUntil(10_000) {
             regel.onAllNodes(
-                hasContentDescription(text(R.string.browser_foto_fehlt_beschreibung)),
+                hasContentDescription(text(R.string.foto_fehlt_beschreibung)),
                 useUnmergedTree = true
             ).fetchSemanticsNodes().isNotEmpty()
         }
@@ -99,7 +99,7 @@ class FotoPlatzhalterTest {
         // Then: derselbe Platzhalter
         regel.waitUntil(10_000) {
             regel.onAllNodes(
-                hasContentDescription(text(R.string.browser_foto_fehlt_beschreibung)),
+                hasContentDescription(text(R.string.foto_fehlt_beschreibung)),
                 useUnmergedTree = true
             ).fetchSemanticsNodes().isNotEmpty()
         }
@@ -120,7 +120,7 @@ class FotoPlatzhalterTest {
             .let { require(it) { "Der Leer-Zustand fehlt." } }
 
         val platzhalterDa = regel.onAllNodes(
-            hasContentDescription(text(R.string.browser_foto_fehlt_beschreibung)),
+            hasContentDescription(text(R.string.foto_fehlt_beschreibung)),
             useUnmergedTree = true
         ).fetchSemanticsNodes().isNotEmpty()
         require(!platzhalterDa) {

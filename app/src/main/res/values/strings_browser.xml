@@ -5,12 +5,10 @@
     <string name="browser_foto_beschreibung">Foto des Schritts</string>
     <string name="browser_keine_fotos">Keine Fotos zu diesem Schritt</string>
     <!--
-      Zwei verschiedene Faelle, die nie denselben Wortlaut tragen duerfen:
-      "Keine Fotos zu diesem Schritt" ist waehrend der Arbeit normal,
-      "Foto fehlt" heisst, dass eine Datei verschwunden ist (US-006.8).
+      "Keine Fotos zu diesem Schritt" ist waehrend der Arbeit normal (US-006.9).
+      Der Gegenfall, eine verschwundene Datei (US-006.8), heisst `foto_fehlt`
+      und liegt in strings.xml: seit #118 zeigt ihn nicht mehr nur der Browser.
     -->
-    <string name="browser_foto_fehlt">Foto fehlt</string>
-    <string name="browser_foto_fehlt_beschreibung">Foto fehlt — Datei nicht gefunden</string>
     <string name="browser_kein_foto">KEIN FOTO</string>
     <string name="browser_foto_zaehler">FOTO %1$d/%2$d</string>
     <string name="browser_wisch_hinweis">← WISCHEN</string>

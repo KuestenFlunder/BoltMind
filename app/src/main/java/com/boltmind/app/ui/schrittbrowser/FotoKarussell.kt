@@ -75,7 +75,7 @@ fun FotoKarussell(
         return
     }
 
-    val fehlendBeschreibung = stringResource(R.string.browser_foto_fehlt_beschreibung)
+    val fehlendBeschreibung = stringResource(R.string.foto_fehlt_beschreibung)
     val pagerZustand = rememberPagerState(
         initialPage = aktuellesFoto.coerceIn(0, fotos.lastIndex),
         pageCount = { fotos.size }
